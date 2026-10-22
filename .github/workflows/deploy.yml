@@ -18,6 +18,7 @@ jobs:
         uses: dokku/github-action@master
         with:
           git_remote_url: 'ssh://dokku@delta.fabricadesoftware.ifc.edu.br:1022/frontend'
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh_private_key: ${{ secrets.DOKKU_SSH_PRIVATE_KEY }}
+          ssh_host_key: ${{ secrets.DOKKU_SSH_HOST_KEY }}
           branch: main
           trace: "1"
