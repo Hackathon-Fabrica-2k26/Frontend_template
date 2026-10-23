@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import { useRouter } from 'vue-router'
-  import erro404Url from '@/assets/erro-404.pdf'
+  import erro404Url from '@/assets/erro-404.svg'
   import ondaDireitaUrl from '@/assets/onda-direita.svg'
   import ondaEsquerdaUrl from '@/assets/onda-esquerda.svg'
   import { useAuthStore } from '@/stores/auth'
@@ -46,20 +46,25 @@
         {{ descricao }}
       </p>
 
-      <button class="botao" type="button" @click="voltar">
-        <span aria-hidden="true" class="botao__seta">←</span>
+      <v-btn
+        color="primary"
+        prepend-icon="mdi-arrow-left"
+        @click="voltar"
+      >
         {{ rotuloBotao }}
-      </button>
+      </v-btn>
     </section>
+
+    <span class="assinatura">Marsupi</span>
   </main>
 </template>
 
 <style scoped>
 .not-found {
-  --verde-escuro: #2d5a4a;
-  --laranja: #eab96b;
-  --fundo: #f6f5ee;
-  --texto: #3b3b3b;
+  --verde-escuro: #356b5b;
+  --laranja: #e3b477;
+  --fundo: #f7f7f1;
+  --texto: #263d35;
 
   position: relative;
   min-height: 100vh;
@@ -68,7 +73,7 @@
   padding: 2rem 1.25rem;
   overflow: hidden;
   background: var(--fundo);
-  font-family: 'Poppins', system-ui, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .conteudo {
@@ -103,40 +108,13 @@ p {
   line-height: 1.6;
 }
 
-.botao {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding: 0.75rem 2rem;
-  border: 0;
-  border-radius: 0.5rem;
-  background: var(--verde-escuro);
-  color: #fff;
-  font: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.botao__seta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 1.25em;
-  line-height: 1;
-  transform: translateY(-0.10em);
-}
-
-.botao:hover {
-  background: #244a3d;
-}
-
-.botao:focus-visible {
-  outline: 3px solid var(--laranja);
-  outline-offset: 3px;
+.assinatura {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  color: var(--verde-escuro);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .onda {

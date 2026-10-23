@@ -17,7 +17,7 @@ router.beforeEach(to => {
   if (!to.meta.public && !auth.isLogged) {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
-  if (to.path === '/login' && auth.isLogged) {
+  if (to.meta.public && auth.isLogged) {
     return '/'
   }
 })
