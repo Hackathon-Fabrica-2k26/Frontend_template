@@ -65,6 +65,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/TurmaDetalhe': RouteRecordInfo<
+      '/TurmaDetalhe',
+      '/TurmaDetalhe',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -111,6 +118,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/register.vue': {
       routes:
         | '/register'
+      views:
+        | never
+    }
+    'src/pages/TurmaDetalhe.vue': {
+      routes:
+        | '/TurmaDetalhe'
       views:
         | never
     }
