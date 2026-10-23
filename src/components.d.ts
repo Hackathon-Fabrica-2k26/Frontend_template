@@ -19,6 +19,7 @@ declare module 'vue' {
     IlustracaoMesa: typeof import('./components/IlustracaoMesa.vue')['default']
     IlustracaoQuadro: typeof import('./components/IlustracaoQuadro.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
+    MascotePeek: typeof import('./components/MascotePeek.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TurmaCard: typeof import('./components/TurmaCard.vue')['default']
