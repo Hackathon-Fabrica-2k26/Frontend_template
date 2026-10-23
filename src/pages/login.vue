@@ -82,7 +82,7 @@
 
   definePage({
     meta: {
-      layout: 'auth',
+      layout: false,
       public: true,
     },
   })

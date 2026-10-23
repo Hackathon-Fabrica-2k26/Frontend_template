@@ -9,6 +9,7 @@
   const auth = useAuthStore()
   const router = useRouter()
 
+  const matricula = ref('')
   const name = ref('')
   const email = ref('')
   const password = ref('')
@@ -19,6 +20,7 @@
 
     try {
       await auth.register({
+        matricula: matricula.value.trim(),
         name: name.value,
         email: email.value,
         password: password.value,
@@ -41,6 +43,13 @@
     <h1 class="text-h5 mb-4">Criar conta</h1>
 
     <v-form @submit.prevent="submit">
+      <v-text-field
+        v-model="matricula"
+        autocomplete="username"
+        label="Matrícula"
+        required
+      />
+
       <v-text-field v-model="name" label="Nome" required />
 
       <v-text-field

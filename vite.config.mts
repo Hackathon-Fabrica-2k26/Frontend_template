@@ -13,7 +13,6 @@ import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 export default defineConfig({
   plugins: [
     VueRouter({ dts: 'src/typed-router.d.ts' }),
-    tailwindcss(),
     Layouts(),
     Vue({ template: { transformAssetUrls } }),
     Vuetify({ autoImport: true, styles: { configFile: 'src/styles/settings.scss' } }),
@@ -23,6 +22,7 @@ export default defineConfig({
         families: [{ name: 'Poppins', styles: 'wght@400;500;600' }],
       },
     }),
+    tailwindcss(),
     vueDevTools(),
   ],
   optimizeDeps: {

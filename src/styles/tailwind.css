@@ -1,37 +1,14 @@
-@import "tailwindcss";
+/* Tailwind sem preflight: o reset já vem do modern-normalize e do Vuetify. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 
-@theme {
-  --color-marsupi-green: #356b5b;
-  --color-marsupi-dark: #263d35;
-  --color-marsupi-sage: #a9c7b4;
-  --color-marsupi-gold: #e3b477;
-  --color-marsupi-cream: #f7f7f1;
-
-  --animate-marsupi-float: marsupi-float 13s ease-in-out infinite alternate;
-  --animate-marsupi-float-slow: marsupi-float 18s ease-in-out infinite alternate-reverse;
-  --animate-marsupi-enter: marsupi-enter 750ms ease-out both;
-
-  @keyframes marsupi-float {
-    from { transform: translateY(8px); }
-    to { transform: translateY(-12px); }
-  }
-
-  @keyframes marsupi-enter {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+@theme inline {
+  --color-primary: #356b5b;
+  --color-support: #a9c7b4;
+  --color-accent: #e3b477;
+  --color-background: #f7f7f1;
+  --color-text: #263d35;
+  --font-sans: 'Poppins', sans-serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }

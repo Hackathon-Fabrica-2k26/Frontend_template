@@ -11,6 +11,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppHeader: typeof import('./components/AppHeader.vue')['default']
+    AppHeaderNav: typeof import('./components/AppHeaderNav.vue')['default']
+    AppHeaderSearch: typeof import('./components/AppHeaderSearch.vue')['default']
+    AppHeaderUser: typeof import('./components/AppHeaderUser.vue')['default']
     AuthInput: typeof import('./components/auth/AuthInput.vue')['default']
     AuthWaves: typeof import('./components/auth/AuthWaves.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']

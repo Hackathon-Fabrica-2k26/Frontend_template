@@ -18,10 +18,12 @@
   "dependencies": {
     "@lucide/vue": "^1.61.0",
     "@mdi/font": "7.4.47",
+    "@tailwindcss/vite": "^4.3.3",
     "@vueuse/core": "^14.3.0",
     "axios": "^1.16.0",
     "modern-normalize": "^3.0.1",
     "pinia": "^3.0.4",
+    "tailwindcss": "^4.3.3",
     "vite-plugin-vue-layouts-next": "^2.1.0",
     "vue": "^3.5.34",
     "vue-router": "^4.6.4",
@@ -29,7 +31,6 @@
     "vuetify": "^4.0.7"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node22": "^22.0.6",
     "@types/node": "^25.7.0",
     "@vitejs/plugin-vue": "^6.0.6",
@@ -37,7 +38,6 @@
     "eslint": "^10.3.0",
     "eslint-config-vuetify": "^4.6.2",
     "sass-embedded": "^1.99.0",
-    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "unplugin-fonts": "^2.0.0",
     "unplugin-vue-components": "^32.0.0",
