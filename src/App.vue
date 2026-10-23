@@ -2,4 +2,4 @@
   <v-app>
     <router-view />
   </v-app>
-</template>
+</template>teste
