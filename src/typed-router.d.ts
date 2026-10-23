@@ -30,11 +30,11 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/[...all]': RouteRecordInfo<
-      '/[...all]',
-      '/:all(.*)',
-      { all: ParamValue<true> },
-      { all: ParamValue<false> },
+    '/erro': RouteRecordInfo<
+      '/erro',
+      '/erro',
+      Record<never, never>,
+      Record<never, never>,
       | never
     >,
     '/items/': RouteRecordInfo<
@@ -77,9 +77,9 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/[...all].vue': {
+    'src/pages/erro.vue': {
       routes:
-        | '/[...all]'
+        | '/erro'
       views:
         | never
     }
