@@ -15,6 +15,8 @@ declare module 'vue' {
     AppHeaderNav: typeof import('./components/AppHeaderNav.vue')['default']
     AppHeaderSearch: typeof import('./components/AppHeaderSearch.vue')['default']
     AppHeaderUser: typeof import('./components/AppHeaderUser.vue')['default']
+    AuthInput: typeof import('./components/auth/AuthInput.vue')['default']
+    AuthWaves: typeof import('./components/auth/AuthWaves.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
