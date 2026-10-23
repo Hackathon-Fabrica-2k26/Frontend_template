@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import { useRouter } from 'vue-router'
-  import erro404Url from '@/assets/erro-404.svg'
+  import erro404Url from '@/assets/erro-404.pdf'
   import ondaDireitaUrl from '@/assets/onda-direita.svg'
   import ondaEsquerdaUrl from '@/assets/onda-esquerda.svg'
   import { useAuthStore } from '@/stores/auth'
@@ -37,7 +37,7 @@
     <img alt="" class="onda onda--direita" :src="ondaDireitaUrl">
 
     <section class="conteudo">
-      <img alt="4, canguru, 4" class="codigo" :src="erro404Url">
+      <img alt="Erro 404" class="codigo" :src="erro404Url">
 
       <h1>Parece que saímos do caminho.</h1>
 
@@ -47,6 +47,7 @@
       </p>
 
       <button class="botao" type="button" @click="voltar">
+        <span aria-hidden="true" class="botao__seta">←</span>
         {{ rotuloBotao }}
       </button>
     </section>
@@ -61,13 +62,13 @@
   --texto: #3b3b3b;
 
   position: relative;
-  display: grid;
   min-height: 100vh;
-  overflow: hidden;
+  display: grid;
   place-items: center;
   padding: 2rem 1.25rem;
+  overflow: hidden;
   background: var(--fundo);
-  font-family: var(--font-family);
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 .conteudo {
@@ -76,8 +77,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
   text-align: center;
+  gap: 0.75rem;
 }
 
 .codigo {
@@ -95,14 +96,18 @@ h1 {
 }
 
 p {
-  max-width: 36ch;
   margin: 0;
+  max-width: 36ch;
   color: var(--texto);
   font-size: 0.9375rem;
   line-height: 1.6;
 }
 
 .botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   margin-top: 1rem;
   padding: 0.75rem 2rem;
   border: 0;
@@ -113,6 +118,16 @@ p {
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.botao__seta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.25em;
+  line-height: 1;
+  transform: translateY(-0.10em);
 }
 
 .botao:hover {
@@ -133,11 +148,11 @@ p {
 
 .onda--esquerda {
   left: 0;
-  width: clamp(120px, 18vw, 220px);
+  width: clamp(110px, 13vw, 260px);
 }
 
 .onda--direita {
   right: 0;
-  width: clamp(160px, 26vw, 320px);
+  width: clamp(140px, 21vw, 400px);
 }
 </style>
