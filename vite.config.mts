@@ -17,8 +17,8 @@ export default defineConfig({
     Vuetify({ autoImport: true, styles: { configFile: 'src/styles/settings.scss' } }),
     Components({ dts: 'src/components.d.ts' }),
     Fonts({
-      fontsource: {
-        families: [{ name: 'Roboto', weights: [300, 400, 500, 700], styles: ['normal'] }],
+      google: {
+        families: [{ name: 'Poppins', styles: 'wght@400;500;600' }],
       },
     }),
     vueDevTools(),
