@@ -1,0 +1,14 @@
+/* Tailwind sem preflight: o reset já vem do modern-normalize e do Vuetify. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme inline {
+  --color-primary: #356b5b;
+  --color-support: #a9c7b4;
+  --color-accent: #e3b477;
+  --color-background: #f7f7f1;
+  --color-text: #263d35;
+  --font-sans: 'Poppins', sans-serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
