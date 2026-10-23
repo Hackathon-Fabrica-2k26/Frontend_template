@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, nextTick, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
+  import { useShake } from '@/composables/useShake'
   import { useAuthStore } from '@/stores/auth'
   import { notify } from '@/utils/notify'
 
@@ -21,6 +22,9 @@
   const resetKey = ref(0) // muda para remontar o campo (limpa + refoca)
   const loading = ref(false)
   const error = ref('')
+  const success = ref(false)
+  const boxes = ref<HTMLElement | null>(null)
+  const shake = useShake(boxes)
 
   const value = computed(() => String(code.value ?? ''))
   const isComplete = computed(() => value.value.length === length)
@@ -38,9 +42,15 @@
 
   const { formatted, isRunning, restart } = useCountdown(resendSeconds)
 
-  onMounted(() => {
-    if (!auth.hasPendingOtp) {
-      router.replace('/login')
+  // Sem login pendente não há o que confirmar: sai antes de desenhar a tela (sem "piscar").
+  if (!auth.hasPendingOtp) {
+    router.replace('/login')
+  }
+
+  // Digitou de novo: o erro anterior já não vale.
+  watch(code, next => {
+    if (error.value && String(next ?? '').length > 0) {
+      error.value = ''
     }
   })
 
@@ -80,7 +90,7 @@
   type DotState = 'filled' | 'active' | 'idle'
 
   function dotState (i: number): DotState {
-    if (i < value.value.length) return 'filled'
+    if (success.value || i < value.value.length) return 'filled'
     if (i === value.value.length) return 'active'
     return 'idle'
   }
@@ -94,8 +104,10 @@
     router.push('/login')
   }
 
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
   async function verify () {
-    if (!isComplete.value || loading.value) return
+    if (!isComplete.value || loading.value || success.value) return
     if (!auth.hasPendingOtp) {
       await router.push('/login')
       return
@@ -106,14 +118,22 @@
 
     try {
       await auth.verifyOtp(value.value)
+      // Sucesso: as caixas confirmam em onda antes de sair da tela.
+      success.value = true
+      await wait(700)
       const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
         ? route.query.redirect
         : '/'
       await router.push(redirect)
     } catch (error_) {
-      const message = error_ instanceof Error ? error_.message : 'Código inválido ou expirado.'
-      error.value = message
-      notify.error(message)
+      error.value = error_ instanceof Error ? error_.message : 'Código inválido ou expirado.'
+      // Os campos estavam desabilitados: reabilita, limpa e remonta (o que devolve o foco)
+      // antes de tremer, senão o código errado fica preso e sem foco.
+      loading.value = false
+      code.value = ''
+      resetKey.value++
+      await nextTick()
+      shake()
     } finally {
       loading.value = false
     }
@@ -131,13 +151,13 @@
 
     try {
       await auth.resendOtp()
+      notify.success('Enviamos um novo código.')
+      restart()
+      loading.value = false
       code.value = ''
       resetKey.value++
-      restart()
     } catch (error_) {
-      const message = error_ instanceof Error ? error_.message : 'Não foi possível reenviar o código.'
-      error.value = message
-      notify.error(message)
+      notify.error(error_ instanceof Error ? error_.message : 'Não foi possível reenviar o código.')
     } finally {
       loading.value = false
     }
@@ -145,7 +165,7 @@
 </script>
 
 <template>
-  <v-container class="otp-screen" fluid :style="{ '--gap': `${GAP}px` }">
+  <v-container v-if="auth.hasPendingOtp" class="otp-screen" fluid :style="{ '--gap': `${GAP}px` }">
     <div aria-hidden="true" class="otp-screen__art">
       <svg preserveAspectRatio="none" viewBox="0 0 500 600">
         <path
@@ -193,37 +213,44 @@
         <form class="form" novalidate @submit.prevent="verify">
           <p class="label">Código de verificação</p>
 
-          <v-otp-input
-            :key="resetKey"
-            v-model="code"
-            autofocus
-            class="otp"
-            :disabled="loading"
-            :error="!!error"
-            label="Código de verificação"
-            :length="length"
-            type="number"
-            variant="outlined"
-          />
-
-          <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
-          <div aria-hidden="true" class="trail">
-            <svg
-              class="trail__wave"
-              preserveAspectRatio="none"
-              :style="waveStyle"
-              :viewBox="`0 0 ${WAVE_WIDTH} ${WAVE_HEIGHT}`"
-            >
-              <path :d="wavePath" fill="none" vector-effect="non-scaling-stroke" />
-            </svg>
-
-            <span
-              v-for="(y, i) in waveYs"
-              :key="i"
-              class="trail__dot"
-              :class="`trail__dot--${dotState(i)}`"
-              :style="{ marginTop: `${y - 4}px` }"
+          <div ref="boxes" class="boxes">
+            <v-otp-input
+              :key="resetKey"
+              v-model="code"
+              autofocus
+              class="otp"
+              :class="{ 'otp--ok': success }"
+              :disabled="loading || success"
+              :error="!!error"
+              label="Código de verificação"
+              :length="length"
+              type="number"
+              variant="outlined"
             />
+
+            <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
+            <div
+              aria-hidden="true"
+              class="trail"
+              :class="{ 'trail--error': !!error, 'trail--ok': success }"
+            >
+              <svg
+                class="trail__wave"
+                preserveAspectRatio="none"
+                :style="waveStyle"
+                :viewBox="`0 0 ${WAVE_WIDTH} ${WAVE_HEIGHT}`"
+              >
+                <path :d="wavePath" fill="none" vector-effect="non-scaling-stroke" />
+              </svg>
+
+              <span
+                v-for="(y, i) in waveYs"
+                :key="i"
+                class="trail__dot"
+                :class="`trail__dot--${dotState(i)}`"
+                :style="{ marginTop: `${y - 4}px`, '--i': i }"
+              />
+            </div>
           </div>
 
           <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -232,13 +259,13 @@
             block
             class="submit text-none"
             color="primary"
-            :disabled="!isComplete"
+            :disabled="!isComplete || success"
             :loading="loading"
             rounded="lg"
             size="x-large"
             type="submit"
           >
-            Verificar código
+            {{ success ? 'Código confirmado' : 'Verificar código' }}
           </v-btn>
         </form>
 
@@ -311,21 +338,21 @@
 }
 
 .back {
-  margin-left: -50px;
+  margin-left: -12px;
   margin-bottom: 40px;
   letter-spacing: 0;
   color: rgb(var(--v-theme-primary));
 }
 
 .title {
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 600;
   line-height: 1.2;
 }
 
 .subtitle {
   margin-top: 12px;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
 }
 
 .email {
@@ -333,11 +360,12 @@
   align-items: baseline;
   gap: 12px;
   margin-top: 8px;
+  font-size: 1.1rem;
   font-weight: 500;
 }
 
 .email__link {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 400;
   color: rgb(var(--v-theme-primary));
   text-decoration: underline;
@@ -430,6 +458,46 @@
   border-color: rgb(var(--v-theme-secondary));
 }
 
+/* erro: a trilha avisa junto com as caixas */
+.trail--error .trail__dot,
+.trail--error .trail__dot--active {
+  border-color: rgb(var(--v-theme-error));
+}
+
+.trail--error .trail__wave path {
+  stroke: rgba(var(--v-theme-error), 0.45);
+}
+
+/* sucesso: as caixas e os pontos "acendem" em onda, da esquerda para a direita */
+.otp--ok :deep(.v-field:not(.v-field--error) .v-field__outline) {
+  color: rgb(var(--v-theme-primary));
+}
+
+.otp--ok :deep(.v-otp-input__content > *) {
+  animation: caixa-ok 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.otp--ok :deep(.v-otp-input__content > :nth-child(2)) { animation-delay: 70ms; }
+.otp--ok :deep(.v-otp-input__content > :nth-child(3)) { animation-delay: 140ms; }
+.otp--ok :deep(.v-otp-input__content > :nth-child(4)) { animation-delay: 210ms; }
+
+.trail--ok .trail__dot {
+  animation: ponto-ok 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i) * 70ms + 120ms);
+}
+
+@keyframes caixa-ok {
+  50% {
+    transform: translateY(-8px) scale(1.05);
+  }
+}
+
+@keyframes ponto-ok {
+  50% {
+    transform: scale(1.8);
+  }
+}
+
 .error {
   margin-top: 12px;
   font-size: 0.875rem;
@@ -447,7 +515,7 @@
   display: flex;
   margin: 20px auto 0;
   letter-spacing: 0;
-  font-size: 0.875rem;
+  font-size: 1rem;
 }
 /* mantém a cor do design enquanto a contagem roda */
 .resend.v-btn--disabled {
@@ -458,7 +526,7 @@
 .hint {
   margin-top: 28px;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: 1rem;
 }
 
 .brand {
@@ -471,7 +539,7 @@
 /* ---------- desktop ---------- */
 @media (min-width: 1024px) {
   .otp-screen__content {
-    width: min(400px, 33vw);
+    width: min(480px, 34vw);
     margin-inline: 0;
     margin-left: 10.4vw;
     padding: clamp(48px, 12vh, 140px) 0 32px;
@@ -485,15 +553,16 @@
   }
 
   .title {
-    font-size: 2rem;
+    font-size: 2.5rem;
   }
 
   .subtitle {
-    font-size: 1rem;
+    font-size: 1.15rem;
   }
 
   .label {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    font-size: 1rem;
   }
 
   .otp {
@@ -530,16 +599,23 @@
   }
 
   .otp :deep(.v-otp-input__content) {
-    height: 80px;
+    height: 96px;
+  }
+
+  .otp :deep(.v-otp-input__field) {
+    font-size: 2.1rem;
   }
 
   .back {
     margin-bottom: 24px;
+    margin-left: -50px;
     max-width: 10vw;
   }
 
   .submit {
-    margin-top: 20px;
+    height: 60px;
+    margin-top: 24px;
+    font-size: 1.05rem;
   }
 
   .resend {
@@ -554,6 +630,11 @@
 @media (prefers-reduced-motion: reduce) {
   .trail__dot {
     transition: none;
+  }
+
+  .otp--ok :deep(.v-otp-input__content > *),
+  .trail--ok .trail__dot {
+    animation: none;
   }
 }
 </style>

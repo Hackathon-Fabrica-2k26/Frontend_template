@@ -5,11 +5,14 @@
     </span>
 
     <span class="auth-input-wrapper">
-      <component :is="type === 'password' ? LockKeyhole : UserRound" class="auth-icon" :size="18" :stroke-width="1.8" />
+      <component :is="type === 'password' ? LockKeyhole : UserRound" class="auth-icon" :size="20" :stroke-width="1.8" />
 
       <input
+        ref="input"
+        :aria-invalid="invalid || undefined"
         :autocomplete="autocomplete"
         class="auth-input"
+        :class="{ 'auth-input--invalid': invalid }"
         :disabled="disabled"
         :placeholder="placeholder"
         :required="required"
@@ -27,8 +30,8 @@
         @click="visible = !visible"
       >
         <Transition mode="out-in" name="icon-swap">
-          <EyeOff v-if="visible" key="hide" :size="18" />
-          <Eye v-else key="show" :size="18" />
+          <EyeOff v-if="visible" key="hide" :size="20" />
+          <Eye v-else key="show" :size="20" />
         </Transition>
       </button>
     </span>
@@ -51,17 +54,23 @@
     autocomplete?: string
     required?: boolean
     disabled?: boolean
+    invalid?: boolean
   }>(), {
     type: 'text',
     placeholder: '',
     autocomplete: 'off',
     required: false,
     disabled: false,
+    invalid: false,
   })
 
   const model = defineModel<string>({ required: true })
 
   const visible = ref(false)
+  const input = ref<HTMLInputElement | null>(null)
+
+  // Permite à página devolver o foco ao campo (ex.: depois de errar a senha).
+  defineExpose({ focus: () => input.value?.focus() })
 
   const inputType = computed(() => {
     if (props.type === 'password' && !visible.value) {
@@ -84,9 +93,9 @@
 
 .auth-label {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   color: #194d42;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -98,13 +107,13 @@
 .auth-input {
   display: block;
   width: 100%;
-  height: 48px;
-  padding: 0 44px;
+  height: 56px;
+  padding: 0 50px;
   border: 1px solid #b8d0c5;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.45);
   color: #263d35;
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   box-shadow: none;
   transition:
@@ -127,6 +136,17 @@
   box-shadow: 0 0 0 3px rgba(53, 107, 91, 0.09);
 }
 
+.auth-input--invalid,
+.auth-input--invalid:hover:not(:disabled) {
+  border-color: #b3261e;
+  background: rgba(179, 38, 30, 0.04);
+}
+
+.auth-input--invalid:focus {
+  border-color: #b3261e;
+  box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.12);
+}
+
 .auth-input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -135,7 +155,7 @@
 .auth-icon {
   position: absolute;
   top: 50%;
-  left: 14px;
+  left: 16px;
   transform: translateY(-50%);
   color: #7c9a8e;
   pointer-events: none;
@@ -144,6 +164,10 @@
 
 .auth-field:focus-within .auth-icon {
   color: #356b5b;
+}
+
+.auth-field:has(.auth-input--invalid) .auth-icon {
+  color: #b3261e;
 }
 
 .password-toggle {
