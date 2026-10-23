@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, nextTick, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
   import { useShake } from '@/composables/useShake'
@@ -28,6 +28,12 @@
 
   const value = computed(() => String(code.value ?? ''))
   const isComplete = computed(() => value.value.length === length)
+
+  watch(value, () => {
+    if (error.value) {
+      error.value = ''
+    }
+  })
 
   // Mantém o domínio visível e esconde o restante do endereço.
   // Ex.: "aluno@escola.edu.br" -> "a****@escola.edu.br"
@@ -156,6 +162,8 @@
       loading.value = false
       code.value = ''
       resetKey.value++
+      restart()
+      notify.success('Novo código enviado para seu e-mail!')
     } catch (error_) {
       notify.error(error_ instanceof Error ? error_.message : 'Não foi possível reenviar o código.')
     } finally {
@@ -213,19 +221,37 @@
         <form class="form" novalidate @submit.prevent="verify">
           <p class="label">Código de verificação</p>
 
-          <div ref="boxes" class="boxes">
-            <v-otp-input
-              :key="resetKey"
-              v-model="code"
-              autofocus
-              class="otp"
-              :class="{ 'otp--ok': success }"
-              :disabled="loading || success"
-              :error="!!error"
-              label="Código de verificação"
-              :length="length"
-              type="number"
-              variant="outlined"
+          <v-otp-input
+            :key="resetKey"
+            v-model="code"
+            autofocus
+            class="otp"
+            :disabled="loading"
+            :error="!!error"
+            label="Código de verificação"
+            :length="length"
+            type="number"
+            variant="outlined"
+            @finish="verify"
+          />
+
+          <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
+          <div aria-hidden="true" class="trail">
+            <svg
+              class="trail__wave"
+              preserveAspectRatio="none"
+              :style="waveStyle"
+              :viewBox="`0 0 ${WAVE_WIDTH} ${WAVE_HEIGHT}`"
+            >
+              <path :d="wavePath" fill="none" vector-effect="non-scaling-stroke" />
+            </svg>
+
+            <span
+              v-for="(y, i) in waveYs"
+              :key="i"
+              class="trail__dot"
+              :class="`trail__dot--${dotState(i)}`"
+              :style="{ marginTop: `${y - 4}px` }"
             />
 
             <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
