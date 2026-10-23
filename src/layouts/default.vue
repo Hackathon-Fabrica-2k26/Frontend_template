@@ -26,12 +26,7 @@
 
   <v-app-bar flat>
     <v-app-bar-nav-icon @click="drawer = !drawer" />
-    <v-app-bar-title>Hackathon Fábrica</v-app-bar-title>
-
-    <v-btn
-      :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
-      @click="toggleTheme"
-    />
+    <v-app-bar-title>Marsupi</v-app-bar-title>
   </v-app-bar>
 
   <v-main>
@@ -42,26 +37,19 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue'
+  import { ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { useTheme } from 'vuetify'
   import { useAuthStore } from '@/stores/auth'
 
   const auth = useAuthStore()
   const router = useRouter()
-  const theme = useTheme()
 
-  const drawer = ref(true)
+  const drawer = ref<boolean | null>(null)
   // Adicione aqui os links do menu.
   const links = [
     { title: 'Início', icon: 'mdi-home', to: '/' },
     { title: 'Itens', icon: 'mdi-format-list-checks', to: '/items' },
   ]
-
-  const isDark = computed(() => theme.current.value.dark)
-  function toggleTheme () {
-    theme.change(isDark.value ? 'light' : 'dark')
-  }
 
   function logout () {
     auth.logout()
