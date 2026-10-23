@@ -1,0 +1,73 @@
+/* Tokens e base do Marsupi (DESIGN.md). Reset vem do modern-normalize, importado em main.ts. */
+:root {
+  --color-primary: #356b5b;
+  --color-support: #a9c7b4;
+  --color-accent: #e3b477;
+  --color-background: #f7f7f1;
+  --color-text: #263d35;
+
+  --font-family: 'Poppins', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --line-height-default: 1.45;
+
+  --radius-default: 12px;
+  --radius-control: 12px;
+  --radius-card: 12px;
+  --radius-checkbox: 5px;
+
+  --space-tight: 8px;
+  --space-icon-label: 12px;
+  --space-control-padding: 16px;
+  --space-actions: 18px;
+  --space-fields: 20px;
+  --space-groups: 24px;
+
+  --control-height: 56px;
+  --form-width: 420px;
+}
+
+/* Sem barra de rolagem visível; a rolagem continua funcionando. */
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-default);
+  color: var(--color-text);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  color: var(--color-background);
+  background: var(--color-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

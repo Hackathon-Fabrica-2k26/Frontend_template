@@ -1,5 +1,12 @@
 // Variáveis SASS e ajustes globais do Vuetify.
 // https://vuetifyjs.com/features/sass-variables/
+@use 'vuetify/settings' with (
+  $body-font-family: ('Poppins', sans-serif),
+  $border-radius-root: 12px,
+  $button-elevation: ('default': 0, 'hover': 0, 'active': 0),
+  $card-elevation: 0,
+  $field-font-size: 14px
+);
 
 @layer vuetify-core.reset {
   ul, ol, figure, details, summary {

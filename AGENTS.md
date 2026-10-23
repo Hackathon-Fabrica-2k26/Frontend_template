@@ -22,7 +22,7 @@ Frontend Vue 3 + Vuetify 4 (Vite, TypeScript). Consome a API do `Backend_templat
 
 ## Convenções
 - Componentes Vuetify (`v-btn`, `v-card`...) são importados sozinhos. Não instale outra biblioteca de UI.
-- Ícones: Material Design Icons, ex.: `prepend-icon="mdi-home"`.
+- Ícones: Lucide (`@lucide/vue`), importe só o que usar: `import { House } from '@lucide/vue'` e `<House :size="20" />`. Em props do Vuetify passe o componente: `:prepend-icon="House"`. Não misture com outra biblioteca de ícones em código novo (o template ainda usa `mdi-*` em `layouts/default.vue`).
 - Toda chamada à API passa por um service em `src/services/` usando `@/plugins/api`. Nunca use `axios` direto em páginas.
 - Service lança `Error` com mensagem pronta (`buildApiError`). A página captura e mostra com `notify.error(...)`.
 - Rotas exigem login por padrão. Libere uma rota com `definePage({ meta: { public: true } })`.
