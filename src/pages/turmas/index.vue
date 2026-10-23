@@ -5,7 +5,7 @@
     <div class="relative z-[1] px-2 pt-10 pb-12 sm:px-6">
       <div class="relative left-1/2 grid w-screen -translate-x-1/2 items-center gap-4 px-8 lg:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:px-28">
         <p class="entrada text-3xl leading-tight font-normal text-text">
-          Bem-vinda, {{ nome }}!
+          Bem-vinda, <strong class="font-semibold">{{ nome }}</strong>!
         </p>
 
         <h1 class="entrada text-2xl font-semibold text-text [animation-delay:80ms] lg:text-center">Minhas turmas</h1>
@@ -23,13 +23,14 @@
         </div>
       </div>
 
-      <section aria-label="Lista de turmas" class="lista-turmas mt-4 flex flex-col gap-5">
+      <section aria-label="Lista de turmas" class="lista-turmas -mt-3 flex flex-col gap-10">
         <TurmaCard
           v-for="(turma, index) in turmas"
           :key="turma.id"
           :estudantes="turma.estudantes"
           :icone="turma.icone"
           :nome="turma.nome"
+          :saudar="index === 0"
           :style="{ animationDelay: `${240 + index * 110}ms` }"
           :to="`/turmas/${turma.id}`"
           :turno="turma.turno"
@@ -70,17 +71,19 @@
 </script>
 
 <style scoped>
-/* Rolagem própria da lista, sem a barra do navegador. O respiro (padding + margem negativa)
-   evita cortar a sombra e o zoom do hover dos cartões. */
+/* Rolagem própria da lista. O respiro (padding) evita cortar o glow, o zoom do hover e o
+   canguru que sobe acima do primeiro cartão; a margem negativa devolve esse espaço ao topo. */
 .lista-turmas {
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 262px);
   min-height: 240px;
   width: 100%;
-  max-width: 584px;
+  max-width: 606px;
   margin-inline: auto;
-  padding: 12px 20px;
+  padding: 72px 26px 48px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* Os cartões somem suavemente nas bordas da lista, sem passar por cima do título. */
+  mask-image: linear-gradient(to bottom, transparent, #000 32px, #000 calc(100% - 32px), transparent);
 }
 
 /* Barra de rolagem na identidade do Marsupi: trilho verde claro, thumb verde de apoio que
@@ -107,6 +110,12 @@
   background: var(--color-primary);
 }
 
+@media (max-width: 640px) {
+  .lista-turmas {
+    padding-inline: 8px;
+  }
+}
+
 @supports not selector(::-webkit-scrollbar) {
   .lista-turmas {
     scrollbar-color: var(--color-support) #e1eae0;
@@ -118,7 +127,7 @@
   animation: entrada 0.6s var(--ease-out-expo, ease) backwards;
 }
 
-:deep(.turma-card) {
+:deep(.turma-item) {
   animation: entrada 0.7s var(--ease-out-expo, ease) backwards;
 }
 
