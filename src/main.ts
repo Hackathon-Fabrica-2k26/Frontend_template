@@ -5,6 +5,7 @@ import 'modern-normalize/modern-normalize.css'
 import 'unfonts.css'
 import 'vue3-toastify/dist/index.css'
 import '@/styles/main.css'
+import '@/styles/tailwind.css'
 
 const app = createApp(App)
 

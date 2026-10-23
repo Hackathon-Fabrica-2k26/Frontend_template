@@ -11,6 +11,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AuthInput: typeof import('./components/auth/AuthInput.vue')['default']
+    AuthWaves: typeof import('./components/auth/AuthWaves.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

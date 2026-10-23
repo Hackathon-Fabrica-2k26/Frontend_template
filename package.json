@@ -29,6 +29,7 @@
     "vuetify": "^4.0.7"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node22": "^22.0.6",
     "@types/node": "^25.7.0",
     "@vitejs/plugin-vue": "^6.0.6",
@@ -36,6 +37,7 @@
     "eslint": "^10.3.0",
     "eslint-config-vuetify": "^4.6.2",
     "sass-embedded": "^1.99.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "unplugin-fonts": "^2.0.0",
     "unplugin-vue-components": "^32.0.0",
