@@ -55,7 +55,6 @@
       </v-btn>
     </section>
 
-    <span class="assinatura">Marsupi</span>
   </main>
 </template>
 
@@ -106,15 +105,6 @@ p {
   color: var(--texto);
   font-size: 0.9375rem;
   line-height: 1.6;
-}
-
-.assinatura {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 1.5rem;
-  color: var(--verde-escuro);
-  font-size: 1rem;
-  font-weight: 600;
 }
 
 .onda {
