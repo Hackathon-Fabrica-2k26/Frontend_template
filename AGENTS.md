@@ -1,4 +1,5 @@
 # AGENTS.md
+Contexto do produto: docs/contexto_projeto_ia.md.
 
 Frontend Vue 3 + Vuetify 4 (Vite, TypeScript). Consome a API do `Backend_template` (Django + DRF + JWT). Siga estes padrões ao adicionar código.
 
