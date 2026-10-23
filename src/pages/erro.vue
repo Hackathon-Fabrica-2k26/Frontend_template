@@ -10,7 +10,6 @@
     meta: {
       layout: false,
       public: true,
-      aberta: true,
     },
   })
 
