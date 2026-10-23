@@ -1,4 +1,4 @@
-import type { RegisterPayload, User } from '@/interfaces/user'
+import type { User } from '@/interfaces/user'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import authService from '@/services/auth'
@@ -200,12 +200,6 @@ export const useAuthStore = defineStore('auth', () => {
     await authService.resendOtp(pending.value.otp_token)
   }
 
-  async function register (
-    payload: RegisterPayload,
-  ): Promise<void> {
-    await authService.register(payload)
-  }
-
   let refreshing: Promise<string> | null = null
 
   function refreshAccess (): Promise<string> {
@@ -252,7 +246,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     verifyOtp,
     resendOtp,
-    register,
     refreshAccess,
     logout,
   }

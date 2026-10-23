@@ -6,12 +6,3 @@ export interface User {
   ano?: string
   escola?: number | null
 }
-
-export interface RegisterPayload {
-  matricula: string
-  email: string
-  name: string
-  password: string
-  ano?: string
-  escola?: number | null
-}
