@@ -1,8 +1,8 @@
 <template>
-  <div class="relative isolate">
+  <div class="relative isolate h-[calc(100dvh-158px)]">
     <TurmasFundo />
 
-    <div class="relative z-[1] px-2 pt-10 pb-12 sm:px-6">
+    <div class="relative z-[1] flex h-full flex-col px-2 pt-10 pb-4 sm:px-6">
       <div class="relative left-1/2 grid w-screen -translate-x-1/2 items-center gap-4 px-8 lg:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:px-28">
         <p class="entrada text-3xl leading-tight font-normal text-text">
           Bem-vinda, <strong class="font-semibold">{{ nome }}</strong>!
@@ -23,7 +23,7 @@
         </div>
       </div>
 
-      <section aria-label="Lista de turmas" class="lista-turmas -mt-3 flex flex-col gap-10">
+      <section aria-label="Lista de turmas" class="lista-turmas -mt-3 min-h-0 flex-1 flex flex-col gap-10">
         <TurmaCard
           v-for="(turma, index) in turmas"
           :key="turma.id"
@@ -74,8 +74,6 @@
 /* Rolagem própria da lista. O respiro (padding) evita cortar o glow, o zoom do hover e o
    canguru que sobe acima do primeiro cartão; a margem negativa devolve esse espaço ao topo. */
 .lista-turmas {
-  max-height: calc(100vh - 262px);
-  min-height: 240px;
   width: 100%;
   max-width: 606px;
   margin-inline: auto;
