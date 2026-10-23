@@ -11,22 +11,60 @@ const router = createRouter({
 
 globalRouter.router = router
 
-// Toda rota exige login, exceto as marcadas com meta.public (ver pages/login.vue).
 router.beforeEach(to => {
   const auth = useAuthStore()
-  if (!to.meta.public && !auth.isLogged) {
-    return { path: '/login', query: { redirect: to.fullPath } }
+
+  // Login é uma página pública.
+  if (to.path === '/login') {
+    if (auth.isLogged) {
+      return '/'
+    }
+
+    return true
   }
-  if (to.meta.public && auth.isLogged) {
-    return '/'
+
+  // OTP exige que o login tenha sido iniciado.
+  if (to.path === '/otp') {
+    if (auth.isLogged) {
+      return '/'
+    }
+
+    if (!auth.hasPendingOtp) {
+      return '/login'
+    }
+
+    return true
   }
+
+  // Páginas públicas não exigem autenticação.
+  if (to.meta.public === true) {
+    return true
+  }
+
+  // Protege as páginas privadas.
+  if (!auth.isLogged) {
+    return {
+      path: '/login',
+      query: {
+        redirect: to.fullPath,
+      },
+    }
+  }
+
+  return true
 })
 
-// https://github.com/vitejs/vite/issues/11804
 router.onError((err, to) => {
-  if (err?.message?.includes?.('Failed to fetch dynamically imported module')) {
+  if (
+    err?.message?.includes?.(
+      'Failed to fetch dynamically imported module',
+    )
+  ) {
     if (localStorage.getItem('vuetify:dynamic-reload')) {
-      console.error('Dynamic import error, reloading page did not fix it', err)
+      console.error(
+        'Dynamic import error, reloading did not fix it',
+        err,
+      )
     } else {
       localStorage.setItem('vuetify:dynamic-reload', 'true')
       location.assign(to.fullPath)

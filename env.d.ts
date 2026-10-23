@@ -8,8 +8,8 @@ interface ImportMetaEnv {
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Nome do layout em src/layouts (padrão: default). */
-    layout?: string
+    /** Nome do layout em src/layouts (padrão: default). `false` desativa o layout. */
+    layout?: string | false
     /** Rota acessível sem login. */
     public?: boolean
   }

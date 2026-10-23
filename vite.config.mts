@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import tailwindcss from '@tailwindcss/vite'
 import Vue from '@vitejs/plugin-vue'
 import Fonts from 'unplugin-fonts/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -21,6 +22,7 @@ export default defineConfig({
         families: [{ name: 'Poppins', styles: 'wght@400;500;600' }],
       },
     }),
+    tailwindcss(),
     vueDevTools(),
   ],
   optimizeDeps: {
