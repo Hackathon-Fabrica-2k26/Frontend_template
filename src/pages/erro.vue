@@ -37,7 +37,7 @@
     <img alt="" class="onda onda--direita" :src="ondaDireitaUrl">
 
     <section class="conteudo">
-      <img alt="4, canguru, 4" class="codigo" :src="erro404Url">
+      <img alt="Erro 404" class="codigo" :src="erro404Url">
 
       <h1>Parece que saímos do caminho.</h1>
 
@@ -46,28 +46,33 @@
         {{ descricao }}
       </p>
 
-      <button class="botao" type="button" @click="voltar">
+      <v-btn
+        color="primary"
+        prepend-icon="mdi-arrow-left"
+        @click="voltar"
+      >
         {{ rotuloBotao }}
-      </button>
+      </v-btn>
     </section>
+
   </main>
 </template>
 
 <style scoped>
 .not-found {
-  --verde-escuro: #2d5a4a;
-  --laranja: #eab96b;
-  --fundo: #f6f5ee;
-  --texto: #3b3b3b;
+  --verde-escuro: #356b5b;
+  --laranja: #e3b477;
+  --fundo: #f7f7f1;
+  --texto: #263d35;
 
   position: relative;
-  display: grid;
   min-height: 100vh;
-  overflow: hidden;
+  display: grid;
   place-items: center;
   padding: 2rem 1.25rem;
+  overflow: hidden;
   background: var(--fundo);
-  font-family: var(--font-family);
+  font-family: 'Poppins', sans-serif;
 }
 
 .conteudo {
@@ -76,8 +81,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
   text-align: center;
+  gap: 0.75rem;
 }
 
 .codigo {
@@ -95,33 +100,11 @@ h1 {
 }
 
 p {
-  max-width: 36ch;
   margin: 0;
+  max-width: 36ch;
   color: var(--texto);
   font-size: 0.9375rem;
   line-height: 1.6;
-}
-
-.botao {
-  margin-top: 1rem;
-  padding: 0.75rem 2rem;
-  border: 0;
-  border-radius: 0.5rem;
-  background: var(--verde-escuro);
-  color: #fff;
-  font: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.botao:hover {
-  background: #244a3d;
-}
-
-.botao:focus-visible {
-  outline: 3px solid var(--laranja);
-  outline-offset: 3px;
 }
 
 .onda {
@@ -133,11 +116,11 @@ p {
 
 .onda--esquerda {
   left: 0;
-  width: clamp(120px, 18vw, 220px);
+  width: clamp(110px, 13vw, 260px);
 }
 
 .onda--direita {
   right: 0;
-  width: clamp(160px, 26vw, 320px);
+  width: clamp(140px, 21vw, 400px);
 }
 </style>
