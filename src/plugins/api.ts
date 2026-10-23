@@ -21,7 +21,7 @@ const api = axios.create({
 function isAuthEndpoint (url?: string): boolean {
   return Boolean(
     url
-    && /auth\/(?:login|refresh|register|otp\/verify|otp\/resend)\//.test(url),
+    && /auth\/(?:login|refresh|otp\/verify|otp\/resend)\//.test(url),
   )
 }
 

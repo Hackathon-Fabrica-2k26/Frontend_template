@@ -1,7 +1,7 @@
 <template>
   <div class="pagina-turma">
     <nav aria-label="Navegação estrutural" class="breadcrumbs">
-      <router-link class="crumb-link" to="/">Minhas turmas</router-link>
+      <router-link class="crumb-link" to="/turmas">Minhas turmas</router-link>
       <span>/</span>
       <strong>{{ turma.nome }}</strong>
     </nav>
@@ -51,25 +51,27 @@
         </div>
 
         <v-btn
-          class="btn-adicionar-foto"
+          class="btn-adicionar-alunos"
           color="primary"
-          prepend-icon="mdi-camera"
-          @click="acionarUploadFoto"
+          prepend-icon="mdi-account-plus"
+          @click="adicionarAlunos"
         >
-          Adicionar foto
+          Adicionar alunos
         </v-btn>
       </header>
 
       <div class="grelha-conteudo">
-        <section class="cartao-vazio">
-          <div class="icone-vazio-container">
-            <v-icon color="primary" icon="mdi-image-outline" size="30" />
-          </div>
+        <MascoteCard ref="mascote" :intervalo="9000" lado="dir" saudar>
+          <section class="cartao-vazio">
+            <div class="icone-vazio-container">
+              <v-icon color="primary" icon="mdi-image-outline" size="30" />
+            </div>
 
-          <h3>Nenhum aluno cadastrado</h3>
-          <p>Adicione uma foto da chamada para cadastrar os alunos.</p>
-          <small>Os estudantes da turma aparecerão aqui.</small>
-        </section>
+            <h3>Nenhum aluno cadastrado</h3>
+            <p>Adicione os alunos para começar a acompanhar a turma.</p>
+            <small>Os estudantes da turma aparecerão aqui.</small>
+          </section>
+        </MascoteCard>
 
         <aside class="cartao-apoio">
           <div>
@@ -97,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, useTemplateRef } from 'vue'
 
   import iconeNotebookUrl from '@/assets/icone-notebook.svg'
 
@@ -115,22 +117,37 @@
   ] as const
 
   const abaAtiva = ref<(typeof abas)[number]['id']>('estudantes')
+  const mascote = useTemplateRef<{ acenar: (ms?: number) => void }>('mascote')
 
-  function acionarUploadFoto () {
-    console.info('Ação: adicionar foto da chamada')
+  function adicionarAlunos () {
+    // TODO: abrir o fluxo de cadastro de alunos. Por enquanto o canguru só reage ao clique.
+    mascote.value?.acenar()
   }
 
   function adicionarAtividade () {
-    console.info('Ação: criar nova atividade')
+    // TODO: abrir o fluxo de nova atividade. Por enquanto o canguru só reage ao clique.
+    mascote.value?.acenar()
   }
 </script>
 
 <style scoped>
+/* Sai do v-container para usar a largura da tela, com as mesmas laterais do header. */
 .pagina-turma {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 0 1rem;
+  margin-inline: calc(50% - 50vw);
+  padding: 0 16px 1rem;
   color: #1f3a2c;
+}
+
+@media (min-width: 640px) {
+  .pagina-turma {
+    padding-inline: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pagina-turma {
+    padding-inline: 112px;
+  }
 }
 
 .breadcrumbs {
@@ -339,7 +356,7 @@
   font-size: 0.88rem;
 }
 
-.btn-adicionar-foto {
+.btn-adicionar-alunos {
   min-width: 180px;
   min-height: 44px;
   transform: translateY(4px);
@@ -415,11 +432,7 @@
 }
 
 @media (max-width: 680px) {
-  .pagina-turma {
-    padding: 1rem;
-  }
-
-  .btn-adicionar-foto {
+  .btn-adicionar-alunos {
     width: 100%;
   }
 

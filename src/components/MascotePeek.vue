@@ -221,13 +221,14 @@
 
 /* Cabeça: só as pontas das orelhas aparecem em repouso; sobe com leve sobressalto. */
 .mascote--tras {
-  transform: translateY(53px);
+  /* --mp-escala: proporção do tamanho de referência (128px de largura). */
+  transform: translateY(calc(53px * var(--mp-escala, 1)));
   transition: transform 0.5s cubic-bezier(0.34, 1.3, 0.64, 1);
   will-change: transform;
 }
 
 .mascote--tras.mascote--ativo {
-  transform: translateY(8px);
+  transform: translateY(calc(8px * var(--mp-escala, 1)));
 }
 
 /* Patas: aparecem depois que a cabeça já subiu, como quem se apoia na borda. */
