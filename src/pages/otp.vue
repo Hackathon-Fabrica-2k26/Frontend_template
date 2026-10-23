@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
   import { useAuthStore } from '@/stores/auth'
@@ -24,6 +24,12 @@
 
   const value = computed(() => String(code.value ?? ''))
   const isComplete = computed(() => value.value.length === length)
+
+  watch(value, () => {
+    if (error.value) {
+      error.value = ''
+    }
+  })
 
   // Mantém o domínio visível e esconde o restante do endereço.
   // Ex.: "aluno@escola.edu.br" -> "a****@escola.edu.br"
@@ -134,6 +140,7 @@
       code.value = ''
       resetKey.value++
       restart()
+      notify.success('Novo código enviado para seu e-mail!')
     } catch (error_) {
       const message = error_ instanceof Error ? error_.message : 'Não foi possível reenviar o código.'
       error.value = message
@@ -204,6 +211,7 @@
             :length="length"
             type="number"
             variant="outlined"
+            @finish="verify"
           />
 
           <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
