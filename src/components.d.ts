@@ -15,8 +15,14 @@ declare module 'vue' {
     AppHeaderNav: typeof import('./components/AppHeaderNav.vue')['default']
     AppHeaderSearch: typeof import('./components/AppHeaderSearch.vue')['default']
     AppHeaderUser: typeof import('./components/AppHeaderUser.vue')['default']
+    IlustracaoCaderno: typeof import('./components/IlustracaoCaderno.vue')['default']
+    IlustracaoMesa: typeof import('./components/IlustracaoMesa.vue')['default']
+    IlustracaoQuadro: typeof import('./components/IlustracaoQuadro.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TurmaCard: typeof import('./components/TurmaCard.vue')['default']
+    TurmaIcone: typeof import('./components/TurmaIcone.vue')['default']
+    TurmasFundo: typeof import('./components/TurmasFundo.vue')['default']
   }
 }
