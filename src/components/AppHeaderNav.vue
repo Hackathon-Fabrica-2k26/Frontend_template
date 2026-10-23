@@ -1,5 +1,5 @@
 <template>
-  <nav aria-label="Principal" class="flex items-center gap-2 sm:gap-4">
+  <nav v-if="mdAndUp" aria-label="Principal" class="flex items-center gap-2 sm:gap-4">
     <router-link
       v-for="link in links"
       :key="link.to"
@@ -14,8 +14,37 @@
       />
     </router-link>
   </nav>
+
+  <v-menu v-else location="bottom start" offset="12">
+    <template #activator="{ props: menuProps }">
+      <v-btn
+        v-bind="menuProps"
+        aria-label="Menu de navegação"
+        color="primary"
+        density="comfortable"
+        icon
+        variant="text"
+      >
+        <Menu :size="22" />
+      </v-btn>
+    </template>
+
+    <v-list class="min-w-48 rounded-2xl py-2" density="comfortable" nav>
+      <v-list-item
+        v-for="link in links"
+        :key="link.to"
+        :title="link.title"
+        :to="link.to"
+      />
+    </v-list>
+  </v-menu>
 </template>
 
 <script setup lang="ts">
+  import { Menu } from '@lucide/vue'
+  import { useDisplay } from 'vuetify'
+
   defineProps<{ links: { title: string, to: string }[] }>()
+
+  const { mdAndUp } = useDisplay()
 </script>
