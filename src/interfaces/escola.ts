@@ -37,6 +37,7 @@ export interface Turma {
   escola: number
   professores: number[]
   turno?: TurnoTurma
+  turno_display?: string
   total_estudantes?: number
   created_at?: string
   updated_at?: string
