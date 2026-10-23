@@ -18,6 +18,8 @@ declare module 'vue' {
     IlustracaoCaderno: typeof import('./components/IlustracaoCaderno.vue')['default']
     IlustracaoMesa: typeof import('./components/IlustracaoMesa.vue')['default']
     IlustracaoQuadro: typeof import('./components/IlustracaoQuadro.vue')['default']
+    AuthInput: typeof import('./components/auth/AuthInput.vue')['default']
+    AuthWaves: typeof import('./components/auth/AuthWaves.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     MascotePeek: typeof import('./components/MascotePeek.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

@@ -1,19 +1,20 @@
 <script setup lang="ts">
-  import { computed, ref } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { computed, onMounted, ref } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
+  import { useAuthStore } from '@/stores/auth'
+  import { notify } from '@/utils/notify'
 
   definePage({ meta: { layout: false, public: true } })
 
   const router = useRouter()
+  const route = useRoute()
+  const auth = useAuthStore()
 
   /* ---------- configuração do fluxo ---------- */
   const length = 4
   const resendSeconds = 30
   const GAP = 12 // espaço entre as caixas (px); também usado na trilha
-
-  // TODO: receber o e-mail do fluxo de login/backend em vez de usar o mock.
-  const email = ref('aluno@escola.edu.br')
 
   /* ---------- estado ---------- */
   const code = ref<string | number>('')
@@ -27,13 +28,21 @@
   // Mantém o domínio visível e esconde o restante do endereço.
   // Ex.: "aluno@escola.edu.br" -> "a****@escola.edu.br"
   const maskedEmail = computed(() => {
-    const [local, domain] = email.value.trim().split('@')
-    if (!local || !domain) return email.value
+    const raw = auth.otpEmail.trim()
+    if (!raw || raw.includes('*')) return raw
+    const [local, domain] = raw.split('@')
+    if (!local || !domain) return raw
 
     return `${local.slice(0, 1)}${'*'.repeat(Math.max(3, local.length - 1))}@${domain}`
   })
 
   const { formatted, isRunning, restart } = useCountdown(resendSeconds)
+
+  onMounted(() => {
+    if (!auth.hasPendingOtp) {
+      router.replace('/login')
+    }
+  })
 
   /* ---------- trilha ondulada ---------- */
   const WAVE_Y = [8, 5, 11, 7] // altura de cada ponto na onda (px)
@@ -87,29 +96,51 @@
 
   async function verify () {
     if (!isComplete.value || loading.value) return
+    if (!auth.hasPendingOtp) {
+      await router.push('/login')
+      return
+    }
 
     loading.value = true
     error.value = ''
 
     try {
-      // TODO: substituir o mock pela chamada ao service de OTP do backend.
-      await new Promise<void>(resolve => {
-        setTimeout(resolve, 600)
-      })
+      await auth.verifyOtp(value.value)
+      const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+        ? route.query.redirect
+        : '/'
+      await router.push(redirect)
     } catch (error_) {
-      error.value = (error_ as Error).message
+      const message = error_ instanceof Error ? error_.message : 'Código inválido ou expirado.'
+      error.value = message
+      notify.error(message)
     } finally {
       loading.value = false
     }
   }
 
-  function resend () {
-    code.value = ''
-    resetKey.value++
+  async function resend () {
+    if (isRunning.value || loading.value) return
+    if (!auth.hasPendingOtp) {
+      await router.push('/login')
+      return
+    }
+
+    loading.value = true
     error.value = ''
 
-    // TODO: chamar o endpoint de reenvio antes de reiniciar a contagem.
-    restart()
+    try {
+      await auth.resendOtp()
+      code.value = ''
+      resetKey.value++
+      restart()
+    } catch (error_) {
+      const message = error_ instanceof Error ? error_.message : 'Não foi possível reenviar o código.'
+      error.value = message
+      notify.error(message)
+    } finally {
+      loading.value = false
+    }
   }
 </script>
 

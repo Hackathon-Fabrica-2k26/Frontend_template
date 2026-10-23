@@ -65,7 +65,14 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/turmas/': RouteRecordInfo<
+    '/TurmaDetalhe': RouteRecordInfo<
+      '/TurmaDetalhe',
+      '/TurmaDetalhe',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+      '/turmas/': RouteRecordInfo<
       '/turmas/',
       '/turmas',
       Record<never, never>,
@@ -124,6 +131,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/turmas/index.vue': {
       routes:
         | '/turmas/'
+       views:
+        | never
+    }
+    'src/pages/TurmaDetalhe.vue': {
+      routes:
+        | '/TurmaDetalhe'
       views:
         | never
     }
