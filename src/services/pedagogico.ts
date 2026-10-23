@@ -1,0 +1,65 @@
+import type { Paginated } from '@/interfaces/item'
+import type {
+  GerarRelatorioPayload,
+  GerarRelatorioResponse,
+  Relatorio,
+  RelatorioPayload,
+} from '@/interfaces/pedagogico'
+import api from '@/plugins/api'
+import { buildApiError } from '@/utils/apiError'
+
+class PedagogicoService {
+  async list (params: { aluno?: number, page?: number } = {}) {
+    try {
+      const { data } = await api.get<Paginated<Relatorio>>('relatorios/', { params })
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar os relatórios.')
+    }
+  }
+
+  async create (payload: RelatorioPayload) {
+    try {
+      const { data } = await api.post<Relatorio>('relatorios/', payload)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível criar o relatório.')
+    }
+  }
+
+  async update (id: number, payload: Partial<RelatorioPayload>) {
+    try {
+      const { data } = await api.patch<Relatorio>(`relatorios/${id}/`, payload)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível atualizar o relatório.')
+    }
+  }
+
+  async remove (id: number) {
+    try {
+      await api.delete(`relatorios/${id}/`)
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível excluir o relatório.')
+    }
+  }
+
+  async gerar (payload: GerarRelatorioPayload): Promise<GerarRelatorioResponse> {
+    try {
+      const { data } = await api.post<GerarRelatorioResponse>('relatorios/gerar/', payload)
+      return data
+    } catch (error) {
+      const response = (error as { response?: { status?: number, data?: { erro?: string } } })?.response
+      if (response?.status === 502) {
+        throw new Error(
+          response.data?.erro || 'Serviço de IA temporariamente indisponível. Tente novamente em instantes.',
+          { cause: error },
+        )
+      }
+      throw buildApiError(error, 'Não foi possível gerar o relatório pedagógico.')
+    }
+  }
+}
+
+export const pedagogicoService = new PedagogicoService()
+export default pedagogicoService
