@@ -18,12 +18,16 @@ export interface Escola {
   id: number
   nome: string
   endereco: string
-  config: number
+  config: number | null
   created_at?: string
   updated_at?: string
 }
 
-export type EscolaPayload = Pick<Escola, 'nome' | 'endereco' | 'config'>
+export interface EscolaPayload {
+  nome: string
+  endereco: string
+  config?: number | null
+}
 
 export type TurnoTurma = 'manha' | 'tarde' | 'noite' | 'integral' | string
 
