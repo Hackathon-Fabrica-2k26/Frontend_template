@@ -319,7 +319,7 @@
 
             <button
               class="btn-principal"
-              :disabled="atividades.length === 0"
+              :disabled="relatorios.length === 0 || exportando"
               type="button"
               @click="exportarTodas"
             >
@@ -349,8 +349,7 @@
 
   import { Camera, Check, Copy, Download, FileText, UserRound, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { alunosService, observacoesService } from '@/services/alunos'
+  import { alunosService, observacoesService, type RelatorioDoAluno } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
   import { pedagogicoService } from '@/services/pedagogico'
   import { notify } from '@/utils/notify'
@@ -373,7 +372,6 @@
     fechar: []
   }>()
 
-  const router = useRouter()
   const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
   const inputFoto = ref<HTMLInputElement | null>(null)
   const foto = ref('')
@@ -451,17 +449,19 @@
   }
 
   async function carregar () {
-    const [ativ, obs, perfil, pontos] = await Promise.allSettled([
+    const [ativ, obs, perfil, pontos, rels] = await Promise.allSettled([
       atividadesService.list({ turma: props.aluno.turma }),
       observacoesService.list({ aluno: props.aluno.id }),
       pedagogicoService.obterPerfilApoio(props.aluno.id),
       alunosService.obterPontosAtencao(props.aluno.id),
+      alunosService.listarRelatorios(props.aluno.id),
     ])
 
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
     observacoes.value = obs.status === 'fulfilled' ? obs.value.results : []
     perfilApoio.value = perfil.status === 'fulfilled' ? perfil.value : null
     pontosIa.value = pontos.status === 'fulfilled' ? pontos.value.pontos : []
+    relatorios.value = rels.status === 'fulfilled' ? rels.value : []
   }
 
   function trocarFoto (evento: Event) {
@@ -471,54 +471,59 @@
     foto.value = URL.createObjectURL(arquivo)
   }
 
-  function abrirRelatorio (id: number) {
-    void router.push(`/relatorios/${id}`)
-  }
+  // Relatórios do aluno vêm de /alunos/{id}/relatorios/; a API de atividade não os traz.
+  const relatorios = ref<RelatorioDoAluno[]>([])
+  const exportando = ref(false)
 
-  function exportarRelatorio (ativ: Atividade) {
-    if (ativ.relatorios && ativ.relatorios.length > 0) {
-      abrirRelatorio(ativ.relatorios[0])
-    } else {
-      notify.info('Exportando relatório da atividade...')
+  async function exportarRelatorio (ativ: Atividade) {
+    const relatorio = relatorios.value.find(r => r.atividade === ativ.id)
+    if (!relatorio) {
+      notify.info('Ainda não há relatório desta atividade para este aluno.')
+      return
+    }
+    try {
+      await pedagogicoService.downloadPdf(relatorio.id, `relatorio-${ativ.titulo || ativ.id}`)
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível baixar o relatório.')
     }
   }
 
-  function exportarTodas () {
-    const primeiro = atividades.value.find(a => a.relatorios && a.relatorios.length > 0)
-    if (primeiro?.relatorios?.[0]) {
-      abrirRelatorio(primeiro.relatorios[0])
-    } else {
-      notify.info('Exportando todos os relatórios disponíveis...')
+  async function exportarTodas () {
+    if (relatorios.value.length === 0) {
+      notify.info('Este aluno ainda não tem relatórios para exportar.')
+      return
+    }
+    exportando.value = true
+    try {
+      await alunosService.baixarRelatoriosPdf(props.aluno.id, `relatorios-aluno-${props.aluno.id}`)
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível baixar os relatórios.')
+    } finally {
+      exportando.value = false
     }
   }
 
   const linkCopiado = ref(false)
+  const gerandoLink = ref(false)
 
-  const urlLaudo = computed(() => {
-    if (typeof window === 'undefined') return ''
-    const baseUrl = `${window.location.origin}/apoio/concordar`
-    const params = new URLSearchParams()
-    params.set('aluno', String(props.aluno.id))
-    if (props.aluno.turma) {
-      params.set('turma', String(props.aluno.turma))
-    }
-    if (props.aluno.nome) {
-      params.set('nome', props.aluno.nome)
-    }
-    return `${baseUrl}?${params.toString()}`
-  })
-
+  // O link leva só o código de acesso (sem id nem nome do aluno na URL). Cada cópia gera um
+  // código novo e invalida o anterior; o responsável usa uma vez e ganha uma sessão de 24h.
   async function copiarLinkLaudo () {
-    if (!urlLaudo.value) return
+    if (gerandoLink.value || typeof window === 'undefined') return
+    gerandoLink.value = true
     try {
-      await navigator.clipboard.writeText(urlLaudo.value)
+      const codigo = await alunosService.gerarCodigoAcesso(props.aluno.id)
+      const url = `${window.location.origin}/apoio/concordar?${new URLSearchParams({ codigo })}`
+      await navigator.clipboard.writeText(url)
       linkCopiado.value = true
-      notify.success('Link para envio de laudo copiado para a área de transferência!')
+      notify.success('Link para envio de laudo copiado! Ele vale 7 dias e pode ser usado uma vez.')
       setTimeout(() => {
         linkCopiado.value = false
       }, 3000)
-    } catch {
-      notify.error('Não foi possível copiar o link.')
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível copiar o link.')
+    } finally {
+      gerandoLink.value = false
     }
   }
 

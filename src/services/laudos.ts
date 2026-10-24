@@ -2,11 +2,24 @@ import type { PerfilApoio } from '@/interfaces/aluno'
 import type { EnvioLaudoOpcoes, Laudo, LaudoConfirmado, LaudoDados } from '@/interfaces/laudo'
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
+import responsavelAcesso from './responsavelAcesso'
 
 interface AlunoLaudoResposta {
   perfil_apoio: PerfilApoio
   nome_conferiu: boolean
   arquivo_excluido_em: string
+}
+
+// Com sessão do responsável (link com código) usa as rotas dele; sem ela, as da professora.
+function rotas (alunoId: number, perfilId: number) {
+  if (responsavelAcesso.temSessao()) {
+    return {
+      cliente: responsavelAcesso.cliente,
+      envio: 'responsavel/laudo/',
+      perfil: 'responsavel/perfil-apoio/',
+    }
+  }
+  return { cliente: api, envio: `alunos/${alunoId}/laudo/`, perfil: `perfis-apoio/${perfilId}/` }
 }
 
 class LaudosService {
@@ -18,8 +31,9 @@ class LaudosService {
     const formData = new FormData()
     formData.append('arquivo', arquivo)
 
+    const { cliente, envio } = rotas(alunoId, 0)
     try {
-      const { data } = await api.post<AlunoLaudoResposta>(`alunos/${alunoId}/laudo/`, formData, {
+      const { data } = await cliente.post<AlunoLaudoResposta>(envio, formData, {
         headers: {
           'Content-Type': undefined,
         },
@@ -51,8 +65,9 @@ class LaudosService {
    * Busca o perfil de apoio gerado pelo laudo para conferência na tela de revisão.
    */
   async buscar (id: number): Promise<Laudo> {
+    const { cliente, perfil } = rotas(0, id)
     try {
-      const { data } = await api.get<PerfilApoio>(`perfis-apoio/${id}/`)
+      const { data } = await cliente.get<PerfilApoio>(perfil)
       return {
         id: data.id,
         aluno: data.aluno,
@@ -71,8 +86,9 @@ class LaudosService {
    * Salva as correções feitas na tela de conferência diretamente no PerfilApoio ativo.
    */
   async confirmar (id: number, payload: LaudoDados): Promise<LaudoConfirmado> {
+    const { cliente, perfil } = rotas(0, id)
     try {
-      await api.patch<PerfilApoio>(`perfis-apoio/${id}/`, {
+      await cliente.patch<PerfilApoio>(perfil, {
         necessidades: payload.necessidades,
         estrategias: payload.adaptacoes,
         observacoes: payload.observacao,
