@@ -204,4 +204,16 @@
   font-size: 0.9375rem;
   font-weight: 500;
 }
+
+/* O fundo translúcido do botão vazado não pode valer para o botão cheio. */
+.nova-turma--cheia {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.nova-turma--cheia:hover {
+  background: var(--color-primary);
+  filter: brightness(1.1);
+}
 </style>

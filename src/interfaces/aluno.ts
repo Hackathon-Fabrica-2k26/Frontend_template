@@ -34,6 +34,8 @@ export interface MetaDadosPayload {
 export interface Aluno {
   id: number
   nome: string
+  matricula?: string
+  data_nascimento?: string | null
   turma: number
   meta_dados: number | null
   responsavel: number | null
@@ -46,4 +48,13 @@ export interface AlunoPayload {
   turma: number
   meta_dados?: number | null
   responsavel?: number | null
+}
+
+export interface Observacao {
+  id: number
+  aluno: number
+  titulo?: string
+  descricao: string
+  visibilidade?: string
+  created_at: string
 }

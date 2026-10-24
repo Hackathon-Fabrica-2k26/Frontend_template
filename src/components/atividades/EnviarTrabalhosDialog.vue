@@ -89,7 +89,7 @@
   const cabecalho = computed(() => ({
     envio: {
       titulo: 'Enviar atividades',
-      texto: 'A IA identifica os alunos e preenche os dados automaticamente.',
+      texto: 'Os alunos são identificados e os dados preenchidos automaticamente.',
     },
     processamento: terminou.value
       ? {
@@ -99,8 +99,8 @@
           : 'Todos os trabalhos foram verificados. Continue para revisar os alunos.',
       }
       : {
-        titulo: 'Processando...',
-        texto: 'Estamos analisando os trabalhos da sua turma.',
+        titulo: 'Processando',
+        texto: '',
       },
     revisao: {
       titulo: 'Revisar identificação',
@@ -116,7 +116,7 @@
 
   const rotuloStatus: Record<StatusAnalise, string> = {
     fila: 'Na fila',
-    analisando: 'Analisando',
+    analisando: 'Processando',
     concluido: 'Verificado',
     erro: 'Recarregar',
     reenviar: 'Enviar arquivo',
@@ -621,7 +621,7 @@
                   </div>
 
                   <p class="revisao__confianca">
-                    Confiança da IA: {{ formatarConfianca(trabalho.confianca) }}
+                    Confiança: {{ formatarConfianca(trabalho.confianca) }}
                   </p>
 
                   <label class="revisao__campo">

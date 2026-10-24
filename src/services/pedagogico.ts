@@ -2,6 +2,7 @@ import type { Paginated } from '@/interfaces/item'
 import type {
   GerarRelatorioPayload,
   GerarRelatorioResponse,
+  RefinamentoResposta,
   Relatorio,
   RelatorioPayload,
 } from '@/interfaces/pedagogico'
@@ -41,6 +42,25 @@ class PedagogicoService {
       await api.delete(`relatorios/${id}/`)
     } catch (error) {
       throw buildApiError(error, 'Não foi possível excluir o relatório.')
+    }
+  }
+
+  async get (id: number): Promise<Relatorio> {
+    try {
+      const { data } = await api.get<Relatorio>(`relatorios/${id}/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar o relatório.')
+    }
+  }
+
+  /** Ciclo de refinamento: o professor descreve o ajuste e recebe o prompt melhorado. */
+  async refinar (id: number, ajuste: string): Promise<RefinamentoResposta> {
+    try {
+      const { data } = await api.post<RefinamentoResposta>(`relatorios/${id}/refinar/`, { ajuste })
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível refinar a atividade.')
     }
   }
 

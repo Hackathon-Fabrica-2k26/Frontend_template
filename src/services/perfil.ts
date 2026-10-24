@@ -31,6 +31,7 @@ interface ResumoApiResponse {
   trabalhos_analisados?: number
 }
 
+// Os dados do perfil vêm dos recursos da API (turmas, atividades e relatórios).
 class PerfilService {
   async resumo (): Promise<PerfilResumo> {
     try {

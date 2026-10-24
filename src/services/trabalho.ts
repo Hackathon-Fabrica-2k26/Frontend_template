@@ -56,8 +56,8 @@ class TrabalhosService {
   async analisar (
     atividadeId: number,
     arquivo: File,
-    estudantes: Estudante[] = [],
-    indice = 0,
+    _estudantes: Estudante[] = [],
+    _indice = 0,
   ): Promise<Trabalho[]> {
     if (mockEnabled) {
       await wait(1000 + (indice % 3) * 450)
@@ -117,11 +117,6 @@ class TrabalhosService {
     trabalhoId: number,
     payload: TrabalhoPayload,
   ): Promise<Trabalho | null> {
-    if (mockEnabled) {
-      await wait(350)
-      return null
-    }
-
     try {
       const { data } = await api.patch<TrabalhoRespostaApi>(
         `trabalhos/${trabalhoId}/`,
