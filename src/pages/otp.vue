@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue'
+  import { computed, nextTick, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
   import { useShake } from '@/composables/useShake'
@@ -29,16 +29,12 @@
   const value = computed(() => String(code.value ?? ''))
   const isComplete = computed(() => value.value.length === length)
 
-  watch(value, () => {
-    if (error.value) {
-      error.value = ''
-    }
-  })
-
   // Mantém o domínio visível e esconde o restante do endereço.
   // Ex.: "aluno@escola.edu.br" -> "a****@escola.edu.br"
+  // O e-mail também é guardado na entrada (o store o limpa ao confirmar o código).
+  const emailPendente = auth.otpEmail.trim()
   const maskedEmail = computed(() => {
-    const raw = auth.otpEmail.trim()
+    const raw = emailPendente
     if (!raw || raw.includes('*')) return raw
     const [local, domain] = raw.split('@')
     if (!local || !domain) return raw
@@ -48,8 +44,12 @@
 
   const { formatted, isRunning, restart } = useCountdown(resendSeconds)
 
+  // Guardado na entrada: ao confirmar o código o store limpa o login pendente, e a tela
+  // precisa continuar visível para mostrar a animação de sucesso antes de sair.
+  const temCodigoPendente = auth.hasPendingOtp
+
   // Sem login pendente não há o que confirmar: sai antes de desenhar a tela (sem "piscar").
-  if (!auth.hasPendingOtp) {
+  if (!temCodigoPendente) {
     router.replace('/login')
   }
 
@@ -119,29 +119,46 @@
       return
     }
 
+    // Tira o foco das caixas: o Vuetify volta o foco para a primeira e um dígito a mais entraria nela.
+    ;(document.activeElement as HTMLElement | null)?.blur()
     loading.value = true
     error.value = ''
 
     try {
       await auth.verifyOtp(value.value)
       // Sucesso: as caixas confirmam em onda antes de sair da tela.
+      loading.value = false
       success.value = true
-      await wait(700)
+      await wait(1100)
       const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
         ? route.query.redirect
         : '/'
       await router.push(redirect)
     } catch (error_) {
-      error.value = error_ instanceof Error ? error_.message : 'Código inválido ou expirado.'
-      // Os campos estavam desabilitados: reabilita, limpa e remonta (o que devolve o foco)
-      // antes de tremer, senão o código errado fica preso e sem foco.
+      // O código errado fica vermelho e treme; depois limpa e devolve o foco para tentar de novo.
+      const errado = value.value
       loading.value = false
-      code.value = ''
-      resetKey.value++
+      error.value = error_ instanceof Error ? error_.message : 'Código inválido ou expirado.'
       await nextTick()
       shake()
+      await wait(900)
+      // Se a pessoa já começou a digitar outro código, não apaga o que ela digitou.
+      if (value.value === errado) {
+        code.value = ''
+        resetKey.value++
+      }
     } finally {
       loading.value = false
+    }
+  }
+
+  // Com o código completo (ou verificando) não entra mais nenhum dígito.
+  function bloquearExcesso (event: KeyboardEvent) {
+    if (!/^\d$/.test(event.key)) return
+    const campo = event.target as HTMLInputElement
+    const temSelecao = campo.selectionStart !== campo.selectionEnd
+    if (loading.value || success.value || (isComplete.value && !temSelecao)) {
+      event.preventDefault()
     }
   }
 
@@ -157,8 +174,6 @@
 
     try {
       await auth.resendOtp()
-      notify.success('Enviamos um novo código.')
-      restart()
       loading.value = false
       code.value = ''
       resetKey.value++
@@ -173,7 +188,7 @@
 </script>
 
 <template>
-  <v-container v-if="auth.hasPendingOtp" class="otp-screen" fluid :style="{ '--gap': `${GAP}px` }">
+  <v-container v-if="temCodigoPendente" class="otp-screen" fluid :style="{ '--gap': `${GAP}px` }">
     <div aria-hidden="true" class="otp-screen__art">
       <svg preserveAspectRatio="none" viewBox="0 0 500 600">
         <path
@@ -218,47 +233,30 @@
           <a class="email__link" href="#" @click.prevent="changeEmail">Alterar e-mail</a>
         </p>
 
-        <form class="form" novalidate @submit.prevent="verify">
-          <p class="label">Código de verificação</p>
+        <form class="form" novalidate @keydown.capture="bloquearExcesso" @submit.prevent="verify">
+          <div class="codigo">
+            <p class="label">Código de verificação</p>
 
-          <v-otp-input
-            :key="resetKey"
-            v-model="code"
-            autofocus
-            class="otp"
-            :disabled="loading"
-            :error="!!error"
-            label="Código de verificação"
-            :length="length"
-            type="number"
-            variant="outlined"
-            @finish="verify"
-          />
-
-          <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
-          <div aria-hidden="true" class="trail">
-            <svg
-              class="trail__wave"
-              preserveAspectRatio="none"
-              :style="waveStyle"
-              :viewBox="`0 0 ${WAVE_WIDTH} ${WAVE_HEIGHT}`"
-            >
-              <path :d="wavePath" fill="none" vector-effect="non-scaling-stroke" />
-            </svg>
-
-            <span
-              v-for="(y, i) in waveYs"
-              :key="i"
-              class="trail__dot"
-              :class="`trail__dot--${dotState(i)}`"
-              :style="{ marginTop: `${y - 4}px` }"
+            <v-otp-input
+              :key="resetKey"
+              v-model="code"
+              autofocus
+              class="otp"
+              :class="{ 'otp--ok': success, 'otp--erro': !!error, 'otp--carregando': loading }"
+              :disabled="loading || success"
+              :error="!!error"
+              label="Código de verificação"
+              :length="length"
+              type="number"
+              variant="outlined"
+              @finish="verify"
             />
 
             <!-- trilha de progresso: um ponto por dígito, ligados por uma onda -->
             <div
               aria-hidden="true"
               class="trail"
-              :class="{ 'trail--error': !!error, 'trail--ok': success }"
+              :class="{ 'trail--error': !!error, 'trail--ok': success, 'trail--carregando': loading }"
             >
               <svg
                 class="trail__wave"
@@ -266,6 +264,31 @@
                 :style="waveStyle"
                 :viewBox="`0 0 ${WAVE_WIDTH} ${WAVE_HEIGHT}`"
               >
+                <defs>
+                  <!-- Brilho que corre pela linha enquanto verifica (a linha continua inteira). -->
+                  <linearGradient
+                    id="otp-trilha-brilho"
+                    gradientUnits="userSpaceOnUse"
+                    x1="-50"
+                    x2="0"
+                    y1="0"
+                    y2="0"
+                  >
+                    <stop offset="0" stop-color="#A9C7B4" />
+                    <stop offset="0.5" stop-color="#356B5A" />
+                    <stop offset="1" stop-color="#A9C7B4" />
+
+                    <animateTransform
+                      attributeName="gradientTransform"
+                      dur="0.9s"
+                      from="0 0"
+                      repeatCount="indefinite"
+                      to="170 0"
+                      type="translate"
+                    />
+                  </linearGradient>
+                </defs>
+
                 <path :d="wavePath" fill="none" vector-effect="non-scaling-stroke" />
               </svg>
 
@@ -279,19 +302,26 @@
             </div>
           </div>
 
-          <p v-if="error" class="error" role="alert">{{ error }}</p>
+          <Transition name="erro">
+            <p v-if="error" class="error" role="alert">{{ error }}</p>
+          </Transition>
 
           <v-btn
             block
             class="submit text-none"
             color="primary"
-            :disabled="!isComplete || success"
+            :disabled="!isComplete && !success"
             :loading="loading"
             rounded="lg"
             size="x-large"
             type="submit"
           >
-            {{ success ? 'Código confirmado' : 'Verificar código' }}
+            <span class="submit__texto" :class="{ 'submit__texto--ok': success }">
+              <svg v-if="success" class="submit__check" viewBox="0 0 24 24">
+                <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" pathLength="1" />
+              </svg>
+              {{ success ? 'Código confirmado' : 'Verificar código' }}
+            </span>
           </v-btn>
         </form>
 
@@ -308,7 +338,6 @@
         <p class="hint">Não encontrou? Confira a caixa de spam.</p>
       </main>
 
-      <footer class="brand">Marsupi</footer>
     </div>
   </v-container>
 </template>
@@ -415,8 +444,28 @@
 }
 
 .otp :deep(.v-field) {
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--otp-bg);
+}
+
+/* O foco já aparece na borda da caixa: sem o contorno global retangular em volta do grupo. */
+.otp :deep(:focus-visible) {
+  outline: none;
+}
+
+.otp :deep(.v-field__outline__start),
+.otp :deep(.v-field__outline__end) {
+  border-radius: 12px;
+}
+
+.otp :deep(.v-field__outline__start) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.otp :deep(.v-field__outline__end) {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
 }
 
 .otp :deep(.v-field__outline) {
@@ -439,6 +488,12 @@
 
 .otp :deep(.v-otp-input__caret) {
   background: rgb(var(--v-theme-primary));
+}
+
+/* caixas + trilha com a mesma largura (mais estreita que o formulário) */
+.codigo {
+  max-width: 360px;
+  margin-inline: auto;
 }
 
 /* ---------- trilha ---------- */
@@ -531,6 +586,7 @@
 }
 
 .submit {
+  border-radius: 12px !important;
   margin-top: 24px;
   height: 52px;
   font-weight: 600;
@@ -625,11 +681,11 @@
   }
 
   .otp :deep(.v-otp-input__content) {
-    height: 96px;
+    height: 80px;
   }
 
   .otp :deep(.v-otp-input__field) {
-    font-size: 2.1rem;
+    font-size: 1.85rem;
   }
 
   .back {
@@ -653,14 +709,162 @@
   }
 }
 
+/* ---------- carregando: os pontos sobem em onda e as caixas respiram ---------- */
+.trail--carregando .trail__dot {
+  border-color: rgb(var(--v-theme-primary));
+  background: rgb(var(--v-theme-primary));
+  animation: ponto-onda 900ms ease-in-out infinite;
+  animation-delay: calc(var(--i) * 225ms);
+}
+
+.trail--carregando .trail__wave path {
+  stroke: url(#otp-trilha-brilho);
+  stroke-width: 2;
+}
+
+.otp--carregando :deep(.v-field__outline) {
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+.otp--carregando :deep(.v-otp-input__content > *) {
+  animation: caixa-respira 900ms ease-in-out infinite;
+}
+
+.otp--carregando :deep(.v-otp-input__content > :nth-child(2)) { animation-delay: 110ms; }
+.otp--carregando :deep(.v-otp-input__content > :nth-child(3)) { animation-delay: 220ms; }
+.otp--carregando :deep(.v-otp-input__content > :nth-child(4)) { animation-delay: 330ms; }
+
+/* O campo fica desabilitado enquanto verifica: mantém os dígitos legíveis. */
+.otp :deep(.v-field--disabled) {
+  opacity: 1;
+}
+
+/* Os pontos pulsam no lugar (não saem da linha), acompanhando o brilho. */
+@keyframes ponto-onda {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.7); }
+}
+
+@keyframes caixa-respira {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+
+/* ---------- erro: dígitos e bordas em vermelho, pulso nas caixas ---------- */
+.otp--erro :deep(.v-otp-input__field) {
+  color: rgb(var(--v-theme-error));
+}
+
+.otp--erro :deep(.v-field) {
+  background: rgba(var(--v-theme-error), 0.06);
+  transition: background-color 0.2s;
+}
+
+.otp--erro :deep(.v-otp-input__content > *) {
+  animation: caixa-erro 420ms ease both;
+}
+
+.otp--erro :deep(.v-otp-input__content > :nth-child(2)) { animation-delay: 40ms; }
+.otp--erro :deep(.v-otp-input__content > :nth-child(3)) { animation-delay: 80ms; }
+.otp--erro :deep(.v-otp-input__content > :nth-child(4)) { animation-delay: 120ms; }
+
+.trail--error .trail__dot--filled,
+.trail--error .trail__dot {
+  background: rgb(var(--v-theme-error));
+  border-color: rgb(var(--v-theme-error));
+}
+
+@keyframes caixa-erro {
+  30% { transform: scale(0.92); }
+  60% { transform: scale(1.04); }
+}
+
+.erro-enter-active,
+.erro-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.erro-enter-from,
+.erro-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ---------- sucesso: caixas preenchem de verde em onda e o check se desenha ---------- */
+.otp--ok :deep(.v-field) {
+  background: rgb(var(--v-theme-primary));
+  transition: background-color 0.3s;
+}
+
+.otp--ok :deep(.v-otp-input__field) {
+  color: var(--otp-bg);
+}
+
+.trail--ok .trail__wave path {
+  stroke: rgb(var(--v-theme-primary));
+  stroke-width: 2;
+  transition: stroke 0.4s 0.15s;
+}
+
+@keyframes onda-desenha {
+  to { stroke-dashoffset: 0; }
+}
+
+.submit__texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submit__texto--ok {
+  animation: texto-ok 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.submit__check {
+  width: 22px;
+  height: 22px;
+}
+
+.submit__check path {
+  stroke: currentcolor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: onda-desenha 450ms 250ms ease-out forwards;
+}
+
+@keyframes texto-ok {
+  from { opacity: 0; transform: scale(0.85); }
+}
+
+/* O botão continua verde (e não acinzentado) no sucesso. */
+.submit.v-btn--disabled {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .trail--carregando .trail__wave path {
+    stroke: rgb(var(--v-theme-primary));
+  }
+
   .trail__dot {
     transition: none;
   }
 
   .otp--ok :deep(.v-otp-input__content > *),
-  .trail--ok .trail__dot {
+  .otp--erro :deep(.v-otp-input__content > *),
+  .otp--carregando :deep(.v-otp-input__content > *),
+  .trail--ok .trail__dot,
+  .trail--carregando .trail__dot,
+  .submit__texto--ok {
     animation: none;
+  }
+
+  .submit__check path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 </style>

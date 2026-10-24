@@ -1,11 +1,9 @@
 <script setup lang="ts">
   import { ArrowLeft, House } from '@lucide/vue'
-  import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+  import { computed, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
   import erro404Url from '@/assets/erro-404.svg'
   import logoUrl from '@/assets/logoBaseTexto.webp'
-  import stickerBuscaUrl from '@/assets/mascotes/adesivo-busca.svg'
-  import stickerDuvidaUrl from '@/assets/mascotes/adesivo-duvida.svg'
   import ondaDireitaUrl from '@/assets/onda-direita.svg'
   import ondaEsquerdaUrl from '@/assets/onda-esquerda.svg'
   import { menuLinks } from '@/config/menu'
@@ -29,34 +27,17 @@
   // Há histórico do próprio app para voltar? (state.back vem do vue-router)
   const temPaginaAnterior = computed(() => typeof window !== 'undefined' && Boolean(window.history.state?.back))
 
-  const palco = ref<HTMLElement | null>(null)
-  let quadro = 0
-
-  // Os adesivos andam um pouco no sentido contrário do ponteiro (profundidade). Um ajuste por quadro.
-  function mover (event: PointerEvent) {
-    if (event.pointerType === 'touch' || quadro) {
-      return
-    }
-    const { clientX, clientY } = event
-    quadro = requestAnimationFrame(() => {
-      quadro = 0
-      palco.value?.style.setProperty('--px', ((clientX / window.innerWidth) - 0.5).toFixed(3))
-      palco.value?.style.setProperty('--py', ((clientY / window.innerHeight) - 0.5).toFixed(3))
-    })
-  }
-
   onMounted(() => {
     document.title = 'Página não encontrada · Marsupi'
   })
 
-  onBeforeUnmount(() => cancelAnimationFrame(quadro))
 </script>
 
 <template>
   <div class="pagina">
     <AppHeader v-if="logado" :links="menuLinks" />
 
-    <main ref="palco" class="not-found" :class="{ 'not-found--logado': logado }" @pointermove="mover">
+    <main class="not-found" :class="{ 'not-found--logado': logado }">
       <img alt="" class="onda onda--esquerda" :src="ondaEsquerdaUrl">
       <img alt="" class="onda onda--direita" :src="ondaDireitaUrl">
 
@@ -74,13 +55,6 @@
         <div class="cena">
           <img alt="404" class="codigo entra" :src="erro404Url">
 
-          <span aria-hidden="true" class="adesivo adesivo--duvida">
-            <img alt="" :src="stickerDuvidaUrl">
-          </span>
-
-          <span aria-hidden="true" class="adesivo adesivo--busca">
-            <img alt="" :src="stickerBuscaUrl">
-          </span>
         </div>
 
         <h1 id="titulo-404" class="entra" style="animation-delay: 140ms">Parece que saímos do caminho.</h1>
@@ -155,56 +129,6 @@
 
 .cena .codigo {
   margin-bottom: 0;
-}
-
-.adesivo {
-  position: absolute;
-  width: clamp(64px, 11vw, 112px);
-  translate: calc(var(--px) * -26px) calc(var(--py) * -18px);
-  transition: translate 500ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
-  pointer-events: none;
-}
-
-.adesivo img {
-  display: block;
-  width: 100%;
-  height: auto;
-  filter: drop-shadow(0 10px 14px rgb(53 107 91 / 0.22));
-  animation: flutua 5s ease-in-out infinite;
-}
-
-.adesivo--duvida {
-  top: -14%;
-  right: -9%;
-}
-
-.adesivo--duvida img {
-  rotate: 8deg;
-}
-
-.adesivo--busca {
-  bottom: -10%;
-  left: -8%;
-  translate: calc(var(--px) * 22px) calc(var(--py) * 14px);
-}
-
-.adesivo--busca img {
-  rotate: -9deg;
-  animation-delay: -2.4s;
-}
-
-@keyframes flutua {
-  50% {
-    transform: translateY(-9px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .adesivo,
-  .adesivo img {
-    animation: none;
-    transition: none;
-  }
 }
 
 .codigo {
@@ -321,14 +245,6 @@ p {
 
   .acao {
     width: 100%;
-  }
-
-  .adesivo--duvida {
-    right: -4%;
-  }
-
-  .adesivo--busca {
-    left: -4%;
   }
 
   .acoes {
