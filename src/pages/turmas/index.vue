@@ -14,8 +14,8 @@
           <v-btn
             class="nova-turma"
             color="primary"
+            to="/turmas/nova"
             variant="outlined"
-            @click="abrirModalNovaTurma"
           >
             <Plus class="mr-2" :size="16" />
             Nova turma
@@ -46,8 +46,8 @@
         <v-btn
           class="nova-turma nova-turma--cheia mt-2"
           color="primary"
+          to="/turmas/nova"
           variant="flat"
-          @click="abrirModalNovaTurma"
         >
           <Plus class="mr-2" :size="16" />
           Criar primeira turma
@@ -73,14 +73,6 @@
         />
       </section>
     </div>
-
-    <NovaTurmaDialog
-      v-model="modalNovaTurma"
-      :escola-padrao="escolaPadrao"
-      :escolas="escolasStore.escolas"
-      :salvando="salvandoTurma"
-      @criar="salvarNovaTurma"
-    />
   </div>
 </template>
 
@@ -120,29 +112,6 @@
       integral: 'Integral',
     }
     return mapa[turno.toLowerCase()] ?? turno
-  }
-
-  const modalNovaTurma = ref(false)
-  const salvandoTurma = ref(false)
-  const escolaPadrao = computed(() => authStore.user?.escola ?? (escolasStore.escolas[0]?.id ?? null))
-
-  function abrirModalNovaTurma () {
-    modalNovaTurma.value = true
-  }
-
-  async function salvarNovaTurma (dados: { nome: string, turno: TurnoTurma, escola: number | null }) {
-    const escolaId = dados.escola || escolaPadrao.value || 1
-
-    salvandoTurma.value = true
-    try {
-      await escolasStore.createTurma({ nome: dados.nome, turno: dados.turno, escola: escolaId })
-      notify.success('Turma criada com sucesso!')
-      modalNovaTurma.value = false
-    } catch (error) {
-      notify.error(error instanceof Error ? error.message : 'Não foi possível criar a turma.')
-    } finally {
-      salvandoTurma.value = false
-    }
   }
 
   onMounted(async () => {
@@ -235,11 +204,4 @@
   font-size: 0.9375rem;
   font-weight: 500;
 }
-
-.nova-turma--cheia {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-background);
-}
-
 </style>
