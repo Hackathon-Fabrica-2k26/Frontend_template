@@ -35,8 +35,13 @@ Para desenvolver sem login, no backend use `AUTH_DISABLED=True` (veja o README d
 | Variável | Exemplo | Uso |
 |---|---|---|
 | `VITE_API_URL` | `http://localhost:8000/api/` | URL base da API (termina com `/`) |
+| `VITE_MOCK_TRABALHOS` | `false` | Se `"true"`, simula envio/análise de trabalhos por foto (padrão: `false`) |
+| `VITE_MOCK_ATIVIDADES` | `false` | Se `"true"`, simula extração de atividades por IA (padrão: `false`) |
+| `VITE_MOCK_TURMAS` | `false` | Se `"true"`, simula reconhecimento de chamada e turmas locais (padrão: `false`) |
 
-## Deploy
-`static.json` e `.buildpacks` seguem o padrão Dokku dos outros projetos (Node + nginx). Defina `VITE_API_URL` no ambiente de build.
+## Deploy (Dokku)
+`static.json` e `.buildpacks` seguem o padrão Dokku dos outros projetos (Node + nginx).
+Defina `VITE_API_URL` no ambiente de build do Dokku (ex.: `dokku config:set frontend VITE_API_URL=https://api.exemplo.com/api/`).
+Todas as variáveis `VITE_MOCK_*` operam por padrão desligadas (`false`), garantindo que o build de produção utilize exclusivamente a API real caso nenhuma variável de mock seja definida.
 
 Veja [AGENTS.md](AGENTS.md) para os padrões do projeto.
