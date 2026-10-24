@@ -63,6 +63,11 @@ body {
   outline-offset: 2px;
 }
 
+/* O Vuetify foca o conteúdo do diálogo ao abrir: não desenha um retângulo em volta do modal. */
+.v-overlay__content:focus-visible {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
