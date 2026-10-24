@@ -25,6 +25,8 @@ declare module 'vue' {
     IlustracaoQuadro: typeof import('./components/IlustracaoQuadro.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     MascoteCard: typeof import('./components/MascoteCard.vue')['default']
+    MascoteModal: typeof import('./components/MascoteModal.vue')['default']
+    MascotePata: typeof import('./components/MascotePata.vue')['default']
     MascotePeek: typeof import('./components/MascotePeek.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

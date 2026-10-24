@@ -11,6 +11,10 @@ import { buildApiError } from '@/utils/apiError'
 const mockEnabled = import.meta.env.VITE_MOCK_TRABALHOS !== 'false'
 
 let mockId = 0
+// Só no modo simulado, para testar os estados de erro:
+// - nome com "erro": falha sempre;
+// - nome com "instavel": falha só na primeira vez.
+const jaFalhou = new Set<string>()
 
 function wait (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -29,6 +33,12 @@ class TrabalhosService {
   ): Promise<Trabalho[]> {
     if (mockEnabled) {
       await wait(1000 + (indice % 3) * 450)
+
+      const nome = arquivo.name.toLowerCase()
+      if (nome.includes('erro') || (nome.includes('instavel') && !jaFalhou.has(arquivo.name))) {
+        jaFalhou.add(arquivo.name)
+        throw new Error('Não foi possível analisar este arquivo.')
+      }
 
       const estudante = estudantes.length > 0
         ? estudantes[indice % estudantes.length]
