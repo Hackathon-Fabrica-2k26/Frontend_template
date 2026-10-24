@@ -27,6 +27,7 @@ declare module 'vue' {
     IlustracaoLivroBroto: typeof import('./components/IlustracaoLivroBroto.vue')['default']
     IlustracaoMesa: typeof import('./components/IlustracaoMesa.vue')['default']
     IlustracaoQuadro: typeof import('./components/IlustracaoQuadro.vue')['default']
+    LoginMascote: typeof import('./components/auth/LoginMascote.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     MascoteCard: typeof import('./components/MascoteCard.vue')['default']
     MascoteModal: typeof import('./components/MascoteModal.vue')['default']
