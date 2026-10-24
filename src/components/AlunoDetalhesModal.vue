@@ -460,7 +460,7 @@
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
     observacoes.value = obs.status === 'fulfilled' ? obs.value.results : []
     perfilApoio.value = perfil.status === 'fulfilled' ? perfil.value : null
-    pontosIa.value = pontos.status === 'fulfilled' ? pontos.value.pontos : []
+    pontosIa.value = pontos.status === 'fulfilled' ? (pontos.value.pontos ?? []) : []
     relatorios.value = rels.status === 'fulfilled' ? rels.value : []
   }
 
