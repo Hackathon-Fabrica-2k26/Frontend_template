@@ -8,19 +8,6 @@ import type {
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
-// Padrão: false (consome a API real). Use VITE_MOCK_TRABALHOS=true no .env para simular.
-const mockEnabled = import.meta.env.VITE_MOCK_TRABALHOS === 'true'
-
-let mockId = 0
-// Só no modo simulado, para testar os estados de erro:
-// - nome com "erro": falha sempre;
-// - nome com "instavel": falha só na primeira vez.
-const jaFalhou = new Set<string>()
-
-function wait (ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 function normalizarTrabalho (
   item: TrabalhoRespostaApi,
   nomeArquivoPadrao = '',
@@ -58,32 +45,6 @@ class TrabalhosService {
     _estudantes: Estudante[] = [],
     _indice = 0,
   ): Promise<Trabalho[]> {
-    if (mockEnabled) {
-      await wait(1000 + (indice % 3) * 450)
-
-      const nome = arquivo.name.toLowerCase()
-      if (nome.includes('erro') || (nome.includes('instavel') && !jaFalhou.has(arquivo.name))) {
-        jaFalhou.add(arquivo.name)
-        throw new Error('Não foi possível analisar este arquivo.')
-      }
-
-      const estudante = estudantes.length > 0
-        ? estudantes[indice % estudantes.length]
-        : undefined
-      const pendente = indice % 3 === 1 || !estudante
-
-      return [{
-        id: ++mockId,
-        nome_arquivo: arquivo.name,
-        nome_lido: estudante?.nome ?? '',
-        confianca: pendente ? 0.48 : 0.96,
-        confianca_nome: pendente ? 0.48 : 0.96,
-        identificacao: pendente ? 'pendente' : 'confirmada',
-        aluno: pendente || !estudante ? null : estudante.id,
-        aluno_nome: pendente || !estudante ? null : estudante.nome,
-      }]
-    }
-
     const formData = new FormData()
     formData.append('arquivos', arquivo)
 
