@@ -62,12 +62,13 @@
               <div class="pontos-topo">
                 <h4 id="pontos-titulo">Pontos de atenção</h4>
 
-                <router-link
+                <a
                   class="link-laudo"
-                  :to="{ path: '/apoio/concordar', query: { aluno: aluno.id, turma: aluno.turma, nome: aluno.nome } }"
+                  :href="urlLaudo"
+                  @click.prevent="abrirJanelaLaudo"
                 >
                   Link para envio de laudo
-                </router-link>
+                </a>
               </div>
 
               <div class="pontos-lista">
@@ -321,6 +322,54 @@
     }
   }
 
+  const urlLaudo = computed(() => {
+    return router.resolve({
+      path: '/apoio/concordar',
+      query: {
+        aluno: String(props.aluno.id),
+        turma: String(props.aluno.turma),
+        nome: props.aluno.nome,
+        popup: '1',
+      },
+    }).href
+  })
+
+  function abrirJanelaLaudo () {
+    const largura = 580
+    const altura = 760
+    const esquerda = Math.max(0, Math.round(window.screenX + (window.outerWidth - largura) / 2))
+    const topo = Math.max(0, Math.round(window.screenY + (window.outerHeight - altura) / 2))
+
+    const popup = window.open(
+      urlLaudo.value,
+      'envio_laudo_apoio',
+      `width=${largura},height=${altura},left=${esquerda},top=${topo},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`,
+    )
+    popup?.focus()
+  }
+
+  function aoReceberMensagemPopup (evento: MessageEvent) {
+    if (evento.origin !== window.location.origin) return
+    if (evento.data?.tipo === 'laudo_concluido') {
+      const alunoId = evento.data?.alunoId
+      if (!alunoId || alunoId === props.aluno.id) {
+        notify.success('Laudo enviado e analisado com sucesso!')
+        void carregar()
+
+        if (Array.isArray(evento.data?.necessidades) && evento.data.necessidades.length > 0) {
+          const novasObs: Observacao[] = evento.data.necessidades.map((nec: string, idx: number) => ({
+            id: Date.now() + idx,
+            titulo: 'Necessidade identificada no laudo',
+            descricao: nec,
+            visibilidade: 'Visível para os pais',
+            created_at: new Date().toISOString(),
+          }))
+          pontosAtencao.value = [...novasObs, ...pontosAtencao.value]
+        }
+      }
+    }
+  }
+
   function fechar () {
     emit('fechar')
   }
@@ -330,11 +379,13 @@
   }
 
   onMounted(() => {
+    window.addEventListener('message', aoReceberMensagemPopup)
     document.addEventListener('keydown', aoTeclar)
     void carregar()
   })
 
   onBeforeUnmount(() => {
+    window.removeEventListener('message', aoReceberMensagemPopup)
     document.removeEventListener('keydown', aoTeclar)
     if (foto.value) URL.revokeObjectURL(foto.value)
   })
