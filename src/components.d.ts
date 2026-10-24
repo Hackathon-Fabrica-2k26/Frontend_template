@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AlunoDetalhesModal: typeof import('./components/AlunoDetalhesModal.vue')['default']
     AppHeader: typeof import('./components/AppHeader.vue')['default']
     AppHeaderNav: typeof import('./components/AppHeaderNav.vue')['default']
     AppHeaderSearch: typeof import('./components/AppHeaderSearch.vue')['default']
