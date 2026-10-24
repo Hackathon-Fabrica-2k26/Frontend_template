@@ -227,18 +227,30 @@ export const useAuthStore = defineStore('auth', () => {
     return refreshing
   }
 
-  // Salva nome/e-mail só no front (store + storage), sem chamar o servidor.
-  async function updateProfile (payload: Partial<User> & { name: string, email: string }): Promise<void> {
-    const current = state.value.user ?? (payload.matricula === undefined ? null : { id: payload.id ?? 0, matricula: payload.matricula, name: payload.name, email: payload.email })
+  async function fetchUser (): Promise<User> {
+    const data = await authService.me()
     state.value.user = {
-      id: current?.id ?? 0,
-      matricula: current?.matricula ?? '',
-      ...current,
-      name: payload.name,
-      email: payload.email,
-      tratamento: payload.tratamento ?? current?.tratamento,
+      ...state.value.user,
+      ...data,
+      tratamento: state.value.user?.tratamento ?? data.tratamento,
     }
     persist()
+    return state.value.user
+  }
+
+  async function updateProfile (payload: Partial<User> & { name: string, email: string }): Promise<User> {
+    const data = await authService.updateProfile({
+      name: payload.name.trim(),
+      email: payload.email.trim(),
+    })
+
+    state.value.user = {
+      ...state.value.user,
+      ...data,
+      tratamento: payload.tratamento ?? state.value.user?.tratamento,
+    }
+    persist()
+    return state.value.user
   }
 
   function logout (): void {
@@ -261,6 +273,7 @@ export const useAuthStore = defineStore('auth', () => {
     verifyOtp,
     resendOtp,
     refreshAccess,
+    fetchUser,
     updateProfile,
     logout,
   }
