@@ -69,6 +69,15 @@
         </div>
       </header>
 
+      <div v-if="alunosSemConsentimento > 0" class="alerta-consentimento-turma">
+        <ShieldAlert class="alerta-icone" :size="20" />
+
+        <div class="alerta-texto">
+          <strong>Aviso LGPD (Art. 14): </strong>
+          <span> {{ alunosSemConsentimento }} {{ alunosSemConsentimento === 1 ? 'estudante possui' : 'estudantes possuem' }} autorização pendente. O sistema bloqueia análises por inteligência artificial até a autorização dos responsáveis.</span>
+        </div>
+      </div>
+
       <div class="grelha-conteudo">
         <section v-if="alunos.length > 0" class="cartao-lista-alunos">
           <ul aria-label="Estudantes da turma" class="lista-alunos">
@@ -93,7 +102,16 @@
 
                 <div class="aluno-texto">
                   <strong>{{ aluno.nome }}</strong>
-                  <small>Perfil pedagógico atualizado</small>
+
+                  <div class="aluno-subinfo">
+                    <small>Perfil pedagógico atualizado</small>
+
+                    <ConsentimentoBadge
+                      compacto
+                      :status="consentimentoStore.obterStatus(aluno.id)"
+                      @click="abrirTermo(aluno)"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -255,25 +273,35 @@
       :turma-nome="turma.nome"
       @created="atividadeCriada"
     />
+
+    <TermoConsentimentoDialog
+      v-if="alunoTermo"
+      v-model="termoAberto"
+      :aluno-id="alunoTermo.id"
+      :aluno-nome="alunoTermo.nome"
+      :turma-id="turma?.id"
+      @alterado="carregarDados"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
-  import { ArrowRight, ChevronRight, Clock, FileText, Image, UserPlus } from '@lucide/vue'
+  import { ArrowRight, ChevronRight, Clock, FileText, Image, ShieldAlert, UserPlus } from '@lucide/vue'
   import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   import iconeNotebookUrl from '@/assets/icone-notebook.svg'
   import { atividadesService } from '@/services/atividades'
-  import { useAlunosStore, useEscolasStore } from '@/stores'
+  import { useAlunosStore, useConsentimentoStore, useEscolasStore } from '@/stores'
   import { notify } from '@/utils/notify'
 
   const route = useRoute()
   const router = useRouter()
   const escolasStore = useEscolasStore()
   const alunosStore = useAlunosStore()
+  const consentimentoStore = useConsentimentoStore()
 
   const carregando = ref(true)
   const dialogNovoEstudante = ref(false)
@@ -281,6 +309,13 @@
   const erroNomeEstudante = ref('')
   const salvandoEstudante = ref(false)
   const alunoSelecionado = ref<Aluno | null>(null)
+  const termoAberto = ref(false)
+  const alunoTermo = ref<Aluno | null>(null)
+
+  function abrirTermo (aluno: Aluno) {
+    alunoTermo.value = aluno
+    termoAberto.value = true
+  }
   const enviarAberto = ref(false)
   const criarAtividadeAberto = ref(false)
   const atividades = ref<Atividade[]>([])
@@ -309,6 +344,10 @@
   const turma = computed(() => escolasStore.turmaAtual)
   const alunos = computed(() => alunosStore.alunos)
 
+  const alunosSemConsentimento = computed(() => {
+    return alunos.value.filter(a => consentimentoStore.obterStatus(a.id) !== 'ativo').length
+  })
+
   const turnoFormatado = computed(() => {
     if (!turma.value) {
       return 'Manhã'
@@ -335,8 +374,14 @@
   })
 
   function obterInicial (nome: string) {
-    const limpo = nome.trim()
-    return (limpo.charAt(0) || '?').toUpperCase()
+    const partes = nome.trim().split(/\s+/).filter(Boolean)
+    if (partes.length >= 2 && partes[0].toLowerCase() === 'aluno') {
+      return (partes[1].charAt(0) || 'A').toUpperCase()
+    }
+    if (partes.length >= 2) {
+      return `${partes[0].charAt(0)}${partes[1].charAt(0)}`.toUpperCase()
+    }
+    return (partes[0]?.charAt(0) || '?').toUpperCase()
   }
 
   // Falha ao listar atividades não derruba a página: o painel só mostra o estado vazio.
@@ -399,6 +444,9 @@
         alunosStore.fetchAlunos({ turma: id }),
         carregarAtividades(id),
       ])
+      if (alunosStore.alunos.length > 0) {
+        await consentimentoStore.carregarParaAlunos(alunosStore.alunos.map(a => a.id))
+      }
     } catch (error) {
       notify.error(error instanceof Error ? error.message : 'Turma não encontrada.')
       await router.push('/turmas')
@@ -407,7 +455,7 @@
     }
   }
 
-  function abrirDialogNovoEstudante () {
+  function _abrirDialogNovoEstudante () {
     novoEstudanteNome.value = ''
     erroNomeEstudante.value = ''
     dialogNovoEstudante.value = true
@@ -756,8 +804,7 @@
 }
 
 .cartao-vazio,
-.cartao-apoio,
-.cartao-lista-alunos {
+.cartao-apoio {
   min-height: 280px;
   padding: 2rem;
   border: 1px solid #e1eee6;
@@ -774,7 +821,13 @@
 }
 
 .cartao-lista-alunos {
+  display: flex;
+  flex-direction: column;
   padding: 1.25rem;
+  border: 1px solid #e1eee6;
+  border-radius: 18px;
+  background: #fff;
+  max-height: 580px;
 }
 
 .lista-alunos {
@@ -784,6 +837,13 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: #a9c7b4 transparent;
 }
 
 .item-aluno {
@@ -796,6 +856,8 @@
   border-radius: 12px;
   background: #fff;
   cursor: pointer;
+  flex-shrink: 0;
+  min-height: 64px;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -857,6 +919,37 @@
 .aluno-texto small {
   color: #6a8276;
   font-size: 0.8rem;
+}
+
+.aluno-subinfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.alerta-consentimento-turma {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: #fef8ee;
+  border: 1px solid #e3b477;
+  color: #795217;
+  margin-bottom: 1.25rem;
+}
+
+.alerta-icone {
+  flex-shrink: 0;
+  color: #c97d19;
+  margin-top: 1px;
+}
+
+.alerta-texto {
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 .icone-seta {
@@ -1055,20 +1148,8 @@
   min-height: 240px;
 }
 
-/* Desktop: a página cabe na tela. Só a lista de alunos rola; o painel da direita fica parado. */
+/* Desktop: banner compacto e cartão lateral sticky */
 @media (min-width: 901px) and (min-height: 820px) {
-  .pagina-turma {
-    display: flex;
-    height: calc(100dvh - 10.5rem);
-    flex-direction: column;
-    padding-bottom: 0;
-  }
-
-  .pagina-turma > * {
-    flex: none;
-  }
-
-  /* Banner mais baixo para sobrar altura à lista. */
   .pagina-turma .banner-turma {
     min-height: 128px;
     padding-block: 1.1rem;
@@ -1082,34 +1163,10 @@
     display: none;
   }
 
-  .pagina-turma .grelha-conteudo {
-    flex: 1;
-    grid-template-rows: minmax(0, 1fr);
-    min-height: 0;
-    padding-bottom: 1rem;
-  }
-
-  .cartao-lista-alunos {
-    display: flex;
-    align-self: stretch;
-    min-height: 0;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .lista-alunos {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-right: 0.35rem;
-    scrollbar-width: thin;
-    scrollbar-color: #a9c7b4 transparent;
-  }
-
   .cartao-apoio {
-    position: static;
-    align-self: start;
+    position: sticky;
+    top: 1rem;
   }
-
 }
 
 @media (max-width: 900px) {
