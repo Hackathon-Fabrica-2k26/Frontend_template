@@ -14,8 +14,8 @@
           <v-btn
             class="nova-turma"
             color="primary"
+            to="/turmas/nova"
             variant="outlined"
-            @click="abrirModalNovaTurma"
           >
             <Plus class="mr-2" :size="16" />
             Nova turma
@@ -44,10 +44,10 @@
         </p>
 
         <v-btn
-          class="nova-turma mt-2"
+          class="nova-turma nova-turma--cheia mt-2"
           color="primary"
+          to="/turmas/nova"
           variant="flat"
-          @click="abrirModalNovaTurma"
         >
           <Plus class="mr-2" :size="16" />
           Criar primeira turma
@@ -73,87 +73,12 @@
         />
       </section>
     </div>
-
-    <!-- Modal Nova Turma -->
-    <v-dialog v-model="modalNovaTurma" max-width="480">
-      <v-card class="modal-card pa-6" rounded="xl">
-        <div class="flex items-center justify-between pb-3">
-          <h2 class="text-xl font-semibold text-text">Nova turma</h2>
-
-          <v-btn
-            density="compact"
-            icon
-            variant="text"
-            @click="modalNovaTurma = false"
-          >
-            <X :size="20" />
-          </v-btn>
-        </div>
-
-        <v-form @submit.prevent="salvarNovaTurma">
-          <div class="flex flex-col gap-4">
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">Nome da turma</label>
-
-              <v-text-field
-                v-model="formNovaTurma.nome"
-                autofocus
-                placeholder="Ex.: 1º ano A"
-                required
-                variant="outlined"
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">Turno</label>
-
-              <v-select
-                v-model="formNovaTurma.turno"
-                item-title="title"
-                item-value="value"
-                :items="opcoesTurno"
-                variant="outlined"
-              />
-            </div>
-
-            <div v-if="escolasStore.escolas.length > 1">
-              <label class="mb-1 block text-sm font-medium text-text">Escola</label>
-
-              <v-select
-                v-model="formNovaTurma.escola"
-                item-title="nome"
-                item-value="id"
-                :items="escolasStore.escolas"
-                variant="outlined"
-              />
-            </div>
-
-            <div class="mt-4 flex justify-end gap-3">
-              <v-btn
-                variant="outlined"
-                @click="modalNovaTurma = false"
-              >
-                Cancelar
-              </v-btn>
-
-              <v-btn
-                color="primary"
-                :loading="salvandoTurma"
-                type="submit"
-              >
-                Criar turma
-              </v-btn>
-            </div>
-          </div>
-        </v-form>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import type { TurnoTurma } from '@/interfaces/escola'
-  import { GraduationCap, Plus, X } from '@lucide/vue'
+  import { GraduationCap, Plus } from '@lucide/vue'
   import { computed, onMounted, ref } from 'vue'
   import { useAuthStore } from '@/stores/auth'
   import { useEscolasStore } from '@/stores/escolas'
@@ -187,58 +112,6 @@
       integral: 'Integral',
     }
     return mapa[turno.toLowerCase()] ?? turno
-  }
-
-  const modalNovaTurma = ref(false)
-  const salvandoTurma = ref(false)
-  const formNovaTurma = ref<{
-    nome: string
-    turno: TurnoTurma
-    escola: number | null
-  }>({
-    nome: '',
-    turno: 'manha',
-    escola: null,
-  })
-
-  const opcoesTurno = [
-    { title: 'Manhã', value: 'manha' },
-    { title: 'Tarde', value: 'tarde' },
-    { title: 'Noite', value: 'noite' },
-    { title: 'Integral', value: 'integral' },
-  ]
-
-  function abrirModalNovaTurma () {
-    formNovaTurma.value = {
-      nome: '',
-      turno: 'manha',
-      escola: authStore.user?.escola ?? (escolasStore.escolas[0]?.id ?? null),
-    }
-    modalNovaTurma.value = true
-  }
-
-  async function salvarNovaTurma () {
-    if (!formNovaTurma.value.nome.trim()) {
-      notify.error('Por favor, informe o nome da turma.')
-      return
-    }
-
-    const escolaId = formNovaTurma.value.escola || authStore.user?.escola || escolasStore.escolas[0]?.id || 1
-
-    salvandoTurma.value = true
-    try {
-      await escolasStore.createTurma({
-        nome: formNovaTurma.value.nome.trim(),
-        turno: formNovaTurma.value.turno,
-        escola: escolaId,
-      })
-      notify.success('Turma criada com sucesso!')
-      modalNovaTurma.value = false
-    } catch (error) {
-      notify.error(error instanceof Error ? error.message : 'Não foi possível criar a turma.')
-    } finally {
-      salvandoTurma.value = false
-    }
   }
 
   onMounted(async () => {
@@ -330,10 +203,5 @@
   background: rgb(255 255 255 / 0.35);
   font-size: 0.9375rem;
   font-weight: 500;
-}
-
-.modal-card {
-  background: var(--color-background);
-  border: 1px solid var(--color-support);
 }
 </style>

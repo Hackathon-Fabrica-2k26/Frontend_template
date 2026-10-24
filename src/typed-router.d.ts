@@ -58,6 +58,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/perfil': RouteRecordInfo<
+      '/perfil',
+      '/perfil',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/turmas/': RouteRecordInfo<
       '/turmas/',
       '/turmas',
@@ -70,6 +77,13 @@ declare module 'vue-router/auto-routes' {
       '/turmas/:id',
       { id: ParamValue<true> },
       { id: ParamValue<false> },
+      | never
+    >,
+    '/turmas/nova': RouteRecordInfo<
+      '/turmas/nova',
+      '/turmas/nova',
+      Record<never, never>,
+      Record<never, never>,
       | never
     >,
   }
@@ -115,6 +129,12 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/perfil.vue': {
+      routes:
+        | '/perfil'
+      views:
+        | never
+    }
     'src/pages/turmas/index.vue': {
       routes:
         | '/turmas/'
@@ -124,6 +144,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/turmas/[id].vue': {
       routes:
         | '/turmas/[id]'
+      views:
+        | never
+    }
+    'src/pages/turmas/nova.vue': {
+      routes:
+        | '/turmas/nova'
       views:
         | never
     }
