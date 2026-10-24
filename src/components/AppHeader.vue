@@ -1,7 +1,7 @@
 <template>
-  <header class="sticky top-3 z-50 px-3 sm:px-8">
+  <header class="sticky top-3 z-50 mt-5 px-3 sm:px-8 lg:px-28">
     <div
-      class="mx-auto flex max-w-[1360px] items-center gap-2 rounded-3xl border-[1.5px] border-primary bg-background/90 py-2.5 pr-3 pl-3 backdrop-blur-md sm:gap-8 sm:py-3.5 sm:pr-10 sm:pl-6 shadow-[0_1px_2px_rgb(38_61_53/0.06),0_8px_16px_-6px_rgb(38_61_53/0.12),0_24px_40px_-16px_rgb(53_107_91/0.28)]"
+      class="mx-auto flex items-center gap-2 rounded-3xl border-[1.5px] border-primary bg-background/90 py-2.5 pr-3 pl-3 backdrop-blur-md sm:gap-8 sm:py-3.5 sm:pr-10 sm:pl-6 shadow-[0_1px_2px_rgb(38_61_53/0.06),0_8px_16px_-6px_rgb(38_61_53/0.12),0_24px_40px_-16px_rgb(53_107_91/0.28)]"
     >
       <router-link
         aria-label="Marsupi - ir para o início"
