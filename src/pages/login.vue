@@ -6,7 +6,13 @@
 
     <section class="login-section">
       <div ref="loginContent" class="login-content">
-        <img alt="Marsupi" class="login-logo" :src="logo">
+        <!-- Máscara: o arquivo da logo é preto; aqui ganha o verde primary, como no header. -->
+        <span
+          aria-label="Marsupi"
+          class="login-logo"
+          role="img"
+          :style="{ maskImage: `url(${logo})` }"
+        />
 
         <h1 class="login-title">
           Bem-vindo de volta
@@ -17,29 +23,43 @@
           continuar no Marsupi.
         </p>
 
-        <form class="login-form" @submit.prevent="submit">
+        <form ref="form" class="login-form" novalidate @submit.prevent="submit">
           <div class="field-entrance field-first">
             <AuthInput
+              ref="matriculaInput"
               v-model="matricula"
               autocomplete="username"
               :disabled="loading"
+              :invalid="!!errorMsg"
               label="Matrícula"
               placeholder="Digite sua matrícula"
               required
+              @update:model-value="errorMsg = ''"
             />
           </div>
 
           <div class="field-entrance field-second">
             <AuthInput
+              ref="passwordInput"
               v-model="password"
               autocomplete="current-password"
               :disabled="loading"
+              :invalid="!!errorMsg"
               label="Senha"
               placeholder="Digite sua senha"
               required
               type="password"
+              @update:model-value="errorMsg = ''"
             />
           </div>
+
+          <!-- Erro ao lado do campo, não só em toast: fica visível até a pessoa editar -->
+          <Transition name="erro">
+            <p v-if="errorMsg" class="login-error" role="alert">
+              <CircleAlert :size="16" />
+              <span>{{ errorMsg }}</span>
+            </p>
+          </Transition>
 
           <div class="login-options">
             <label class="remember-label">
@@ -54,13 +74,13 @@
 
           <div class="button-entrance">
             <button class="login-button" :disabled="loading || !matricula.trim() || !password" type="submit">
-              <LoaderCircle v-if="loading" class="loading-icon" :size="18" />
+              <LoaderCircle v-if="loading" class="loading-icon" :size="20" />
 
               <span>
                 {{ loading ? 'Entrando...' : 'Entrar' }}
               </span>
 
-              <ArrowRight v-if="!loading" class="button-arrow" :size="18" />
+              <ArrowRight v-if="!loading" class="button-arrow" :size="20" />
             </button>
           </div>
         </form>
@@ -70,15 +90,15 @@
 </template>
 
 <script setup lang="ts">
-  import { ArrowRight, LoaderCircle } from '@lucide/vue'
-  import { ref } from 'vue'
+  import { ArrowRight, CircleAlert, LoaderCircle } from '@lucide/vue'
+  import { nextTick, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   import logo from '@/assets/logoBaseTexto.webp'
   import AuthInput from '@/components/auth/AuthInput.vue'
   import AuthWaves from '@/components/auth/AuthWaves.vue'
+  import { useShake } from '@/composables/useShake'
   import { useAuthStore } from '@/stores/auth'
-  import { notify } from '@/utils/notify'
 
   definePage({
     meta: {
@@ -96,6 +116,11 @@
   const remember = ref(false)
   const loading = ref(false)
   const loginContent = ref<HTMLElement | null>(null)
+  const form = ref<HTMLElement | null>(null)
+  const passwordInput = ref<{ focus: () => void } | null>(null)
+  const errorMsg = ref('')
+
+  const shake = useShake(form)
 
   async function submit (): Promise<void> {
     if (loading.value || !matricula.value.trim() || !password.value) {
@@ -103,6 +128,8 @@
     }
 
     loading.value = true
+    errorMsg.value = ''
+    let failed = false
 
     try {
       await auth.login(
@@ -140,13 +167,20 @@
         animation.cancel()
       }
 
-      notify.error(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível entrar.',
-      )
+      failed = true
+      errorMsg.value = error instanceof Error
+        ? error.message
+        : 'Não foi possível entrar.'
     } finally {
       loading.value = false
+    }
+
+    if (failed) {
+      // Os campos estavam desabilitados durante o envio: espera reabilitar para focar.
+      password.value = ''
+      await nextTick()
+      shake()
+      passwordInput.value?.focus()
     }
   }
 </script>
@@ -179,20 +213,24 @@
 
 .login-content {
   width: 100%;
-  max-width: 420px;
+  max-width: 500px;
 }
 
 .login-logo {
   display: block;
-  width: 180px;
-  height: auto;
-  margin-bottom: 38px;
+  width: 230px;
+  aspect-ratio: 596 / 240;
+  margin-bottom: 44px;
+  background: #356b5b;
+  mask-position: left center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
   animation: enter-up 650ms ease-out both;
 }
 
 .login-title {
   margin: 0;
-  font-size: clamp(27px, 3vw, 34px);
+  font-size: clamp(30px, 3.4vw, 42px);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.025em;
@@ -200,10 +238,10 @@
 }
 
 .login-subtitle {
-  max-width: 390px;
-  margin: 10px 0 28px;
+  max-width: 460px;
+  margin: 12px 0 34px;
   color: #759d90;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.6;
   animation: enter-up 650ms 160ms ease-out both;
 }
@@ -211,7 +249,7 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .field-entrance {
@@ -233,7 +271,7 @@
   align-items: center;
   gap: 10px 16px;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 15px;
   animation: enter-up 650ms 370ms ease-out both;
 }
 
@@ -264,6 +302,38 @@
 }
 
 /* Entrada independente do botão */
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 0;
+  color: #b3261e;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.login-error svg {
+  flex-shrink: 0;
+}
+
+.erro-enter-active {
+  transition: opacity 260ms ease, transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.erro-leave-active {
+  transition: opacity 140ms ease;
+}
+
+.erro-enter-from {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.erro-leave-to {
+  opacity: 0;
+}
+
 .button-entrance {
   margin-top: 12px;
   animation: enter-up 650ms 440ms ease-out both;
@@ -273,7 +343,7 @@
 .login-button {
   display: flex;
   width: 100%;
-  height: 50px;
+  height: 58px;
   align-items: center;
   justify-content: center;
   gap: 12px;
@@ -281,7 +351,7 @@
   border-radius: 12px;
   background-color: #356b5b;
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(38, 61, 53, 0.06);
@@ -356,17 +426,17 @@
 
 @media (max-width: 480px) {
   .login-logo {
-    width: 155px;
-    margin-bottom: 30px;
+    width: 180px;
+    margin-bottom: 32px;
   }
 
   .login-title {
-    font-size: 27px;
+    font-size: 30px;
   }
 
   .login-subtitle {
-    font-size: 14px;
-    margin-bottom: 24px;
+    font-size: 15px;
+    margin-bottom: 28px;
   }
 }
 

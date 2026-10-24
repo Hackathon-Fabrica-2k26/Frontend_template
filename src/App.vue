@@ -4,6 +4,8 @@
       <MarsupiLoading v-if="loading" key="loading" :done="done" fullscreen />
       <router-view v-else key="app" />
     </Transition>
+
+    <AppNotifications />
   </v-app>
 </template>
 
