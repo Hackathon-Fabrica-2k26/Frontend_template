@@ -196,6 +196,13 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <EnviarTrabalhosDialog
+      v-model="enviarAberto"
+      :atividade-id="turma.id"
+      :atividade-nome="turma.nome"
+      :estudantes="alunos"
+    />
   </div>
 </template>
 
@@ -220,6 +227,7 @@
   const erroNomeEstudante = ref('')
   const salvandoEstudante = ref(false)
   const alunoSelecionado = ref<Aluno | null>(null)
+  const enviarAberto = ref(false)
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
@@ -339,8 +347,7 @@
   }
 
   function adicionarAtividade () {
-    // TODO: abrir modal de criação de atividade.
-    console.info('Ação: criar nova atividade')
+    enviarAberto.value = true
   }
 
   onMounted(() => {

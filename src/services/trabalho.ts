@@ -6,41 +6,57 @@ import type {
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
+// Sem backend de trabalhos ainda, o padrão é simular as respostas. Use VITE_MOCK_TRABALHOS=false
+// no .env para falar com a API de verdade.
 const mockEnabled = import.meta.env.VITE_MOCK_TRABALHOS !== 'false'
+
+let mockId = 0
+// Só no modo simulado, para testar os estados de erro:
+// - nome com "erro": falha sempre;
+// - nome com "instavel": falha só na primeira vez.
+const jaFalhou = new Set<string>()
 
 function wait (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 class TrabalhosService {
-  async upload (
+  /**
+   * Envia UM arquivo para a IA analisar e devolve os trabalhos encontrados nele.
+   * Um arquivo por chamada permite acompanhar o progresso arquivo a arquivo.
+   */
+  async analisar (
     atividadeId: number,
-    arquivos: File[],
+    arquivo: File,
     estudantes: Estudante[] = [],
+    indice = 0,
   ): Promise<Trabalho[]> {
     if (mockEnabled) {
-      await wait(2200)
+      await wait(1000 + (indice % 3) * 450)
 
-      return arquivos.map((arquivo, index) => {
-        const estudante = estudantes[index % estudantes.length]
-        const pendente = index % 3 === 1 || !estudante
+      const nome = arquivo.name.toLowerCase()
+      if (nome.includes('erro') || (nome.includes('instavel') && !jaFalhou.has(arquivo.name))) {
+        jaFalhou.add(arquivo.name)
+        throw new Error('Não foi possível analisar este arquivo.')
+      }
 
-        return {
-          id: index + 1,
-          nome_arquivo: arquivo.name,
-          nome_lido: estudante?.nome ?? '',
-          confianca: pendente ? 0.48 : 0.96,
-          identificacao: pendente ? 'pendente' : 'confirmada',
-          aluno: pendente ? null : estudante.id,
-        }
-      })
+      const estudante = estudantes.length > 0
+        ? estudantes[indice % estudantes.length]
+        : undefined
+      const pendente = indice % 3 === 1 || !estudante
+
+      return [{
+        id: ++mockId,
+        nome_arquivo: arquivo.name,
+        nome_lido: estudante?.nome ?? '',
+        confianca: pendente ? 0.48 : 0.96,
+        identificacao: pendente ? 'pendente' : 'confirmada',
+        aluno: pendente || !estudante ? null : estudante.id,
+      }]
     }
 
     const formData = new FormData()
-
-    for (const arquivo of arquivos) {
-      formData.append('arquivos', arquivo)
-    }
+    formData.append('arquivos', arquivo)
 
     try {
       const { data } = await api.post<Trabalho[]>(
@@ -58,7 +74,7 @@ class TrabalhosService {
     } catch (error) {
       throw buildApiError(
         error,
-        'Não foi possível enviar os trabalhos.',
+        'Não foi possível enviar o arquivo.',
       )
     }
   }
