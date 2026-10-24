@@ -18,3 +18,12 @@
     margin: 0;
   }
 }
+
+// Exportar PDF usa a impressão do navegador: esconde a barra do app.
+@media print {
+  .v-app-bar,
+  .v-toolbar,
+  header.v-toolbar {
+    display: none !important;
+  }
+}

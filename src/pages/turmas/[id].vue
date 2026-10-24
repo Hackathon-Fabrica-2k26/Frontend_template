@@ -57,13 +57,14 @@
         </div>
 
         <div class="acoes-header">
+
           <v-btn
-            class="btn-adicionar-foto"
+            class="btn-adicionar-foto btn-animado"
             color="primary"
-            :prepend-icon="Camera"
-            @click="acionarUploadFoto"
+            @click="adicionarIntegrantes"
           >
-            Adicionar foto
+            <UserPlus class="btn-animado__icone" :size="18" />
+            Adicionar integrantes
           </v-btn>
         </div>
       </header>
@@ -107,7 +108,7 @@
           </div>
 
           <h3>Nenhum aluno cadastrado</h3>
-          <p>Adicione uma foto da chamada para cadastrar os alunos.</p>
+          <p>Adicione os integrantes pela foto da chamada para cadastrar os alunos.</p>
           <small>Os estudantes da turma aparecerão aqui.</small>
         </section>
 
@@ -122,17 +123,8 @@
           </div>
 
           <div class="acoes-apoio">
-            <v-btn block color="primary" @click="adicionarAtividade">
-              Adicionar atividade
-            </v-btn>
-
-            <v-btn
-              block
-              color="primary"
-              variant="outlined"
-              @click="enviarAberto = true"
-            >
-              Enviar trabalhos
+            <v-btn block color="primary" @click="acaoPrincipalApoio">
+              {{ atividades.length > 0 ? 'Enviar atividades' : 'Adicionar atividade' }}
             </v-btn>
           </div>
         </aside>
@@ -147,6 +139,40 @@
         @fechar="alunoSelecionado = null"
       />
     </template>
+
+    <!-- Atividades da turma: é daqui que se enviam os trabalhos (precisa de uma atividade criada). -->
+    <section v-else-if="abaAtiva === 'atividades'" class="aba-atividades">
+      <header class="seccao-header">
+        <div>
+          <h2>Atividades da turma</h2>
+          <p>Escolha uma atividade para enviar os trabalhos dos estudantes.</p>
+        </div>
+
+        <v-btn class="btn-animado" color="primary" @click="adicionarAtividade">
+          Adicionar atividade
+        </v-btn>
+      </header>
+
+      <ul v-if="atividades.length > 0" class="atividades-lista">
+        <li v-for="atividade in atividades" :key="atividade.id" class="atividade-linha">
+          <div class="atividade-info">
+            <strong class="atividade-nome">{{ atividade.titulo || atividade.nome }}</strong>
+
+            <small v-if="atividade.descricao">{{ atividade.descricao }}</small>
+          </div>
+
+          <v-btn color="primary" variant="outlined" @click="abrirEnvio(atividade)">
+            Enviar trabalhos
+          </v-btn>
+        </li>
+      </ul>
+
+      <section v-else class="cartao-vazio">
+        <Clock class="icone-vazio" :size="40" />
+        <h3>Nenhuma atividade ainda</h3>
+        <p>Crie a primeira atividade para depois enviar os trabalhos dos estudantes.</p>
+      </section>
+    </section>
 
     <section v-else class="cartao-vazio estado-aba">
       <Clock class="icone-vazio" :size="40" />
@@ -200,8 +226,8 @@
 
     <EnviarTrabalhosDialog
       v-model="enviarAberto"
-      :atividade-id="turma.id"
-      :atividade-nome="turma.nome"
+      :atividade-id="atividadeEnvio?.id ?? 0"
+      :atividade-nome="atividadeEnvio?.titulo || atividadeEnvio?.nome"
       :estudantes="alunos"
     />
 
@@ -209,17 +235,20 @@
       v-model="criarAtividadeAberto"
       :turma-id="turma.id"
       :turma-nome="turma.nome"
+      @created="atividadeCriada"
     />
   </div>
 </template>
 
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
-  import { Camera, ChevronRight, Clock, Image } from '@lucide/vue'
-  import { computed, onMounted, ref, watch } from 'vue'
+  import type { Atividade } from '@/interfaces/atividade'
+  import { ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
+  import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   import iconeNotebookUrl from '@/assets/icone-notebook.svg'
+  import { atividadesService } from '@/services/atividades'
   import { useAlunosStore, useEscolasStore } from '@/stores'
   import { notify } from '@/utils/notify'
 
@@ -236,9 +265,12 @@
   const alunoSelecionado = ref<Aluno | null>(null)
   const enviarAberto = ref(false)
   const criarAtividadeAberto = ref(false)
+  const atividades = ref<Atividade[]>([])
+  const atividadeEnvio = ref<Atividade | null>(null)
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
+    { id: 'atividades', rotulo: 'Atividades' },
   ] as const
 
   const abaAtiva = ref<(typeof abas)[number]['id']>('estudantes')
@@ -289,6 +321,38 @@
     return (limpo.charAt(0) || '?').toUpperCase()
   }
 
+  // Falha ao listar atividades não derruba a página: o painel só mostra o estado vazio.
+  async function carregarAtividades (turma: number) {
+    try {
+      atividades.value = (await atividadesService.list({ turma })).results
+    } catch {
+      atividades.value = []
+    }
+  }
+
+  // A atividade criada fica salva na turma e o envio de trabalhos já abre nela.
+  async function atividadeCriada (atividade: Atividade) {
+    atividades.value.unshift(atividade)
+    await nextTick()
+    abrirEnvio(atividade)
+  }
+
+  // Sem atividade salva: cria uma. Com atividade conectada à turma: envia os trabalhos nela
+  // (a mais recente; as outras ficam na aba "Atividades").
+  function acaoPrincipalApoio () {
+    const [maisRecente] = atividades.value
+    if (maisRecente) {
+      abrirEnvio(maisRecente)
+      return
+    }
+    adicionarAtividade()
+  }
+
+  function abrirEnvio (atividade: Atividade) {
+    atividadeEnvio.value = atividade
+    enviarAberto.value = true
+  }
+
   async function carregarDados () {
     const id = turmaId.value
     if (!Number.isInteger(id) || id <= 0) {
@@ -302,6 +366,7 @@
       await Promise.all([
         escolasStore.fetchTurma(id),
         alunosStore.fetchAlunos({ turma: id }),
+        carregarAtividades(id),
       ])
     } catch (error) {
       notify.error(error instanceof Error ? error.message : 'Turma não encontrada.')
@@ -349,9 +414,9 @@
     }
   }
 
-  function acionarUploadFoto () {
-    // TODO: integrar chamada por foto (Backend_template#38).
-    console.info('Ação: adicionar foto da chamada')
+  // Abre o cadastro de alunos já preenchido com os dados desta turma: só falta enviar a foto.
+  function adicionarIntegrantes () {
+    void router.push({ path: '/turmas/nova', query: { turma: turma.value?.id } })
   }
 
   function adicionarAtividade () {
@@ -372,9 +437,12 @@
 
 <style scoped>
 .pagina-turma {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 0 1rem;
+  /* Mesma margem lateral do perfil: ocupa a tela toda com respiro pequeno. */
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  padding: 0 0.75rem 2.5rem;
+  transform: translateX(-50%);
   color: #1f3a2c;
 }
 
@@ -596,6 +664,54 @@
   gap: 0.75rem;
 }
 
+.btn-adicionar-estudante,
+.btn-animado {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s var(--ease-out-expo, ease), box-shadow 0.3s;
+}
+
+/* Brilho que atravessa o botão no hover. */
+.btn-animado::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 28%) 50%, transparent 65%);
+  content: '';
+  translate: -120% 0;
+  transition: translate 0.7s var(--ease-out-expo, ease);
+  pointer-events: none;
+}
+
+.btn-animado:hover {
+  box-shadow: 0 8px 20px -8px rgb(53 107 91 / 55%);
+  transform: translateY(-2px);
+}
+
+.btn-animado:hover::after {
+  translate: 120% 0;
+}
+
+.btn-animado:active {
+  transform: scale(0.97);
+}
+
+.btn-animado__icone {
+  margin-right: 0.5rem;
+  transition: transform 0.35s cubic-bezier(.3, 1.6, .5, 1);
+}
+
+.btn-animado:hover .btn-animado__icone {
+  transform: translateX(3px) scale(1.18) rotate(-8deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-animado,
+  .btn-animado::after,
+  .btn-animado__icone {
+    transition: none;
+  }
+}
+
 .btn-adicionar-foto {
   min-width: 180px;
   min-height: 44px;
@@ -604,6 +720,7 @@
 .grelha-conteudo {
   display: grid;
   grid-template-columns: 1fr 340px;
+  align-items: start;
   gap: 1.5rem;
 }
 
@@ -737,9 +854,12 @@
 }
 
 .cartao-apoio {
+  /* Fica parado na direita enquanto a lista rola. */
+  position: sticky;
+  top: 7rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 1.25rem;
   background: #eef5f0;
   border-color: #d9eae0;
   text-align: left;
@@ -751,9 +871,50 @@
   place-items: center;
 }
 
-.icone-notebook {
-  width: 104px;
-  height: 104px;
+.aba-atividades {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.atividades-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atividade-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid #e1eee6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.atividade-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.atividade-info small {
+  overflow: hidden;
+  color: #52695f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atividade-nome {
+  color: #1f3a2c;
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .acoes-apoio {
@@ -762,13 +923,101 @@
   gap: 0.65rem;
 }
 
+.cartao-apoio .v-btn {
+  flex: none;
+  height: 44px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (min-width: 640px) {
+  .pagina-turma {
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pagina-turma {
+    padding-inline: 7rem;
+  }
+}
+
+.icone-notebook {
+  width: 104px;
+  height: 104px;
+}
+
 .estado-aba {
   min-height: 240px;
+}
+
+/* Desktop: a página cabe na tela. Só a lista de alunos rola; o painel da direita fica parado. */
+@media (min-width: 901px) and (min-height: 820px) {
+  .pagina-turma {
+    display: flex;
+    height: calc(100dvh - 10.5rem);
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+
+  .pagina-turma > * {
+    flex: none;
+  }
+
+  /* Banner mais baixo para sobrar altura à lista. */
+  .pagina-turma .banner-turma {
+    min-height: 128px;
+    padding-block: 1.1rem;
+  }
+
+  .pagina-turma .banner-turma h1 {
+    font-size: 1.9rem;
+  }
+
+  .pagina-turma .banner-turma small {
+    display: none;
+  }
+
+  .pagina-turma .grelha-conteudo {
+    flex: 1;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    padding-bottom: 1rem;
+  }
+
+  .cartao-lista-alunos {
+    display: flex;
+    align-self: stretch;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .lista-alunos {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.35rem;
+    scrollbar-width: thin;
+    scrollbar-color: #a9c7b4 transparent;
+  }
+
+  .cartao-apoio {
+    position: static;
+    align-self: start;
+  }
+
 }
 
 @media (max-width: 900px) {
   .grelha-conteudo {
     grid-template-columns: 1fr;
+  }
+
+  .cartao-apoio {
+    position: static;
   }
 }
 
@@ -778,6 +1027,7 @@
   }
 
   .acoes-header,
+  .btn-adicionar-estudante,
   .btn-adicionar-foto {
     width: 100%;
   }

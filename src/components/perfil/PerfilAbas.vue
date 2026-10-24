@@ -125,12 +125,16 @@
 
             <ul class="lista">
               <li v-for="(a, i) in atividadesFiltradas" :key="a.id" :style="{ '--i': i }">
-                <router-link class="linha grid-atividades" :to="a.turma ? `/turmas/${a.turma}` : '/turmas'">
+                <button
+                  class="linha grid-atividades acao-linha"
+                  type="button"
+                  @click="abrirDetalhes(a.id)"
+                >
                   <span class="font-medium text-text">{{ a.titulo }}</span>
                   <span class="meta data">{{ dataBr(a.data) }}</span>
                   <span class="status-celula"><span class="status" :class="`status--${a.status}`">{{ rotuloStatus[a.status] }}</span></span>
-                  <span class="ver">Ver <ChevronRight :size="14" /></span>
-                </router-link>
+                  <span class="ver">Ver mais <ChevronRight :size="14" /></span>
+                </button>
               </li>
             </ul>
 
@@ -143,16 +147,26 @@
         </Transition>
       </template>
     </div>
+
+    <AtividadeDetalhesDialog
+      v-model="modalDetalhesAberto"
+      :atividade-id="atividadeSelecionadaId"
+      :turmas="turmas"
+      @atualizada="aoAtualizar"
+      @excluida="aoExcluir"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
+  import type { Atividade } from '@/interfaces/atividade'
   import type { Turma } from '@/interfaces/escola'
   import type { AtividadeRecente, StatusAtividade } from '@/interfaces/perfil'
   import { ChevronRight, Plus, Search } from '@lucide/vue'
   import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
   import atencao from '@/assets/mascotes/atencao.svg'
   import peekVazio from '@/assets/mascotes/peek-vazio.svg'
+  import AtividadeDetalhesDialog from './AtividadeDetalhesDialog.vue'
 
   type Estado = 'carregando' | 'erro' | 'ok'
 
@@ -162,7 +176,29 @@
     estadoTurmas: Estado
     estadoAtividades: Estado
   }>()
-  const emit = defineEmits<{ recarregar: [] }>()
+  const emit = defineEmits<{
+    (e: 'recarregar'): void
+    (e: 'atualizada', a: Atividade): void
+    (e: 'excluida', id: number): void
+  }>()
+
+  const modalDetalhesAberto = ref(false)
+  const atividadeSelecionadaId = ref<number | null>(null)
+
+  function abrirDetalhes (id: number): void {
+    atividadeSelecionadaId.value = id
+    modalDetalhesAberto.value = true
+  }
+
+  function aoAtualizar (atividade: Atividade): void {
+    emit('atualizada', atividade)
+    emit('recarregar')
+  }
+
+  function aoExcluir (id: number): void {
+    emit('excluida', id)
+    emit('recarregar')
+  }
 
   const abas = [
     { id: 'turmas', titulo: 'Minhas turmas' },
@@ -196,7 +232,7 @@
 
   const turnos: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite', integral: 'Integral' }
   const turno = (t: Turma) => t.turno_display || turnos[(t.turno ?? '').toLowerCase()] || 'Não definido'
-  const ano = (t: Turma) => (t.created_at ? new Date(t.created_at).getFullYear() : new Date().getFullYear())
+  const ano = (t: Turma) => t.ano_letivo || (t.created_at ? new Date(t.created_at).getFullYear() : new Date().getFullYear())
   const alunos = (t: Turma) => `${t.total_estudantes ?? 0} ${(t.total_estudantes ?? 0) === 1 ? 'aluno' : 'alunos'}`
 
   function dataBr (valor: string): string {
@@ -362,6 +398,15 @@
   color: var(--color-text);
   text-decoration: none;
   border-radius: 8px;
+}
+
+.acao-linha {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .linha:focus-visible {

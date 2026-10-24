@@ -70,6 +70,10 @@
     trabalhos.value.length > 0 && trabalhos.value.every(trabalho => trabalho.aluno !== null),
   )
 
+  const pendentesRevisao = computed(() =>
+    trabalhos.value.filter(trabalho => trabalho.identificacao === 'pendente').length,
+  )
+
   // Revisão completa: o selo do canguru estoura.
   const pronto = computed(() => etapa.value === 'revisao' && podeConfirmar.value)
 
@@ -77,6 +81,7 @@
   const guardados = computed(() => trabalhos.value.map(trabalho => ({
     id: trabalho.id,
     aluno: props.estudantes.find(estudante => estudante.id === trabalho.aluno)?.nome
+      ?? trabalho.aluno_nome
       ?? (trabalho.nome_lido || 'Aluno não identificado'),
     arquivo: trabalho.nome_arquivo,
   })))
@@ -84,7 +89,7 @@
   const cabecalho = computed(() => ({
     envio: {
       titulo: 'Enviar atividades',
-      texto: 'A IA identifica os alunos e preenche os dados automaticamente.',
+      texto: 'Os alunos são identificados e os dados preenchidos automaticamente.',
     },
     processamento: terminou.value
       ? {
@@ -94,12 +99,14 @@
           : 'Todos os trabalhos foram verificados. Continue para revisar os alunos.',
       }
       : {
-        titulo: 'Processando...',
-        texto: 'Estamos analisando os trabalhos da sua turma.',
+        titulo: 'Processando',
+        texto: '',
       },
     revisao: {
       titulo: 'Revisar identificação',
-      texto: 'Confira os alunos identificados antes de concluir.',
+      texto: pendentesRevisao.value > 0
+        ? `${pendentesRevisao.value} ${pendentesRevisao.value === 1 ? 'trabalho com dúvida pede' : 'trabalhos com dúvida pedem'} confirmação.`
+        : 'Confira os alunos identificados antes de concluir.',
     },
     concluido: {
       titulo: 'Tudo certo!',
@@ -109,7 +116,7 @@
 
   const rotuloStatus: Record<StatusAnalise, string> = {
     fila: 'Na fila',
-    analisando: 'Analisando',
+    analisando: 'Processando',
     concluido: 'Verificado',
     erro: 'Recarregar',
     reenviar: 'Enviar arquivo',
@@ -340,6 +347,10 @@
     return valor === null ? 'Não informada' : `${Math.round(valor * 100)}%`
   }
 
+  function aoAlterarAluno (trabalho: Trabalho): void {
+    trabalho.identificacao = 'pendente'
+  }
+
   async function confirmar (): Promise<void> {
     if (!podeConfirmar.value || salvando.value) {
       return
@@ -352,11 +363,17 @@
         if (trabalho.aluno === null) {
           continue
         }
-        await trabalhosService.confirmar(trabalho.id, {
+        const atualizado = await trabalhosService.confirmar(trabalho.id, {
           aluno: trabalho.aluno,
-          identificacao: 'confirmada',
         })
-        trabalho.identificacao = 'confirmada'
+        if (atualizado) {
+          trabalho.identificacao = atualizado.identificacao
+          trabalho.confianca = atualizado.confianca
+          trabalho.confianca_nome = atualizado.confianca_nome
+          trabalho.aluno_nome = atualizado.aluno_nome
+        } else {
+          trabalho.identificacao = 'confirmada'
+        }
       }
 
       // A etapa final já comemora: um toast aqui só repetiria a mensagem.
@@ -604,12 +621,17 @@
                   </div>
 
                   <p class="revisao__confianca">
-                    Confiança da IA: {{ formatarConfianca(trabalho.confianca) }}
+                    Confiança: {{ formatarConfianca(trabalho.confianca) }}
                   </p>
 
                   <label class="revisao__campo">
-                    Estudante da turma
-                    <select v-model="trabalho.aluno" class="revisao__select" :disabled="salvando">
+                    {{ trabalho.identificacao === 'pendente' ? 'Confirme o estudante da turma' : 'Estudante da turma' }}
+                    <select
+                      v-model="trabalho.aluno"
+                      class="revisao__select"
+                      :disabled="salvando"
+                      @change="aoAlterarAluno(trabalho)"
+                    >
                       <option :value="null">Selecione um estudante</option>
 
                       <option v-for="estudante in estudantes" :key="estudante.id" :value="estudante.id">
@@ -1108,7 +1130,8 @@
   font-weight: 600;
 }
 
-.selo--confirmada {
+.selo--confirmada,
+.selo--automatica {
   background: #e5f3e9;
   color: #39734d;
 }

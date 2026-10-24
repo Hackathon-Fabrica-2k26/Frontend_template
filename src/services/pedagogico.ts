@@ -2,6 +2,7 @@ import type { Paginated } from '@/interfaces/item'
 import type {
   GerarRelatorioPayload,
   GerarRelatorioResponse,
+  RefinamentoResposta,
   Relatorio,
   RelatorioPayload,
 } from '@/interfaces/pedagogico'
@@ -44,6 +45,25 @@ class PedagogicoService {
     }
   }
 
+  async get (id: number): Promise<Relatorio> {
+    try {
+      const { data } = await api.get<Relatorio>(`relatorios/${id}/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar o relatório.')
+    }
+  }
+
+  /** Ciclo de refinamento: o professor descreve o ajuste e recebe o prompt melhorado. */
+  async refinar (id: number, ajuste: string): Promise<RefinamentoResposta> {
+    try {
+      const { data } = await api.post<RefinamentoResposta>(`relatorios/${id}/refinar/`, { ajuste })
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível refinar a atividade.')
+    }
+  }
+
   async gerar (payload: GerarRelatorioPayload): Promise<GerarRelatorioResponse> {
     try {
       const { data } = await api.post<GerarRelatorioResponse>('relatorios/gerar/', payload)
@@ -57,6 +77,28 @@ class PedagogicoService {
         )
       }
       throw buildApiError(error, 'Não foi possível gerar o relatório pedagógico.')
+    }
+  }
+
+  async downloadPdf (id: number, nomeArquivo?: string): Promise<Blob> {
+    try {
+      const { data } = await api.get<Blob>(`relatorios/${id}/pdf/`, {
+        responseType: 'blob',
+      })
+
+      const nomeFinal = nomeArquivo?.endsWith('.pdf') ? nomeArquivo : `${nomeArquivo || `relatorio-${id}`}.pdf`
+      const url = window.URL.createObjectURL(data)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = nomeFinal
+      document.body.append(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível baixar o PDF do relatório.')
     }
   }
 }

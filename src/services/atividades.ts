@@ -4,14 +4,9 @@ import type {
   AtividadePayload,
   AtividadesPage,
 } from '@/interfaces/atividade'
+import type { AtividadeVariacao, MapaVariacaoItem } from '@/interfaces/variacao'
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
-
-const mockEnabled = import.meta.env.VITE_MOCK_ATIVIDADES === 'true'
-
-function wait (ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 
 export interface AtividadesFilters {
   turma?: number
@@ -21,28 +16,6 @@ export interface AtividadesFilters {
 
 class AtividadesService {
   async extrair (arquivo: File): Promise<AtividadeExtracao> {
-    if (mockEnabled) {
-      await wait(2000)
-
-      const nomeBase = arquivo.name
-        .replace(/\.[^/.]+$/, '')
-        .replace(/[-_]/g, ' ')
-        .trim()
-
-      const tituloSugerido = nomeBase
-        ? nomeBase.charAt(0).toUpperCase() + nomeBase.slice(1)
-        : 'Atividade Diagnóstica Adaptada'
-
-      return {
-        titulo: tituloSugerido,
-        descricao:
-          'Atividade interdisciplinar com foco no desenvolvimento de raciocínio lógico, '
-          + 'leitura interpretativa e dinâmicas de colaboração em grupo adaptadas '
-          + 'aos perfis dos estudantes da turma.',
-        texto_original: `Conteúdo extraído do arquivo ${arquivo.name}.`,
-      }
-    }
-
     const formData = new FormData()
     formData.append('arquivo', arquivo)
 
@@ -57,27 +30,6 @@ class AtividadesService {
   }
 
   async create (payload: AtividadePayload): Promise<Atividade> {
-    if (mockEnabled) {
-      await wait(600)
-      const titulo = payload.titulo || payload.nome || 'Atividade'
-      const descricao = payload.descricao || payload.objetivo || ''
-      return {
-        id: Math.floor(Math.random() * 1000) + 1,
-        nome: titulo,
-        titulo,
-        descricao,
-        objetivo: descricao,
-        texto_original: payload.texto_original || '',
-        origem: payload.origem || 'arquivo',
-        turma: payload.turma,
-        tipo: payload.tipo || 'Atividade Regular',
-        aluno: payload.aluno,
-        relatorios: payload.relatorios || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-    }
-
     try {
       const { data } = await api.post<Atividade>('atividades/', payload)
       return data
@@ -101,6 +53,41 @@ class AtividadesService {
       return data
     } catch (error) {
       throw buildApiError(error, 'Não foi possível obter a atividade.')
+    }
+  }
+
+  async update (id: number, payload: Partial<AtividadePayload>): Promise<Atividade> {
+    try {
+      const { data } = await api.patch<Atividade>(`atividades/${id}/`, payload)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível atualizar a atividade.')
+    }
+  }
+
+  async remove (id: number): Promise<void> {
+    try {
+      await api.delete(`atividades/${id}/`)
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível excluir a atividade.')
+    }
+  }
+
+  async gerarVariacoes (id: number): Promise<AtividadeVariacao[]> {
+    try {
+      const { data } = await api.post<AtividadeVariacao[]>(`atividades/${id}/gerar-variacoes/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível gerar variações para a atividade.')
+    }
+  }
+
+  async mapaVariacoes (id: number): Promise<MapaVariacaoItem[]> {
+    try {
+      const { data } = await api.get<MapaVariacaoItem[]>(`atividades/${id}/mapa-variacoes/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar o mapa de variações.')
     }
   }
 }

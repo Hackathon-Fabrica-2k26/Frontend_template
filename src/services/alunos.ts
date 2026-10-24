@@ -3,6 +3,7 @@ import type {
   AlunoPayload,
   MetaDados,
   MetaDadosPayload,
+  Observacao,
   Paginated,
   Responsavel,
   ResponsavelPayload,
@@ -43,6 +44,17 @@ class AlunosService {
       await api.delete(`alunos/${id}/`)
     } catch (error) {
       throw buildApiError(error, 'Não foi possível excluir o aluno.')
+    }
+  }
+}
+
+class ObservacoesService {
+  async list (params: { aluno: number, page?: number }) {
+    try {
+      const { data } = await api.get<Paginated<Observacao>>('observacoes/', { params })
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar as observações.')
     }
   }
 }
@@ -124,9 +136,11 @@ class MetaDadosService {
 export const alunosService = new AlunosService()
 export const responsaveisService = new ResponsaveisService()
 export const metaDadosService = new MetaDadosService()
+export const observacoesService = new ObservacoesService()
 
 export default {
   alunos: alunosService,
   responsaveis: responsaveisService,
   metaDados: metaDadosService,
+  observacoes: observacoesService,
 }
