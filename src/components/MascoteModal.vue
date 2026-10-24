@@ -282,11 +282,4 @@
   transform: scale(1);
   transition: opacity 0.2s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-/* Em telas baixas o canguru não cabe acima do modal. */
-@media (max-height: 760px) {
-  .mm {
-    display: none;
-  }
-}
 </style>
