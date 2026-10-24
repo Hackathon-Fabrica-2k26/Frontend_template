@@ -58,16 +58,6 @@
 
         <div class="acoes-header">
           <v-btn
-            class="btn-adicionar-estudante"
-            color="primary"
-            :prepend-icon="UserPlus"
-            variant="outlined"
-            @click="abrirDialogNovoEstudante"
-          >
-            Adicionar estudante
-          </v-btn>
-
-          <v-btn
             class="btn-adicionar-foto"
             color="primary"
             :prepend-icon="Camera"
@@ -85,6 +75,11 @@
               v-for="(aluno, index) in alunos"
               :key="aluno.id"
               class="item-aluno"
+              role="button"
+              tabindex="0"
+              @click="alunoSelecionado = aluno"
+              @keydown.enter.prevent="alunoSelecionado = aluno"
+              @keydown.space.prevent="alunoSelecionado = aluno"
             >
               <div class="aluno-principal">
                 <div
@@ -126,11 +121,31 @@
             <img alt="" class="icone-notebook" :src="iconeNotebookUrl">
           </div>
 
-          <v-btn block color="primary" @click="adicionarAtividade">
-            Adicionar atividade
-          </v-btn>
+          <div class="acoes-apoio">
+            <v-btn block color="primary" @click="adicionarAtividade">
+              Adicionar atividade
+            </v-btn>
+
+            <v-btn
+              block
+              color="primary"
+              variant="outlined"
+              @click="enviarAberto = true"
+            >
+              Enviar trabalhos
+            </v-btn>
+          </div>
         </aside>
       </div>
+
+      <AlunoDetalhesModal
+        v-if="alunoSelecionado"
+        :aberto="Boolean(alunoSelecionado)"
+        :aluno="alunoSelecionado"
+        :turma-nome="turma.nome"
+        :turno="turnoFormatado"
+        @fechar="alunoSelecionado = null"
+      />
     </template>
 
     <section v-else class="cartao-vazio estado-aba">
@@ -182,11 +197,25 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <EnviarTrabalhosDialog
+      v-model="enviarAberto"
+      :atividade-id="turma.id"
+      :atividade-nome="turma.nome"
+      :estudantes="alunos"
+    />
+
+    <CriarAtividadeModal
+      v-model="criarAtividadeAberto"
+      :turma-id="turma.id"
+      :turma-nome="turma.nome"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { Camera, ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
+  import type { Aluno } from '@/interfaces/aluno'
+  import { Camera, ChevronRight, Clock, Image } from '@lucide/vue'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
@@ -204,6 +233,9 @@
   const novoEstudanteNome = ref('')
   const erroNomeEstudante = ref('')
   const salvandoEstudante = ref(false)
+  const alunoSelecionado = ref<Aluno | null>(null)
+  const enviarAberto = ref(false)
+  const criarAtividadeAberto = ref(false)
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
@@ -323,8 +355,7 @@
   }
 
   function adicionarAtividade () {
-    // TODO: abrir modal de criação de atividade.
-    console.info('Ação: criar nova atividade')
+    criarAtividadeAberto.value = true
   }
 
   onMounted(() => {
@@ -333,6 +364,7 @@
 
   watch(turmaId, (novoId, antigoId) => {
     if (novoId !== antigoId) {
+      alunoSelecionado.value = null
       carregarDados()
     }
   })
@@ -564,7 +596,6 @@
   gap: 0.75rem;
 }
 
-.btn-adicionar-estudante,
 .btn-adicionar-foto {
   min-width: 180px;
   min-height: 44px;
@@ -616,12 +647,15 @@
   border: 1px solid #e1eee6;
   border-radius: 12px;
   background: #fff;
+  cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.item-aluno:hover {
+.item-aluno:hover,
+.item-aluno:focus-visible {
   border-color: #bdd3c6;
   background: #f9fcfa;
+  outline: none;
 }
 
 .aluno-principal {
@@ -722,6 +756,12 @@
   height: 104px;
 }
 
+.acoes-apoio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
 .estado-aba {
   min-height: 240px;
 }
@@ -738,7 +778,6 @@
   }
 
   .acoes-header,
-  .btn-adicionar-estudante,
   .btn-adicionar-foto {
     width: 100%;
   }
