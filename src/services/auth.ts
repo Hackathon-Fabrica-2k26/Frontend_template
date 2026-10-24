@@ -1,4 +1,4 @@
-import type { RegisterPayload, User } from '@/interfaces/user'
+import type { User } from '@/interfaces/user'
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
@@ -50,19 +50,6 @@ class AuthService {
       await api.post('auth/otp/resend/', { otp_token })
     } catch (error: unknown) {
       throw buildApiError(error, 'Não foi possível reenviar o código.')
-    }
-  }
-
-  async register (payload: RegisterPayload): Promise<User> {
-    try {
-      const { data } = await api.post<User>(
-        'auth/register/',
-        payload,
-      )
-
-      return data
-    } catch (error: unknown) {
-      throw buildApiError(error, 'Não foi possível criar a conta.')
     }
   }
 

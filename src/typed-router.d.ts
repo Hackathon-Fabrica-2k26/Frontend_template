@@ -58,13 +58,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/register': RouteRecordInfo<
-      '/register',
-      '/register',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
     '/turmas/': RouteRecordInfo<
       '/turmas/',
       '/turmas',
@@ -119,12 +112,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/otp.vue': {
       routes:
         | '/otp'
-      views:
-        | never
-    }
-    'src/pages/register.vue': {
-      routes:
-        | '/register'
       views:
         | never
     }
