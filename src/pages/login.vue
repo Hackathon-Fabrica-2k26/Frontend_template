@@ -23,7 +23,19 @@
           continuar no Marsupi.
         </p>
 
-        <form ref="form" class="login-form" novalidate @submit.prevent="submit">
+        <!-- O canguru espia por cima dos campos e reage ao que a pessoa faz. -->
+        <div class="mascote-linha">
+          <LoginMascote :estado="estadoMascote" />
+        </div>
+
+        <form
+          ref="form"
+          class="login-form"
+          novalidate
+          @focusin="aoFocar"
+          @focusout="aoDesfocar"
+          @submit.prevent="submit"
+        >
           <div class="field-entrance field-first">
             <AuthInput
               ref="matriculaInput"
@@ -50,6 +62,7 @@
               required
               type="password"
               @update:model-value="errorMsg = ''"
+              @visibilidade="revelar = $event"
             />
           </div>
 
@@ -91,12 +104,13 @@
 
 <script setup lang="ts">
   import { ArrowRight, CircleAlert, LoaderCircle } from '@lucide/vue'
-  import { nextTick, ref } from 'vue'
+  import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   import logo from '@/assets/logoBaseTexto.webp'
   import AuthInput from '@/components/auth/AuthInput.vue'
   import AuthWaves from '@/components/auth/AuthWaves.vue'
+  import LoginMascote from '@/components/auth/LoginMascote.vue'
   import { useShake } from '@/composables/useShake'
   import { useAuthStore } from '@/stores/auth'
 
@@ -122,6 +136,41 @@
 
   const shake = useShake(form)
 
+  // Estado do mascote: o que a pessoa está fazendo no formulário.
+  const foco = ref<'matricula' | 'senha' | null>(null)
+  const revelar = ref(false)
+  const erroAtivo = ref(false)
+  const sucesso = ref(false)
+  let timerErro = 0
+
+  const estadoMascote = computed(() => {
+    if (sucesso.value) return 'success'
+    if (loading.value) return 'think'
+    if (erroAtivo.value) return 'error'
+    if (foco.value === 'senha') return revelar.value ? 'peek' : 'hide'
+    if (foco.value === 'matricula') return 'watch'
+    return 'idle'
+  })
+
+  function aoFocar (event: FocusEvent): void {
+    const campo = (event.target as HTMLElement).closest('.auth-field')?.querySelector('input')
+    if (campo) foco.value = campo.autocomplete === 'current-password' ? 'senha' : 'matricula'
+  }
+
+  function aoDesfocar (event: FocusEvent): void {
+    if (!form.value?.contains(event.relatedTarget as Node | null)) foco.value = null
+  }
+
+  function mostrarErro (): void {
+    erroAtivo.value = true
+    window.clearTimeout(timerErro)
+    timerErro = window.setTimeout(() => {
+      erroAtivo.value = false
+    }, 2200)
+  }
+
+  onBeforeUnmount(() => window.clearTimeout(timerErro))
+
   async function submit (): Promise<void> {
     if (loading.value || !matricula.value.trim() || !password.value) {
       return
@@ -137,6 +186,10 @@
         password.value,
         remember.value,
       )
+
+      // Comemora um instante antes de seguir para o código.
+      sucesso.value = true
+      await new Promise(resolve => setTimeout(resolve, 1300))
 
       const content = loginContent.value
 
@@ -168,6 +221,7 @@
       }
 
       failed = true
+      mostrarErro()
       errorMsg.value = error instanceof Error
         ? error.message
         : 'Não foi possível entrar.'
@@ -239,11 +293,20 @@
 
 .login-subtitle {
   max-width: 460px;
-  margin: 12px 0 34px;
+  margin: 12px 0 8px;
   color: #759d90;
   font-size: 17px;
   line-height: 1.6;
   animation: enter-up 650ms 160ms ease-out both;
+}
+
+.mascote-linha {
+  /* Acima dos campos: as patas seguram a borda do campo de matrícula. */
+  position: relative;
+  z-index: 2;
+  display: flex;
+  margin: -6px 0 -30px;
+  animation: enter-up 650ms 200ms ease-out both;
 }
 
 .login-form {
