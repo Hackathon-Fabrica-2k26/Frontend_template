@@ -118,13 +118,31 @@
             <p>Crie uma atividade e registre os avanços de cada estudante.</p>
           </div>
 
-          <div aria-hidden="true" class="apoio-ilustracao">
+          <!-- Com atividade cadastrada: o card da atividade principal (a mais recente) no lugar da ilustração. -->
+          <button
+            v-if="atividadePrincipal"
+            class="atividade-principal"
+            type="button"
+            @click="abaAtiva = 'atividades'"
+          >
+            <FileText class="atividade-principal__icone" :size="30" :stroke-width="1.6" />
+
+            <span class="atividade-principal__texto">
+              <strong>{{ atividadePrincipal.titulo || atividadePrincipal.nome }}</strong>
+              <small>{{ resumoRelatorios(atividadePrincipal) }}</small>
+            </span>
+
+            <ChevronRight class="atividade-principal__seta" :size="22" />
+          </button>
+
+          <div v-else aria-hidden="true" class="apoio-ilustracao">
             <img alt="" class="icone-notebook" :src="iconeNotebookUrl">
           </div>
 
           <div class="acoes-apoio">
-            <v-btn block color="primary" @click="acaoPrincipalApoio">
-              {{ atividades.length > 0 ? 'Enviar atividades' : 'Adicionar atividade' }}
+            <v-btn block class="botao-apoio" color="primary" @click="acaoPrincipalApoio">
+              {{ atividadePrincipal ? 'Enviar atividades' : 'Adicionar atividade' }}
+              <ArrowRight v-if="atividadePrincipal" class="botao-apoio__seta" :size="20" />
             </v-btn>
           </div>
         </aside>
@@ -243,7 +261,7 @@
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
-  import { ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
+  import { ArrowRight, ChevronRight, Clock, FileText, Image, UserPlus } from '@lucide/vue'
   import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
@@ -340,12 +358,25 @@
   // Sem atividade salva: cria uma. Com atividade conectada à turma: envia os trabalhos nela
   // (a mais recente; as outras ficam na aba "Atividades").
   function acaoPrincipalApoio () {
-    const [maisRecente] = atividades.value
-    if (maisRecente) {
-      abrirEnvio(maisRecente)
+    if (atividadePrincipal.value) {
+      abrirEnvio(atividadePrincipal.value)
       return
     }
     adicionarAtividade()
+  }
+
+  // A atividade mais recente da turma (pela data de criação; sem data, a primeira da lista).
+  const atividadePrincipal = computed(() =>
+    atividades.value.reduce<Atividade | null>(
+      (maisNova, atual) => (!maisNova || (atual.created_at ?? '') > (maisNova.created_at ?? '') ? atual : maisNova),
+      null,
+    ),
+  )
+
+  function resumoRelatorios (atividade: Atividade): string {
+    const total = atividade.relatorios?.length ?? 0
+    if (total === 0) return 'Nenhum relatório ainda'
+    return `${total} ${total === 1 ? 'relatório disponível' : 'relatórios disponíveis'}`
   }
 
   function abrirEnvio (atividade: Atividade) {
@@ -915,6 +946,76 @@
   color: #1f3a2c;
   font-weight: 600;
   text-decoration: none;
+}
+
+.atividade-principal {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid #c9ddcf;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f3a2c;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.atividade-principal:hover {
+  border-color: #356b5b;
+  box-shadow: 0 8px 18px -10px rgb(53 107 91 / 45%);
+  transform: translateY(-1px);
+}
+
+.atividade-principal:focus-visible {
+  outline: 2px solid #e3b477;
+  outline-offset: 2px;
+}
+
+.atividade-principal__icone {
+  flex: none;
+  color: #356b5b;
+}
+
+.atividade-principal__texto {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.atividade-principal__texto strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.atividade-principal__texto small {
+  color: #52695f;
+  font-size: 0.8rem;
+}
+
+.atividade-principal__seta {
+  flex: none;
+  color: #1f3a2c;
+  transition: transform 0.2s;
+}
+
+.atividade-principal:hover .atividade-principal__seta {
+  transform: translateX(3px);
+}
+
+.botao-apoio__seta {
+  position: absolute;
+  right: 1rem;
 }
 
 .acoes-apoio {
