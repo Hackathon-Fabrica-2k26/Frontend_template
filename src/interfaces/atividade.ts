@@ -18,6 +18,7 @@ export interface Atividade {
   tipo?: string
   aluno?: number
   relatorios?: number[]
+  status?: string
   created_at: string
   updated_at: string
 }
@@ -33,6 +34,7 @@ export interface AtividadePayload {
   tipo?: string
   aluno?: number
   relatorios?: number[]
+  status?: string
 }
 
 export type AtividadesPage = Paginated<Atividade>

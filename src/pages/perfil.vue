@@ -24,6 +24,8 @@
             :estado-atividades="estadoAtividades"
             :estado-turmas="estadoTurmas"
             :turmas="turmas"
+            @atualizada="carregar"
+            @excluida="carregar"
             @recarregar="carregar"
           />
         </div>

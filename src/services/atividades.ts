@@ -4,6 +4,7 @@ import type {
   AtividadePayload,
   AtividadesPage,
 } from '@/interfaces/atividade'
+import type { AtividadeVariacao, MapaVariacaoItem } from '@/interfaces/variacao'
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
@@ -52,6 +53,41 @@ class AtividadesService {
       return data
     } catch (error) {
       throw buildApiError(error, 'Não foi possível obter a atividade.')
+    }
+  }
+
+  async update (id: number, payload: Partial<AtividadePayload>): Promise<Atividade> {
+    try {
+      const { data } = await api.patch<Atividade>(`atividades/${id}/`, payload)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível atualizar a atividade.')
+    }
+  }
+
+  async remove (id: number): Promise<void> {
+    try {
+      await api.delete(`atividades/${id}/`)
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível excluir a atividade.')
+    }
+  }
+
+  async gerarVariacoes (id: number): Promise<AtividadeVariacao[]> {
+    try {
+      const { data } = await api.post<AtividadeVariacao[]>(`atividades/${id}/gerar-variacoes/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível gerar variações para a atividade.')
+    }
+  }
+
+  async mapaVariacoes (id: number): Promise<MapaVariacaoItem[]> {
+    try {
+      const { data } = await api.get<MapaVariacaoItem[]>(`atividades/${id}/mapa-variacoes/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar o mapa de variações.')
     }
   }
 }
