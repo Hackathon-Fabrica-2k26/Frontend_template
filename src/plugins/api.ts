@@ -61,7 +61,16 @@ api.interceptors.response.use(
       return api(original)
     } catch (refreshError) {
       auth.logout()
-      await globalRouter.router?.push('/login')
+
+      const rotaAtual = globalRouter.router?.currentRoute.value
+      const ehPublica
+        = rotaAtual?.meta?.public === true
+          || rotaAtual?.matched.some(r => r.meta?.public === true)
+          || (typeof window !== 'undefined' && window.location.pathname.startsWith('/responsavel'))
+
+      if (!ehPublica) {
+        await globalRouter.router?.push('/login')
+      }
       throw refreshError
     }
   },

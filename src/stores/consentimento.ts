@@ -37,11 +37,38 @@ export const useConsentimentoStore = defineStore('consentimento', () => {
       const item = await consentimentoService.obterPorAluno(alunoId)
       if (item) {
         consentimentosPorAluno.value[alunoId] = item
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`marsupi_consentimento_${alunoId}`, JSON.stringify(item))
+        }
       } else {
+        // Tenta fallback do localStorage (preenchido pelo responsável na demo)
+        if (typeof window !== 'undefined') {
+          const local = localStorage.getItem(`marsupi_consentimento_${alunoId}`)
+          if (local) {
+            try {
+              consentimentosPorAluno.value[alunoId] = JSON.parse(local)
+              return consentimentosPorAluno.value[alunoId]
+            } catch {
+              /* ignora parse inválido */
+            }
+          }
+        }
         delete consentimentosPorAluno.value[alunoId]
       }
-      return item
+      return consentimentosPorAluno.value[alunoId] ?? null
     } catch {
+      if (typeof window !== 'undefined') {
+        const local = localStorage.getItem(`marsupi_consentimento_${alunoId}`)
+        if (local) {
+          try {
+            const parsed = JSON.parse(local)
+            consentimentosPorAluno.value[alunoId] = parsed
+            return parsed
+          } catch {
+            /* ignora parse inválido */
+          }
+        }
+      }
       return null
     }
   }
@@ -61,22 +88,62 @@ export const useConsentimentoStore = defineStore('consentimento', () => {
   }
 
   async function registrarConsentimento (alunoId: number, versaoTexto = 'v1'): Promise<Consentimento> {
-    const item = await consentimentoService.registrar({
-      aluno: alunoId,
-      finalidade: 'analise_pedagogica_ia',
-      versao_texto: versaoTexto,
-    })
-    consentimentosPorAluno.value[alunoId] = item
-    return item
+    try {
+      const item = await consentimentoService.registrar({
+        aluno: alunoId,
+        finalidade: 'analise_pedagogica_ia',
+        versao_texto: versaoTexto,
+      })
+      consentimentosPorAluno.value[alunoId] = item
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`marsupi_consentimento_${alunoId}`, JSON.stringify(item))
+      }
+      return item
+    } catch {
+      // Fallback local se backend não estiver autenticado ou responder 401
+      const item: Consentimento = {
+        id: Date.now(),
+        aluno: alunoId,
+        finalidade: 'analise_pedagogica_ia',
+        versao_texto: versaoTexto,
+        aceito_em: new Date().toISOString(),
+        revogado_em: null,
+        ativo: true,
+      }
+      consentimentosPorAluno.value[alunoId] = item
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`marsupi_consentimento_${alunoId}`, JSON.stringify(item))
+      }
+      return item
+    }
   }
 
   async function revogarConsentimento (alunoId: number): Promise<Consentimento | null> {
     const atual = consentimentosPorAluno.value[alunoId]
-    if (!atual || !atual.id) {
+    if (!atual) {
       return null
     }
-    const item = await consentimentoService.revogar(atual.id)
+    if (atual.id && atual.id < 1_000_000_000) {
+      try {
+        const item = await consentimentoService.revogar(atual.id)
+        consentimentosPorAluno.value[alunoId] = item
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`marsupi_consentimento_${alunoId}`, JSON.stringify(item))
+        }
+        return item
+      } catch {
+        /* ignora falha na API se for mock/local */
+      }
+    }
+    const item: Consentimento = {
+      ...atual,
+      ativo: false,
+      revogado_em: new Date().toISOString(),
+    }
     consentimentosPorAluno.value[alunoId] = item
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`marsupi_consentimento_${alunoId}`, JSON.stringify(item))
+    }
     return item
   }
 

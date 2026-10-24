@@ -245,6 +245,9 @@
     if (props.turmaId) {
       params.set('turma', String(props.turmaId))
     }
+    if (props.alunoNome) {
+      params.set('nome', props.alunoNome)
+    }
     return `${origem}/responsavel/consentimento?${params.toString()}`
   })
 

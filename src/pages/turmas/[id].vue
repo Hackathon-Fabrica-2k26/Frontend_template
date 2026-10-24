@@ -73,7 +73,7 @@
         <ShieldAlert class="alerta-icone" :size="20" />
 
         <div class="alerta-texto">
-          <strong>Aviso LGPD (Art. 14):</strong>
+          <strong>Aviso LGPD (Art. 14): </strong>
           <span> {{ alunosSemConsentimento }} {{ alunosSemConsentimento === 1 ? 'estudante possui' : 'estudantes possuem' }} autorização pendente. O sistema bloqueia análises por inteligência artificial até a autorização dos responsáveis.</span>
         </div>
       </div>
@@ -356,8 +356,14 @@
   })
 
   function obterInicial (nome: string) {
-    const limpo = nome.trim()
-    return (limpo.charAt(0) || '?').toUpperCase()
+    const partes = nome.trim().split(/\s+/).filter(Boolean)
+    if (partes.length >= 2 && partes[0].toLowerCase() === 'aluno') {
+      return (partes[1].charAt(0) || 'A').toUpperCase()
+    }
+    if (partes.length >= 2) {
+      return `${partes[0].charAt(0)}${partes[1].charAt(0)}`.toUpperCase()
+    }
+    return (partes[0]?.charAt(0) || '?').toUpperCase()
   }
 
   // Falha ao listar atividades não derruba a página: o painel só mostra o estado vazio.
@@ -418,7 +424,7 @@
     }
   }
 
-  function abrirDialogNovoEstudante () {
+  function _abrirDialogNovoEstudante () {
     novoEstudanteNome.value = ''
     erroNomeEstudante.value = ''
     dialogNovoEstudante.value = true
@@ -767,8 +773,7 @@
 }
 
 .cartao-vazio,
-.cartao-apoio,
-.cartao-lista-alunos {
+.cartao-apoio {
   min-height: 280px;
   padding: 2rem;
   border: 1px solid #e1eee6;
@@ -785,7 +790,13 @@
 }
 
 .cartao-lista-alunos {
+  display: flex;
+  flex-direction: column;
   padding: 1.25rem;
+  border: 1px solid #e1eee6;
+  border-radius: 18px;
+  background: #fff;
+  max-height: 580px;
 }
 
 .lista-alunos {
@@ -795,6 +806,13 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: #a9c7b4 transparent;
 }
 
 .item-aluno {
@@ -807,6 +825,8 @@
   border-radius: 12px;
   background: #fff;
   cursor: pointer;
+  flex-shrink: 0;
+  min-height: 64px;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -1027,20 +1047,8 @@
   min-height: 240px;
 }
 
-/* Desktop: a página cabe na tela. Só a lista de alunos rola; o painel da direita fica parado. */
+/* Desktop: banner compacto e cartão lateral sticky */
 @media (min-width: 901px) and (min-height: 820px) {
-  .pagina-turma {
-    display: flex;
-    height: calc(100dvh - 10.5rem);
-    flex-direction: column;
-    padding-bottom: 0;
-  }
-
-  .pagina-turma > * {
-    flex: none;
-  }
-
-  /* Banner mais baixo para sobrar altura à lista. */
   .pagina-turma .banner-turma {
     min-height: 128px;
     padding-block: 1.1rem;
@@ -1054,34 +1062,10 @@
     display: none;
   }
 
-  .pagina-turma .grelha-conteudo {
-    flex: 1;
-    grid-template-rows: minmax(0, 1fr);
-    min-height: 0;
-    padding-bottom: 1rem;
-  }
-
-  .cartao-lista-alunos {
-    display: flex;
-    align-self: stretch;
-    min-height: 0;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .lista-alunos {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-right: 0.35rem;
-    scrollbar-width: thin;
-    scrollbar-color: #a9c7b4 transparent;
-  }
-
   .cartao-apoio {
-    position: static;
-    align-self: start;
+    position: sticky;
+    top: 1rem;
   }
-
 }
 
 @media (max-width: 900px) {

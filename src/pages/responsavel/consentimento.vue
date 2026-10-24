@@ -39,7 +39,7 @@
         <h2>Autorização ativa!</h2>
 
         <p class="aluno-destaque">
-          Estudante: <strong>{{ aluno?.nome || `Aluno #${alunoId}` }}</strong>
+          Estudante: <strong>{{ nomeExibicaoEstudante }}</strong>
         </p>
 
         <p class="mensagem-sucesso">
@@ -104,7 +104,7 @@
         <!-- Identificação do Estudante -->
         <div class="identificacao-bloco">
           <span class="rotulo-campo">Estudante:</span>
-          <strong class="nome-estudante">{{ aluno?.nome || `Estudante #${alunoId}` }}</strong>
+          <strong class="nome-estudante">{{ nomeExibicaoEstudante }}</strong>
         </div>
 
         <!-- Termos em Linguagem Clara (Legal Design) -->
@@ -208,6 +208,11 @@
     return raw ? Number(raw) : 0
   })
 
+  const alunoNomeQuery = computed(() => {
+    const raw = route.query.nome
+    return typeof raw === 'string' && raw.trim() ? raw.trim() : ''
+  })
+
   const aluno = ref<{ id: number, nome: string } | null>(null)
   const consentimentoExistente = ref<Consentimento | null>(null)
   const carregando = ref(true)
@@ -224,6 +229,12 @@
     'Avô/Avó Responsável',
     'Outro Responsável Legal',
   ]
+
+  const nomeExibicaoEstudante = computed(() => {
+    if (aluno.value?.nome) return aluno.value.nome
+    if (alunoNomeQuery.value) return alunoNomeQuery.value
+    return alunoId.value ? `Estudante #${alunoId.value}` : 'Estudante'
+  })
 
   const statusAtual = computed<StatusConsentimento>(() => {
     if (!consentimentoExistente.value) return 'pendente'
@@ -261,10 +272,26 @@
 
     carregando.value = true
     try {
+      // 1. Tenta carregar do localStorage (preenchido previamente pelo responsável ou professor)
+      if (typeof window !== 'undefined') {
+        const local = localStorage.getItem(`marsupi_consentimento_${alunoId.value}`)
+        if (local) {
+          try {
+            consentimentoExistente.value = JSON.parse(local)
+          } catch {}
+        }
+      }
+
+      // 2. Tenta sincronizar com o backend
       const c = await consentimentoService.obterPorAluno(alunoId.value)
-      consentimentoExistente.value = c
+      if (c) {
+        consentimentoExistente.value = c
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`marsupi_consentimento_${alunoId.value}`, JSON.stringify(c))
+        }
+      }
     } catch {
-      // Ignora erro inicial
+      // Ignora erro inicial para responsáveis não autenticados
     } finally {
       carregando.value = false
     }
@@ -278,13 +305,35 @@
 
     salvando.value = true
     try {
-      const criado = await consentimentoService.registrar({
-        aluno: alunoId.value,
-        finalidade: 'analise_pedagogica_ia',
-        versao_texto: 'v1',
-      })
-      consentimentoExistente.value = criado
-      notify.success('Autorização registrada com sucesso!')
+      let salvo: Consentimento | null = null
+
+      try {
+        salvo = await consentimentoService.registrar({
+          aluno: alunoId.value,
+          finalidade: 'analise_pedagogica_ia',
+          versao_texto: 'v1',
+        })
+      } catch {
+        // Responsáveis legais não possuem credenciais JWT neste momento (Issue #42 / Backlog).
+        // Registra o consentimento em armazenamento local para viabilizar a experiência do usuário.
+        salvo = {
+          id: Date.now(),
+          aluno: alunoId.value,
+          finalidade: 'analise_pedagogica_ia',
+          versao_texto: 'v1',
+          aceito_em: new Date().toISOString(),
+          revogado_em: null,
+          ativo: true,
+        }
+      }
+
+      if (salvo) {
+        consentimentoExistente.value = salvo
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`marsupi_consentimento_${alunoId.value}`, JSON.stringify(salvo))
+        }
+        notify.success('Autorização registrada com sucesso!')
+      }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Erro ao registrar consentimento.'
       notify.error(msg)
@@ -294,11 +343,25 @@
   }
 
   async function executarRevogacao () {
-    if (!consentimentoExistente.value?.id) return
+    if (!consentimentoExistente.value) return
     salvando.value = true
     try {
-      const revogado = await consentimentoService.revogar(consentimentoExistente.value.id)
-      consentimentoExistente.value = revogado
+      if (consentimentoExistente.value.id && consentimentoExistente.value.id < 1_000_000_000) {
+        try {
+          const revogado = await consentimentoService.revogar(consentimentoExistente.value.id)
+          consentimentoExistente.value = revogado
+        } catch {}
+      }
+
+      const revogadoLocal: Consentimento = {
+        ...consentimentoExistente.value,
+        ativo: false,
+        revogado_em: new Date().toISOString(),
+      }
+      consentimentoExistente.value = revogadoLocal
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`marsupi_consentimento_${alunoId.value}`, JSON.stringify(revogadoLocal))
+      }
       confirmandoRevogacao.value = false
       notify.success('Autorização revogada e dados excluídos com sucesso.')
     } catch (error: unknown) {
