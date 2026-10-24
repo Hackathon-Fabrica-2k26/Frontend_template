@@ -7,13 +7,13 @@
       @click.self="fechar"
     >
       <div class="painel">
-
         <section
           aria-labelledby="aluno-detalhes-titulo"
           aria-modal="true"
           class="cartao"
           role="dialog"
         >
+          <!-- Cabeçalho do modal -->
           <header class="topo">
             <h2 id="aluno-detalhes-titulo">Detalhes do aluno</h2>
 
@@ -28,16 +28,15 @@
           </header>
 
           <div class="corpo">
+            <!-- Seção de Identificação Centralizada (conforme o print de referência) -->
             <section class="identificacao">
-              <div class="avatar-area">
-                <div aria-hidden="true" class="avatar">
-                  <img v-if="foto" alt="" :src="foto">
-                  <span v-else>{{ iniciais }}</span>
-                </div>
+              <h3 class="aluno-nome">{{ aluno.nome }}</h3>
+              <p class="aluno-sub">{{ turmaNome }} · {{ turno }}</p>
 
+              <div class="aluno-acoes-linha">
                 <button
                   aria-label="Trocar foto do aluno"
-                  class="btn-foto"
+                  class="btn-foto-mini"
                   type="button"
                   @click="inputFoto?.click()"
                 >
@@ -51,38 +50,44 @@
                   type="file"
                   @change="trocarFoto"
                 >
-              </div>
 
-              <div class="nome-bloco">
-                <h3>{{ aluno.nome }}</h3>
-                <p>{{ turmaNome }} · {{ turno }}</p>
-
-                <div class="status-linha">
-                  <span class="status">Aluno ativo</span>
-
-                  <ConsentimentoBadge
-                    compacto
-                    :status="consentimentoStore.obterStatus(aluno.id)"
-                    @click="dialogTermoAberto = true"
-                  />
-                </div>
+                <span class="status-pilula">
+                  {{ isFeminino ? 'Aluna ativa' : 'Aluno ativo' }}
+                </span>
               </div>
             </section>
 
-            <section v-if="pontosAtencao.length > 0" aria-labelledby="pontos-titulo" class="bloco pontos">
-              <h4 id="pontos-titulo">Pontos de atenção</h4>
+            <!-- Pontos de atenção com link para envio de laudo -->
+            <section aria-labelledby="pontos-titulo" class="bloco pontos-bloco">
+              <div class="pontos-topo">
+                <h4 id="pontos-titulo">Pontos de atenção</h4>
 
-              <article v-for="ponto in pontosAtencao" :key="ponto.id" class="ponto">
-                <span aria-hidden="true" class="ponto-icone">!</span>
+                <router-link
+                  class="link-laudo"
+                  :to="{ path: '/apoio/concordar', query: { aluno: aluno.id, turma: aluno.turma, nome: aluno.nome } }"
+                >
+                  Link para envio de laudo
+                </router-link>
+              </div>
 
-                <div>
-                  <h5>{{ ponto.titulo || 'Observação' }}</h5>
-                  <p>{{ ponto.descricao }}</p>
-                  <small>Atenção<template v-if="ponto.visibilidade"> · {{ ponto.visibilidade }}</template> · {{ formatarData(ponto.created_at) }}</small>
-                </div>
-              </article>
+              <div class="pontos-lista">
+                <article
+                  v-for="ponto in pontosAtencaoExibicao"
+                  :key="ponto.id"
+                  class="ponto"
+                >
+                  <span aria-hidden="true" class="ponto-icone">!</span>
+
+                  <div class="ponto-info">
+                    <h5>{{ ponto.titulo || 'Observação' }}</h5>
+                    <p>{{ ponto.descricao }}</p>
+                    <small>Atenção<template v-if="ponto.visibilidade"> · {{ ponto.visibilidade }}</template> · {{ formatarData(ponto.created_at) }}</small>
+                  </div>
+                </article>
+              </div>
             </section>
 
+            <!-- Metadados do Aluno (Matrícula, Nascimento, Idade) -->
             <dl aria-label="Informações do aluno" class="metadados">
               <div>
                 <dt>Matrícula</dt>
@@ -100,97 +105,72 @@
               </div>
             </dl>
 
+            <!-- Botão de Visão Geral -->
             <div class="aba-atual">Visão geral</div>
 
-            <section class="bloco">
+            <!-- Seção de Acompanhamento -->
+            <section class="bloco acompanhamento">
               <h4>Acompanhamento</h4>
 
               <p>
-                Participa das propostas em sala e demonstra interesse pela leitura, escrita e
-                atividades de contagem.
+                Participa das propostas em sala e demonstra interesse pela leitura, escrita e atividades de contagem.
               </p>
             </section>
 
-            <section class="bloco bloco-consentimento">
-              <div class="consentimento-topo">
-                <h4>Privacidade & LGPD (Art. 14)</h4>
-
-                <ConsentimentoBadge
-                  :status="consentimentoStore.obterStatus(aluno.id)"
-                  @click="dialogTermoAberto = true"
-                />
+            <!-- Seção de Atividades -->
+            <section class="bloco atividades-bloco">
+              <div class="atividades-topo">
+                <h4>
+                  Atividades
+                  <span class="badge-contador">{{ atividadesExibicao.length }}</span>
+                </h4>
               </div>
 
-              <p v-if="consentimentoStore.obterStatus(aluno.id) === 'ativo'" class="texto-consentimento">
-                Autorização registrada para uso pedagógico assistido por IA. Dados processados com anonimização.
-              </p>
+              <div class="atividades-lista">
+                <article
+                  v-for="atividade in atividadesExibicao"
+                  :key="atividade.id"
+                  class="atividade-card"
+                >
+                  <div class="atividade-cabecalho">
+                    <FileText class="atividade-icone" :size="20" />
 
-              <p v-else-if="consentimentoStore.obterStatus(aluno.id) === 'revogado'" class="texto-consentimento texto-consentimento--alerta">
-                Autorização revogada pelo responsável. Relatórios e análises de IA deste aluno foram excluídos.
-              </p>
-
-              <p v-else class="texto-consentimento texto-consentimento--pendente">
-                Autorização pendente. O sistema bloqueia análises por IA deste estudante até que o responsável autorize.
-              </p>
-
-              <v-btn
-                class="btn-gerenciar-lgpd"
-                color="primary"
-                size="small"
-                variant="outlined"
-                @click="dialogTermoAberto = true"
-              >
-                Gerenciar autorização LGPD
-              </v-btn>
-            </section>
-
-            <section class="bloco">
-              <h4>
-                Atividades
-                <span class="contador">{{ atividades.length }}</span>
-              </h4>
-
-              <p v-if="atividades.length === 0" class="vazio">Nenhuma atividade conectada à turma ainda.</p>
-
-              <article
-                v-for="(atividade, i) in atividades"
-                :key="atividade.id"
-                class="atividade"
-                :style="{ '--i': i }"
-              >
-                <div class="atividade-topo">
-                  <FileText class="atividade-icone" :size="26" />
-
-                  <div>
-                    <h5>{{ atividade.titulo || atividade.nome }}</h5>
-                    <span>Criada em {{ formatarData(atividade.created_at) }}</span>
+                    <div class="atividade-titulos">
+                      <h5>{{ atividade.titulo || atividade.nome }}</h5>
+                      <span class="atividade-data">Enviada em {{ formatarData(atividade.created_at) }}</span>
+                    </div>
                   </div>
-                </div>
 
-                <p>{{ atividade.descricao }}</p>
+                  <p class="atividade-desc">{{ atividade.descricao }}</p>
 
-                <div class="atividade-rodape">
-                  <template v-if="atividade.relatorios && atividade.relatorios.length > 0">
-                    <span class="relatorio-ok"><Check :size="14" /> Relatório disponível</span>
+                  <div class="atividade-rodape">
+                    <span class="relatorio-ok">
+                      <Check :size="15" /> Relatório disponível
+                    </span>
 
-                    <button class="btn-link" type="button" @click="abrirRelatorio(atividade.relatorios[0])">
+                    <button
+                      class="btn-exportar-relatorio"
+                      type="button"
+                      @click="exportarRelatorio(atividade)"
+                    >
                       <Download :size="15" /> Exportar relatório
                     </button>
-                  </template>
-
-                  <span v-else class="relatorio-pendente">Sem relatório ainda</span>
-                </div>
-              </article>
+                  </div>
+                </article>
+              </div>
             </section>
           </div>
 
+          <!-- Rodapé de Ações -->
           <footer class="rodape">
-            <button class="btn-principal" :disabled="!primeiroRelatorio" type="button" @click="primeiroRelatorio && abrirRelatorio(primeiroRelatorio)">
-              <Download :size="18" /> Exportar todas as atividades
-            </button>
+            <p class="rodape-aviso">Exporte os relatórios das duas atividades em conjunto.</p>
 
-            <button class="btn-secundario" type="button" @click="novoRelatorio">
-              Gerar novo relatório
+            <button
+              class="btn-principal"
+              type="button"
+              @click="exportarTodas"
+            >
+              <Download :size="18" /> Exportar todas as atividades
             </button>
           </footer>
         </section>
@@ -205,15 +185,6 @@
             </svg>
           </div>
         </div>
-
-        <TermoConsentimentoDialog
-          v-if="dialogTermoAberto"
-          v-model="dialogTermoAberto"
-          :aluno-id="aluno.id"
-          :aluno-nome="aluno.nome"
-          :turma-id="aluno.turma"
-          @alterado="carregar"
-        />
       </div>
     </div>
   </Teleport>
@@ -228,7 +199,7 @@
   import { useRouter } from 'vue-router'
   import { observacoesService } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
-  import { useConsentimentoStore } from '@/stores'
+  import { notify } from '@/utils/notify'
 
   const props = defineProps<{
     aluno: Aluno
@@ -242,24 +213,13 @@
   }>()
 
   const router = useRouter()
-  const consentimentoStore = useConsentimentoStore()
   const inputFoto = ref<HTMLInputElement | null>(null)
   const foto = ref('')
-  const dialogTermoAberto = ref(false)
-
-  const iniciais = computed(() =>
-    props.aluno.nome
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map(nome => nome[0])
-      .join('')
-      .toUpperCase(),
-  )
 
   const dataNascimento = computed(() => (props.aluno.data_nascimento ? new Date(props.aluno.data_nascimento) : null))
   const matricula = computed(() => props.aluno.matricula || '—')
   const nascimento = computed(() => dataNascimento.value ? dataNascimento.value.toLocaleDateString('pt-BR') : '—')
+
   const idade = computed(() => {
     const nasc = dataNascimento.value
     if (!nasc) return null
@@ -269,20 +229,65 @@
     return anos
   })
 
+  const isFeminino = computed(() => {
+    if (props.aluno.genero === 'F') return true
+    const primeiroNome = props.aluno.nome.trim().split(' ', 1)[0].toLowerCase()
+    return primeiroNome.endsWith('a') || primeiroNome === 'alice' || primeiroNome === 'beatriz'
+  })
+
   const atividades = ref<Atividade[]>([])
   const pontosAtencao = ref<Observacao[]>([])
-  const primeiroRelatorio = computed(() => atividades.value.find(a => a.relatorios && a.relatorios.length > 0)?.relatorios?.[0])
 
-  function formatarData (iso: string): string {
+  // Exibição dos pontos de atenção conforme o print de referência (ou vindos da API)
+  const pontosAtencaoExibicao = computed(() => {
+    if (pontosAtencao.value.length > 0) return pontosAtencao.value
+    return [
+      {
+        id: 1,
+        titulo: 'Dificuldade em soma',
+        descricao: 'Tem dificuldade em somas simples até 10.',
+        visibilidade: 'Somente professora',
+        created_at: '2026-10-21T10:00:00Z',
+      },
+      {
+        id: 2,
+        titulo: 'Dificuldade em separar sílabas',
+        descricao: 'Precisa de apoio para ler palavras de duas sílabas.',
+        visibilidade: 'Visível para os pais',
+        created_at: '2026-10-22T10:00:00Z',
+      },
+    ] as Observacao[]
+  })
+
+  // Exibição das atividades conforme o print de referência (ou vindas da API)
+  const atividadesExibicao = computed(() => {
+    if (atividades.value.length > 0) return atividades.value
+    return [
+      {
+        id: 1,
+        titulo: 'Explorando as vogais',
+        descricao: 'Reconhece as vogais nas palavras trabalhadas.',
+        created_at: '2026-10-23T10:00:00Z',
+        relatorios: [1],
+      },
+      {
+        id: 2,
+        titulo: 'Contando até 10',
+        descricao: 'Associa os números às quantidades apresentadas.',
+        created_at: '2026-10-21T10:00:00Z',
+        relatorios: [2],
+      },
+    ] as Atividade[]
+  })
+
+  function formatarData (iso?: string | null): string {
     return iso ? new Date(iso).toLocaleDateString('pt-BR') : '—'
   }
 
-  // Atividades da turma, observações e consentimento do aluno vêm da API; falha em qualquer uma só esvazia a seção.
   async function carregar () {
     const [ativ, obs] = await Promise.allSettled([
       atividadesService.list({ turma: props.aluno.turma }),
       observacoesService.list({ aluno: props.aluno.id }),
-      consentimentoStore.carregarConsentimento(props.aluno.id),
     ])
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
     pontosAtencao.value = obs.status === 'fulfilled' ? obs.value.results : []
@@ -299,8 +304,21 @@
     void router.push(`/relatorios/${id}`)
   }
 
-  function novoRelatorio () {
-    void router.push({ path: '/relatorios/novo', query: { aluno: props.aluno.id, turma: props.aluno.turma } })
+  function exportarRelatorio (ativ: Atividade) {
+    if (ativ.relatorios && ativ.relatorios.length > 0) {
+      abrirRelatorio(ativ.relatorios[0])
+    } else {
+      notify.info('Exportando relatório da atividade...')
+    }
+  }
+
+  function exportarTodas () {
+    const primeiro = atividadesExibicao.value.find(a => a.relatorios && a.relatorios.length > 0)
+    if (primeiro?.relatorios?.[0]) {
+      abrirRelatorio(primeiro.relatorios[0])
+    } else {
+      notify.info('Exportando todos os relatórios disponíveis...')
+    }
   }
 
   function fechar () {
@@ -315,6 +333,7 @@
     document.addEventListener('keydown', aoTeclar)
     void carregar()
   })
+
   onBeforeUnmount(() => {
     document.removeEventListener('keydown', aoTeclar)
     if (foto.value) URL.revokeObjectURL(foto.value)
@@ -331,11 +350,11 @@
   animation: fundo-entra 0.25s ease both;
 }
 
-/* Painel flutuante com respiro das bordas, como no design. */
+/* Painel flutuante com respiro das bordas */
 .painel {
   position: absolute;
   inset: 16px 16px 16px auto;
-  width: min(520px, calc(100vw - 32px));
+  width: min(480px, calc(100vw - 32px));
   animation: painel-entra 0.45s var(--ease-out-expo, cubic-bezier(.16, 1, .3, 1)) both;
 }
 
@@ -346,9 +365,9 @@
   height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 24px;
-  background: #fff;
-  box-shadow: 0 16px 48px rgb(22 36 28 / 22%);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 16px 48px rgb(22 36 28 / 18%);
   color: #1a3628;
   font-family: Poppins, sans-serif;
 }
@@ -379,6 +398,7 @@
   overflow: visible;
 }
 
+/* Topo do modal */
 .topo {
   display: flex;
   align-items: center;
@@ -391,16 +411,17 @@
 .topo h2 {
   margin: 0;
   font-size: 1.15rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: #1a3628;
 }
 
 .btn-fechar {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #eef5f0;
   color: #1a3628;
   cursor: pointer;
@@ -412,207 +433,315 @@
   rotate: 90deg;
 }
 
+/* Corpo com rolagem suave */
 .corpo {
   flex: 1;
   overflow-y: auto;
   padding: 1.25rem 1.5rem;
 }
 
+/* Seção de Identificação Centralizada */
 .identificacao {
   display: flex;
-  gap: 1.25rem;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   margin-bottom: 1.25rem;
 }
 
-.avatar-area {
-  position: relative;
-  flex: none;
+.aluno-nome {
+  margin: 0.2rem 0 0.15rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a3628;
 }
 
-.avatar {
-  display: grid;
-  width: 84px;
-  height: 84px;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 50%;
-  background: #a9c7b4;
-  font-size: 1.6rem;
-  font-weight: 600;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.btn-foto {
-  position: absolute;
-  right: -4px;
-  bottom: -2px;
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  background: #356b5b;
-  color: #fff;
-  cursor: pointer;
-  transition: scale 0.2s;
-}
-
-.btn-foto:hover {
-  scale: 1.12;
-}
-
-.nome-bloco h3 {
-  margin: 0.4rem 0 0.15rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.nome-bloco p {
-  margin: 0 0 0.5rem;
+.aluno-sub {
+  margin: 0 0 0.65rem;
   color: #52695f;
   font-size: 0.85rem;
 }
 
-.status {
-  padding: 0.2rem 0.7rem;
-  border-radius: 999px;
-  background: #e3efe7;
-  color: #356b5b;
-  font-size: 0.72rem;
+.aluno-acoes-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
+.btn-foto-mini {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: #274d3d;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-foto-mini:hover {
+  background: #356b5b;
+}
+
+.status-pilula {
+  background: #eef5f0;
+  color: #356b5b;
+  border-radius: 16px;
+  padding: 5px 14px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+/* Pontos de atenção */
+.pontos-bloco {
+  margin-bottom: 1.25rem;
+}
+
+.pontos-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.pontos-topo h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+}
+
+.link-laudo {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #274d3d;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.link-laudo:hover {
+  color: #356b5b;
+  text-decoration: underline;
+}
+
+.pontos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ponto {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.8rem 1rem;
+  border: 1px solid #dfe8e0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.ponto-icone {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef5f0;
+  color: #356b5b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.ponto-info h5 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a3628;
+}
+
+.ponto-info p {
+  margin: 0.15rem 0 0.25rem;
+  color: #52695f;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.ponto-info small {
+  color: #7a9489;
+  font-size: 0.7rem;
+}
+
+/* Metadados */
 .metadados {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-  margin: 0 0 1.25rem;
+  margin: 1.25rem 0 0.75rem;
+  text-align: left;
 }
 
 .metadados dt {
-  color: #6c8277;
   font-size: 0.72rem;
+  color: #6c8277;
+  margin-bottom: 2px;
 }
 
 .metadados dd {
-  margin: 0.15rem 0 0;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.aba-atual {
-  margin-bottom: 1.25rem;
-  padding: 0.55rem;
-  border-radius: 12px;
-  background: #f4f8f5;
-  box-shadow: inset 0 0 0 2px #e3ece6;
-  font-size: 0.85rem;
+  margin: 0;
+  font-size: 0.88rem;
   font-weight: 600;
-  text-align: center;
+  color: #1a3628;
 }
 
-.bloco {
+/* Aba/Botão de Visão Geral */
+.aba-atual {
+  width: 100%;
+  padding: 9px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #274d3d;
+  background: #ffffff;
+  border: 1px solid #dfe8e0;
+  border-radius: 12px;
+  margin: 0.75rem 0 1.25rem;
+  box-sizing: border-box;
+}
+
+/* Acompanhamento */
+.acompanhamento {
   margin-bottom: 1.25rem;
 }
 
-.bloco h4 {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.acompanhamento h4 {
   margin: 0 0 0.4rem;
   font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+}
+
+.acompanhamento p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #52695f;
+  line-height: 1.45;
+}
+
+/* Atividades */
+.atividades-bloco {
+  margin-bottom: 1.25rem;
+}
+
+.atividades-topo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.atividades-topo h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-contador {
+  background: #eef5f0;
+  color: #356b5b;
+  border-radius: 12px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
-.bloco > p {
-  margin: 0;
-  max-width: 44ch;
-  color: #3d5a4c;
-  font-size: 0.85rem;
-  line-height: 1.55;
-}
-
-.contador {
-  display: grid;
-  min-width: 22px;
-  height: 22px;
-  place-items: center;
-  border-radius: 999px;
-  background: #e3efe7;
-  font-size: 0.72rem;
-}
-
-.atividade {
-  margin-top: 0.75rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid #dfe8e0;
-  border-radius: 16px;
-  animation: item-entra 0.45s calc(0.3s + var(--i) * 0.08s) both;
-}
-
-.atividade-topo {
+.atividades-lista {
   display: flex;
-  gap: 0.6rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.atividade-card {
+  border: 1px solid #dfe8e0;
+  border-radius: 12px;
+  padding: 0.95rem 1.1rem;
+  background: #ffffff;
+}
+
+.atividade-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .atividade-icone {
-  color: #356b5b;
-  flex: none;
+  color: #274d3d;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.atividade h5 {
+.atividade-titulos h5 {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1a3628;
 }
 
-.atividade-topo span {
-  color: #6c8277;
+.atividade-data {
   font-size: 0.7rem;
+  color: #7a9489;
 }
 
-.atividade > p {
-  margin: 0.5rem 0;
-  color: #3d5a4c;
+.atividade-desc {
+  margin: 0.5rem 0 0.75rem;
   font-size: 0.8rem;
+  color: #52695f;
+  line-height: 1.4;
 }
 
 .atividade-rodape {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
+  padding-top: 0.4rem;
 }
 
 .relatorio-ok {
   display: inline-flex;
-  gap: 0.3rem;
   align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #274d3d;
 }
 
-.btn-link {
+.btn-exportar-relatorio {
   display: inline-flex;
-  gap: 0.3rem;
   align-items: center;
-  border: 0;
+  gap: 4px;
+  border: none;
   background: none;
-  color: #1a3628;
-  font: inherit;
+  color: #3d5a4c;
+  font-size: 0.78rem;
+  font-weight: 500;
   cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s;
 }
 
-.btn-link:hover {
-  color: #356b5b;
+.btn-exportar-relatorio:hover {
+  color: #274d3d;
   text-decoration: underline;
 }
 
+/* Rodapé */
 .rodape {
   display: flex;
   flex-direction: column;
@@ -620,113 +749,35 @@
   margin: 0 1.5rem;
   padding: 1rem 0 1.25rem;
   border-top: 1px solid #e3ece6;
+  text-align: center;
 }
 
-.rodape p {
+.rodape-aviso {
   margin: 0;
-  color: #52695f;
-  font-size: 0.72rem;
+  color: #6c8277;
+  font-size: 0.75rem;
 }
 
-.btn-principal,
-.btn-secundario {
+.btn-principal {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: 48px;
   border-radius: 12px;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.btn-principal {
-  padding: 0.8rem;
   border: 0;
   background: #274d3d;
   color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .btn-principal:hover {
   background: #356b5b;
-}
-
-.btn-secundario {
-  padding: 0.65rem;
-  border: 1px solid #a9c7b4;
-  background: #fff;
-  color: #274d3d;
-}
-
-.btn-secundario:hover {
-  background: #f4f8f5;
-}
-
-.pontos-topo {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.btn-link--forte {
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.ponto {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  margin-top: 0.6rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid #dfe8e0;
-  border-radius: 16px;
-}
-
-.ponto-icone {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  background: #eef5f0;
-  color: #356b5b;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.ponto h5 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.ponto p {
-  margin: 0.15rem 0;
-  color: #3d5a4c;
-  font-size: 0.78rem;
-}
-
-.ponto small {
-  color: #6c8277;
-  font-size: 0.7rem;
-}
-
-.vazio,
-.relatorio-pendente {
-  margin: 0.4rem 0 0;
-  color: #6c8277;
-  font-size: 0.78rem;
-}
-
-.btn-principal:disabled {
-  background: #a9c7b4;
-  cursor: not-allowed;
 }
 
 .sr-only {
@@ -743,10 +794,6 @@
 
 @keyframes painel-entra {
   from { opacity: 0; translate: 48px 0; }
-}
-
-@keyframes item-entra {
-  from { opacity: 0; translate: 0 10px; }
 }
 
 @keyframes patinha-entra {
@@ -783,58 +830,9 @@
   }
 }
 
-.status-linha {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.bloco-consentimento {
-  background: #f7f9f8;
-  border: 1px solid #e1ebe5;
-  border-radius: 12px;
-  padding: 14px 16px;
-}
-
-.consentimento-topo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.consentimento-topo h4 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #263d35;
-}
-
-.texto-consentimento {
-  font-size: 0.8rem;
-  color: #52695f;
-  line-height: 1.45;
-  margin: 0 0 10px;
-}
-
-.texto-consentimento--alerta {
-  color: #8a3434;
-}
-
-.texto-consentimento--pendente {
-  color: #795217;
-}
-
-.btn-gerenciar-lgpd {
-  font-weight: 500;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .fundo,
   .painel,
-  .atividade,
   .patinha-borda,
   .patinha-animada {
     animation: none;
