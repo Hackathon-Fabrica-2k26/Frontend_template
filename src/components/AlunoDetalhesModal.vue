@@ -7,16 +7,13 @@
       @click.self="fechar"
     >
       <div class="painel">
-        <!-- Canguru espiando pela borda esquerda: só a cabeça (corte no queixo) e duas patas no painel. -->
-        <div aria-hidden="true" class="canguru">
-          <svg class="canguru-cabeca" viewBox="25 111 976 651">
+        <!-- Canguru espiando pela borda esquerda: corpo completo e arredondado atrás do painel -->
+        <div aria-hidden="true" class="canguru canguru--tras">
+          <svg class="canguru-svg" viewBox="180 80 850 1150">
             <g class="canguru-corpo">
-              <path :d="SIMBOLO" />
+              <path :d="SIMBOLO" fill="#356B5B" fill-rule="evenodd" />
             </g>
           </svg>
-
-          <span class="pata pata--acena" />
-          <span class="pata pata--apoio" />
         </div>
 
         <section
@@ -206,6 +203,41 @@
           </footer>
         </section>
 
+        <!-- Pata do canguru apoiada na borda do painel (na frente do cartão) -->
+        <div aria-hidden="true" class="canguru canguru--frente">
+          <svg class="canguru-svg" viewBox="180 80 850 1150">
+            <g class="canguru-pata-wrap">
+              <g class="canguru-pata" transform="translate(752 710) rotate(-90)">
+                <g transform="scale(1.15)">
+                  <template v-for="dx in [-34, 0, 34]" :key="dx">
+                    <line
+                      stroke="#F7F7F1"
+                      stroke-linecap="round"
+                      stroke-width="42"
+                      :x1="dx"
+                      :x2="dx"
+                      y1="0"
+                      y2="46"
+                    />
+
+                    <line
+                      stroke="#356B5B"
+                      stroke-linecap="round"
+                      stroke-width="30"
+                      :x1="dx"
+                      :x2="dx"
+                      y1="0"
+                      y2="46"
+                    />
+                  </template>
+
+                  <path d="M -72 6 C -72 -30 -40 -44 0 -44 C 40 -44 72 -30 72 6 C 72 30 40 36 0 36 C -40 36 -72 30 -72 6 Z" fill="#356B5B" stroke="#F7F7F1" stroke-width="9" />
+                </g>
+              </g>
+            </g>
+          </svg>
+        </div>
+
         <TermoConsentimentoDialog
           v-if="dialogTermoAberto"
           v-model="dialogTermoAberto"
@@ -354,50 +386,42 @@
   font-family: Poppins, sans-serif;
 }
 
-/* O canguru fica atrás do cartão, com a cabeça (e as orelhas) para fora da borda esquerda. */
+/* Canguru espiando pela borda esquerda: corpo arredondado e completo */
 .canguru {
   position: absolute;
-  z-index: 0;
-  top: 52px;
-  left: -176px;
-  width: 270px;
-  animation: canguru-espia 0.6s 0.35s cubic-bezier(.3, 1.5, .5, 1) both;
+  top: 60px;
+  left: -165px;
+  width: 245px;
+  height: 331px;
+  pointer-events: none;
+  animation: canguru-espia 0.6s 0.25s cubic-bezier(.3, 1.5, .5, 1) both;
 }
 
-.canguru-cabeca {
+.canguru--tras {
+  z-index: 0;
+}
+
+.canguru--frente {
+  z-index: 2;
+}
+
+.canguru-svg {
   display: block;
   width: 100%;
-  height: auto;
-  fill: #356b5b;
-  overflow: hidden;
+  height: 100%;
+  overflow: visible;
 }
 
 .canguru-corpo {
   transform-box: fill-box;
-  transform-origin: 85% 100%;
+  transform-origin: 85% 65%;
   animation: canguru-balanca 3.6s 1.2s ease-in-out infinite;
 }
 
-/* Patas agarradas na borda do painel, com contorno na cor do fundo como nos cards. */
-.pata {
-  position: absolute;
-  width: 54px;
-  height: 28px;
-  border: 3px solid #f7f7f1;
-  border-radius: 999px;
-  background: #356b5b;
-}
-
-.pata--acena {
-  top: 168px;
-  left: 150px;
-  transform-origin: 90% 50%;
-  animation: pata-acena 2.8s 1.6s ease-in-out infinite;
-}
-
-.pata--apoio {
-  top: 176px;
-  left: 190px;
+.canguru-pata-wrap {
+  transform-box: fill-box;
+  transform-origin: 752px 710px;
+  animation: pata-acena 3.2s 1.6s ease-in-out infinite;
 }
 
 .topo {
@@ -772,19 +796,28 @@
 
 /* Sai de trás do painel, depois balança de leve como quem espia. */
 @keyframes canguru-espia {
-  from { opacity: 0; translate: 60px 0; }
+  from { opacity: 0; translate: 50px 0; }
+  to { opacity: 1; translate: 0 0; }
 }
 
 @keyframes canguru-balanca {
   0%, 100% { rotate: 0deg; }
-  40% { rotate: 4deg; }
-  60% { rotate: -2deg; }
+  40% { rotate: 3.5deg; }
+  60% { rotate: -1.5deg; }
 }
 
 @keyframes pata-acena {
   0%, 60%, 100% { rotate: 0deg; }
-  70%, 90% { rotate: -22deg; }
-  80% { rotate: -6deg; }
+  70%, 90% { rotate: -12deg; }
+  80% { rotate: -4deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canguru,
+  .canguru-corpo,
+  .canguru-pata-wrap {
+    animation: none;
+  }
 }
 
 @media (max-width: 640px) {
