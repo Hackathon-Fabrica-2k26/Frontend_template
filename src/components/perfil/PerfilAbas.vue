@@ -196,7 +196,7 @@
 
   const turnos: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite', integral: 'Integral' }
   const turno = (t: Turma) => t.turno_display || turnos[(t.turno ?? '').toLowerCase()] || 'Não definido'
-  const ano = (t: Turma) => (t.created_at ? new Date(t.created_at).getFullYear() : new Date().getFullYear())
+  const ano = (t: Turma) => t.ano_letivo || (t.created_at ? new Date(t.created_at).getFullYear() : new Date().getFullYear())
   const alunos = (t: Turma) => `${t.total_estudantes ?? 0} ${(t.total_estudantes ?? 0) === 1 ? 'aluno' : 'alunos'}`
 
   function dataBr (valor: string): string {

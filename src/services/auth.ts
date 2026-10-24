@@ -72,6 +72,15 @@ class AuthService {
       throw buildApiError(error, 'Não foi possível carregar o usuário.')
     }
   }
+
+  async updateProfile (payload: { name: string, email: string }): Promise<User> {
+    try {
+      const { data } = await api.patch<User>('auth/me/', payload)
+      return data
+    } catch (error: unknown) {
+      throw buildApiError(error, 'Não foi possível atualizar o perfil.')
+    }
+  }
 }
 
 export default new AuthService()
