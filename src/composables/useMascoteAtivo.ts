@@ -68,6 +68,9 @@ export function useMascoteAtivo () {
   function desativar () {
     hover.value = false
     cancelarAceno()
+    if (desativarAtual === desativar) {
+      desativarAtual = null
+    }
   }
 
   function ligar () {
