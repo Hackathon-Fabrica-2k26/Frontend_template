@@ -564,7 +564,7 @@
 
 .btn-cancelar {
   padding: 10px 24px;
-  border-radius: 9999px;
+  border-radius: 24px;
   border: 1px solid #b9c8bf;
   background: transparent;
   color: #2d5a43;
@@ -581,7 +581,7 @@
 
 .btn-confirmar {
   padding: 10px 28px;
-  border-radius: 9999px;
+  border-radius: 24px;
   border: none;
   background-color: #356b5b;
   color: #ffffff;
