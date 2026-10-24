@@ -3,6 +3,7 @@ import type {
   ConfigPayload,
   Escola,
   EscolaPayload,
+  ReconhecimentoChamada,
   Turma,
   TurmaPayload,
 } from '@/interfaces/escola'
@@ -117,6 +118,10 @@ export const useEscolasStore = defineStore('escolas', () => {
     }
   }
 
+  async function reconhecerChamada (foto: File): Promise<ReconhecimentoChamada> {
+    return turmasService.reconhecer(foto)
+  }
+
   async function createTurma (payload: TurmaPayload) {
     const item = await turmasService.create(payload)
     turmas.value.unshift(item)
@@ -158,6 +163,7 @@ export const useEscolasStore = defineStore('escolas', () => {
     removeEscola,
     fetchTurmas,
     fetchTurma,
+    reconhecerChamada,
     createTurma,
     updateTurma,
     removeTurma,
