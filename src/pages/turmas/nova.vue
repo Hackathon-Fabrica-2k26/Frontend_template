@@ -5,7 +5,6 @@
     AlertTriangle,
     ArrowLeft,
     ArrowRight,
-    BookOpen,
     CalendarDays,
     Check,
     CheckCircle2,
@@ -16,8 +15,6 @@
     LoaderCircle,
     Plus,
     RefreshCw,
-    ScanText,
-    Sparkles,
     Sun,
     Trash2,
     X,
@@ -28,21 +25,28 @@
     onMounted,
     ref,
   } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
+  import carregandoUrl from '@/assets/mascotes/carregando.svg'
+  import planejamentoUrl from '@/assets/mascotes/planejamento.svg'
+  import sucessoUrl from '@/assets/mascotes/sucesso.svg'
+  import { useAlunosStore } from '@/stores/alunos'
   import { useEscolasStore } from '@/stores/escolas'
-
-  definePage({
-    meta: {
-      layout: 'default',
-    },
-  })
+  import { notify } from '@/utils/notify'
 
   interface AlunoEditavel extends NomeReconhecido {
     revisado: boolean
   }
 
   const router = useRouter()
+  const route = useRoute()
   const escolasStore = useEscolasStore()
+  const alunosStore = useAlunosStore()
+
+  // Com ?turma=<id> a tela vira "Cadastrar alunos": dados da turma já preenchidos e travados,
+  // só falta a foto da chamada. Ao confirmar, os alunos entram na turma que já existe.
+  const turmaExistenteId = computed(() => Number(route.query.turma) || null)
+  const modoIntegrantes = computed(() => turmaExistenteId.value !== null)
+  const carregandoTurma = ref(false)
 
   const passo = ref<1 | 2>(1)
   const criada = ref(false)
@@ -206,6 +210,10 @@
     limparErro()
 
     if (!foto.value) {
+      if (modoIntegrantes.value) {
+        mostrarErro(new Error('Envie a foto da chamada para continuar.'), 'Foto obrigatória.')
+        return
+      }
       await criarTurma()
       return
     }
@@ -256,6 +264,21 @@
     mensagemSucesso.value = ''
   }
 
+  async function adicionarAlunosNaTurma (turmaId: number, nomes: string[]): Promise<void> {
+    salvando.value = true
+    limparErro()
+
+    try {
+      await Promise.all(nomes.map(nomeAluno => alunosStore.createAluno({ nome: nomeAluno, turma: turmaId })))
+      notify.success(`${nomes.length} ${nomes.length === 1 ? 'aluno adicionado' : 'alunos adicionados'} à turma!`)
+      await router.push(`/turmas/${turmaId}`)
+    } catch (error) {
+      mostrarErro(error, 'Não foi possível adicionar os alunos.')
+    } finally {
+      salvando.value = false
+    }
+  }
+
   async function criarTurma (): Promise<void> {
     if (salvando.value || !validarDados()) return
 
@@ -278,6 +301,11 @@
         ),
         'Revisão pendente.',
       )
+      return
+    }
+
+    if (modoIntegrantes.value && turmaExistenteId.value) {
+      await adicionarAlunosNaTurma(turmaExistenteId.value, nomes)
       return
     }
 
@@ -304,7 +332,28 @@
     }
   }
 
+  async function carregarTurmaExistente (): Promise<void> {
+    if (!turmaExistenteId.value) return
+    carregandoTurma.value = true
+    try {
+      const turma = await escolasStore.fetchTurma(turmaExistenteId.value)
+      nome.value = turma.nome
+      if (turma.ano_letivo) anoLetivoTexto.value = String(turma.ano_letivo)
+      if (turma.turno) turno.value = turma.turno as TurnoTurma
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Turma não encontrada.')
+      await router.replace('/turmas')
+    } finally {
+      carregandoTurma.value = false
+    }
+  }
+
+  function cancelar (): void {
+    void router.push(modoIntegrantes.value ? `/turmas/${turmaExistenteId.value}` : '/turmas')
+  }
+
   onMounted(() => {
+    void carregarTurmaExistente()
     document.addEventListener('pointerdown', fecharTurnoFora)
   })
 
@@ -325,15 +374,23 @@
 
         <span class="breadcrumb-separator">/</span>
 
+        <template v-if="modoIntegrantes">
+          <RouterLink class="breadcrumb-link" :to="`/turmas/${turmaExistenteId}`">
+            {{ nome || 'Turma' }}
+          </RouterLink>
+
+          <span class="breadcrumb-separator">/</span>
+        </template>
+
         <span aria-current="page" class="breadcrumb-current">
-          Nova turma
+          {{ modoIntegrantes ? 'Cadastrar alunos' : 'Nova turma' }}
         </span>
       </nav>
 
       <header class="page-heading">
         <div>
           <h1>
-            {{ criada ? 'Turma criada!' : passo === 1 ? 'Nova turma' : 'Confira os nomes reconhecidos' }}
+            {{ criada ? 'Turma criada!' : passo === 1 ? (modoIntegrantes ? 'Cadastrar alunos' : 'Nova turma') : 'Confira os nomes reconhecidos' }}
           </h1>
 
           <p>
@@ -341,16 +398,13 @@
               criada
                 ? 'O cadastro foi concluído.'
                 : passo === 1
-                  ? 'Cadastre sua turma a partir de uma foto da chamada.'
+                  ? (modoIntegrantes ? 'Envie a foto da chamada para adicionar os alunos a esta turma.' : 'Cadastre sua turma a partir de uma foto da chamada.')
                   : 'Revise os nomes antes de confirmar a turma.'
             }}
           </p>
         </div>
 
-        <div class="heading-illustration">
-          <BookOpen :size="35" :stroke-width="1.5" />
-          <Sparkles :size="18" />
-        </div>
+        <IlustracaoLivroBroto class="heading-livro" />
       </header>
 
       <template v-if="!criada">
@@ -391,9 +445,7 @@
       </div>
 
       <section v-if="criada" class="success-panel">
-        <div class="success-icon">
-          <CheckCircle2 :size="42" />
-        </div>
+        <img alt="" class="mascote-estado" :src="sucessoUrl">
 
         <h2>{{ nome.trim() }}</h2>
 
@@ -412,12 +464,9 @@
       </section>
 
       <section v-else-if="processando" class="loading-panel">
-        <div class="loading-circle">
-          <ScanText :size="32" />
-        </div>
+        <img alt="" class="mascote-estado" :src="carregandoUrl">
 
-        <h2>Reconhecendo os nomes...</h2>
-        <p>A Marsupi está analisando a foto da chamada.</p>
+        <h2>Processando</h2>
         <div class="loading-track"><span /></div>
       </section>
 
@@ -440,6 +489,7 @@
                     id="nome-turma"
                     v-model="nome"
                     autocomplete="off"
+                    :disabled="modoIntegrantes"
                     maxlength="100"
                     placeholder="Ex.: 1º ano A"
                     @input="limparErro"
@@ -457,6 +507,7 @@
                     <input
                       id="ano-letivo"
                       v-model="anoLetivoTexto"
+                      :disabled="modoIntegrantes"
                       inputmode="numeric"
                       maxlength="4"
                       placeholder="2026"
@@ -476,6 +527,7 @@
                       aria-labelledby="turno-label"
                       class="select-trigger"
                       :class="{ opened: turnoAberto }"
+                      :disabled="modoIntegrantes"
                       type="button"
                       @click="turnoAberto = !turnoAberto"
                     >
@@ -503,7 +555,7 @@
               </div>
 
               <div class="field photo-field">
-                <label>Foto da chamada <span class="optional">(opcional)</span></label>
+                <label>Foto da chamada <span v-if="modoIntegrantes">*</span><span v-else class="optional">(opcional)</span></label>
 
                 <div
                   class="upload-box"
@@ -512,8 +564,8 @@
                   @dragover.prevent="arrastando = true"
                   @drop.prevent="soltarFoto"
                 >
-                  <div class="upload-icon">
-                    <ImageUp :size="22" />
+                  <div class="upload-icon" :class="{ 'upload-icon--ok': foto }">
+                    <component :is="foto ? Check : ImageUp" :size="22" />
                   </div>
 
                   <div class="upload-description">
@@ -522,14 +574,14 @@
                     <small>
                       {{
                         foto
-                          ? `${(foto.size / 1024 / 1024).toFixed(2)} MB · Arquivo selecionado`
+                          ? `${(foto.size / 1024 / 1024).toFixed(1).replace('.', ',')} MB · Foto adicionada`
                           : 'JPG, PNG ou WEBP · Máximo 20 MB'
                       }}
                     </small>
                   </div>
 
                   <button class="file-button" type="button" @click="abrirSeletor">
-                    {{ foto ? 'Trocar' : 'Procurar' }}
+                    {{ foto ? 'Trocar foto' : 'Procurar' }}
                   </button>
                 </div>
 
@@ -542,18 +594,18 @@
                 >
 
                 <p class="field-help">
-                  A IA reconhece os nomes automaticamente. Você poderá revisar tudo antes de salvar.
+                  Os nomes são reconhecidos automaticamente. Você poderá revisar tudo antes de salvar.
                 </p>
               </div>
 
               <div class="form-actions">
-                <button class="secondary-button" type="button" @click="router.push('/turmas')">
+                <button class="secondary-button" type="button" @click="cancelar">
                   Cancelar
                 </button>
 
                 <button class="primary-button" :disabled="salvando" type="submit">
                   <LoaderCircle v-if="salvando" class="spin" :size="17" />
-                  {{ salvando ? 'Criando...' : foto ? 'Reconhecer nomes' : 'Criar sem foto' }}
+                  {{ salvando ? 'Criando...' : foto || modoIntegrantes ? 'Reconhecer nomes' : 'Criar sem foto' }}
                   <ArrowRight v-if="!salvando" :size="17" />
                 </button>
               </div>
@@ -561,9 +613,7 @@
           </section>
 
           <aside class="info-panel">
-            <div class="info-icon">
-              <ScanText :size="25" />
-            </div>
+            <img alt="" class="mascote-info" :src="planejamentoUrl">
 
             <h2>Uma foto, menos cadastro.</h2>
             <p>Envie a lista completa da turma. A Marsupi encontra os nomes para você.</p>
@@ -577,8 +627,8 @@
             </div>
 
             <div class="tip-note">
-              <Sparkles :size="17" />
-              <span>Não precisa cadastrar um por um. Confira tudo na próxima etapa.</span>
+              <strong>Não precisa cadastrar um por um.</strong>
+              <span>Confira tudo na próxima etapa.</span>
             </div>
           </aside>
         </div>
@@ -680,7 +730,7 @@
 
           <button class="primary-button" :disabled="salvando" type="button" @click="criarTurma">
             <LoaderCircle v-if="salvando" class="spin" :size="17" />
-            {{ salvando ? 'Criando turma...' : `Confirmar ${alunos.length} alunos` }}
+            {{ salvando ? (modoIntegrantes ? 'Adicionando...' : 'Criando turma...') : (modoIntegrantes ? `Adicionar ${alunos.length} alunos` : `Confirmar ${alunos.length} alunos`) }}
             <ArrowRight v-if="!salvando" :size="17" />
           </button>
         </div>
@@ -693,18 +743,34 @@
 .nova-turma {
   width: 100%;
   min-height: calc(100dvh - 90px);
-  padding: 24px 0 60px;
+  padding: 4px 0 40px;
   background: #f7f8f4;
   color: #263d35;
 }
 
 .page-wrap {
-  width: min(100%, 1240px);
-  margin: 0 auto;
+  /* Mesma margem lateral do perfil. */
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  padding-inline: 0.75rem;
+  transform: translateX(-50%);
+}
+
+@media (min-width: 640px) {
+  .page-wrap {
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-wrap {
+    padding-inline: 7rem;
+  }
 }
 
 .breadcrumb {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   color: #92a197;
   font-size: 12px;
 }
@@ -719,7 +785,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 26px;
+  margin-bottom: 16px;
 }
 
 .page-heading h1 {
@@ -1101,6 +1167,10 @@
 .primary-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.content-grid {
+  align-items: stretch;
 }
 
 .info-panel {
@@ -1563,5 +1633,78 @@
     animation: none !important;
     transition: none !important;
   }
+}
+</style>
+
+<style scoped>
+.mascote-estado {
+  display: block;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 8px;
+  object-fit: contain;
+}
+
+.mascote-info {
+  display: block;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 8px;
+  object-fit: contain;
+}
+</style>
+
+<style scoped>
+.heading-livro {
+  width: 190px;
+  flex: none;
+}
+
+.tip-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 22px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 70%);
+  font-size: 13px;
+}
+
+.tip-note span {
+  color: #6f8578;
+  font-size: 12px;
+}
+
+/* Dados da turma travados no modo "Cadastrar alunos". */
+.input-shell:has(input:disabled),
+.select-trigger:disabled {
+  background: #eef2ec;
+  color: #6f8578;
+  cursor: not-allowed;
+}
+
+.input-shell input:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .heading-livro {
+    display: none;
+  }
+}
+
+.upload-icon--ok {
+  background: #356b5b;
+  color: #fff;
+  animation: foto-ok 0.4s cubic-bezier(.3, 1.6, .5, 1);
+}
+
+@keyframes foto-ok {
+  from { scale: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-icon--ok { animation: none; }
 }
 </style>

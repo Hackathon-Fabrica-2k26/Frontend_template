@@ -65,6 +65,20 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/relatorios/[id]': RouteRecordInfo<
+      '/relatorios/[id]',
+      '/relatorios/:id',
+      { id: ParamValue<true> },
+      { id: ParamValue<false> },
+      | never
+    >,
+    '/relatorios/novo': RouteRecordInfo<
+      '/relatorios/novo',
+      '/relatorios/novo',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/turmas/': RouteRecordInfo<
       '/turmas/',
       '/turmas',
@@ -132,6 +146,18 @@ declare module 'vue-router/auto-routes' {
     'src/pages/perfil.vue': {
       routes:
         | '/perfil'
+      views:
+        | never
+    }
+    'src/pages/relatorios/[id].vue': {
+      routes:
+        | '/relatorios/[id]'
+      views:
+        | never
+    }
+    'src/pages/relatorios/novo.vue': {
+      routes:
+        | '/relatorios/novo'
       views:
         | never
     }

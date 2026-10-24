@@ -28,9 +28,9 @@
 
       <div class="modal-divisor" />
 
-      <!-- Estado: Processando com IA -->
+      <!-- Estado: Processando -->
       <div v-if="processando" class="estado-processando">
-        <MarsupiLoading label="Processando com IA" />
+        <MarsupiLoading label="Processando" />
       </div>
 
       <!-- Estado: Formulário -->
@@ -255,8 +255,8 @@
       descricaoAtividade.value = extracao.descricao || ''
       textoOriginal.value = extracao.texto_original || ''
       notify.success('Dados da atividade extraídos com sucesso!')
-    } catch {
-      notify.error('Não foi possível extrair os dados do arquivo.')
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível extrair os dados do arquivo.')
     } finally {
       processando.value = false
     }
@@ -306,8 +306,8 @@
       notify.success('Atividade criada com sucesso!')
       emit('created', novaAtividade)
       fechar()
-    } catch {
-      notify.error('Erro ao salvar a atividade. Tente novamente.')
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Erro ao salvar a atividade. Tente novamente.')
     } finally {
       salvando.value = false
     }
