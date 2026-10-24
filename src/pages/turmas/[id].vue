@@ -453,7 +453,23 @@
     } finally {
       carregando.value = false
     }
+    abrirAlunoDaBusca()
   }
+
+  // Vindo da busca do header (?aluno=<id>): abre o painel do aluno e limpa o parâmetro.
+  function abrirAlunoDaBusca () {
+    const id = Number(route.query.aluno)
+    if (!id) return
+    const aluno = alunos.value.find(item => item.id === id)
+    // Ainda não está na lista (ex.: a turma nova está carregando): tenta de novo ao terminar.
+    if (!aluno) return
+    alunoSelecionado.value = aluno
+    void router.replace({ query: { ...route.query, aluno: undefined } })
+  }
+
+  watch(() => route.query.aluno, valor => {
+    if (valor && !carregando.value) abrirAlunoDaBusca()
+  })
 
   function _abrirDialogNovoEstudante () {
     novoEstudanteNome.value = ''
