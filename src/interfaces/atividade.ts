@@ -4,6 +4,7 @@ export interface AtividadeExtracao {
   titulo: string
   descricao: string
   texto_original?: string
+  origem?: string
 }
 
 export interface Atividade {
