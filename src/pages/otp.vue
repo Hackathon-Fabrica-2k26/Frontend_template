@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
   import { useShake } from '@/composables/useShake'
@@ -415,7 +415,7 @@
 }
 
 .otp :deep(.v-field) {
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--otp-bg);
 }
 
@@ -533,6 +533,7 @@
 .submit {
   margin-top: 24px;
   height: 52px;
+  border-radius: 12px;
   font-weight: 600;
   letter-spacing: 0;
 }
