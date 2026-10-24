@@ -1,7 +1,9 @@
 import type {
+  EnvioTrabalhosResponse,
   Estudante,
   Trabalho,
   TrabalhoPayload,
+  TrabalhoRespostaApi,
 } from '@/interfaces/trabalho'
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
@@ -18,6 +20,32 @@ const jaFalhou = new Set<string>()
 
 function wait (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function normalizarTrabalho (
+  item: TrabalhoRespostaApi,
+  nomeArquivoPadrao = '',
+): Trabalho {
+  const confianca = typeof item.confianca_nome === 'number'
+    ? item.confianca_nome
+    : (typeof item.confianca === 'number' ? item.confianca : null)
+
+  return {
+    id: item.id,
+    envio: item.envio,
+    atividade: item.atividade,
+    variacao: item.variacao ?? null,
+    nome_arquivo: item.nome_arquivo || nomeArquivoPadrao,
+    nome_lido: item.nome_lido ?? '',
+    confianca,
+    confianca_nome: confianca,
+    identificacao: item.identificacao ?? 'pendente',
+    status: item.status,
+    descricao_ia: item.descricao_ia,
+    dados_analise: item.dados_analise,
+    aluno: item.aluno ?? null,
+    aluno_nome: item.aluno_nome ?? null,
+  }
 }
 
 class TrabalhosService {
@@ -50,8 +78,10 @@ class TrabalhosService {
         nome_arquivo: arquivo.name,
         nome_lido: estudante?.nome ?? '',
         confianca: pendente ? 0.48 : 0.96,
+        confianca_nome: pendente ? 0.48 : 0.96,
         identificacao: pendente ? 'pendente' : 'confirmada',
         aluno: pendente || !estudante ? null : estudante.id,
+        aluno_nome: pendente || !estudante ? null : estudante.nome,
       }]
     }
 
@@ -59,7 +89,7 @@ class TrabalhosService {
     formData.append('arquivos', arquivo)
 
     try {
-      const { data } = await api.post<Trabalho[]>(
+      const { data } = await api.post<EnvioTrabalhosResponse | TrabalhoRespostaApi[]>(
         `atividades/${atividadeId}/trabalhos/`,
         formData,
         {
@@ -70,7 +100,11 @@ class TrabalhosService {
         },
       )
 
-      return data
+      const lista = Array.isArray(data)
+        ? data
+        : (Array.isArray(data?.trabalhos) ? data.trabalhos : [])
+
+      return lista.map(item => normalizarTrabalho(item, arquivo.name))
     } catch (error) {
       throw buildApiError(
         error,
@@ -89,12 +123,15 @@ class TrabalhosService {
     }
 
     try {
-      const { data } = await api.patch<Trabalho>(
+      const { data } = await api.patch<TrabalhoRespostaApi>(
         `trabalhos/${trabalhoId}/`,
-        payload,
+        {
+          aluno: payload.aluno,
+          ...(payload.identificacao ? { identificacao: payload.identificacao } : {}),
+        },
       )
 
-      return data
+      return normalizarTrabalho(data)
     } catch (error) {
       throw buildApiError(
         error,
