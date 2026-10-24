@@ -47,7 +47,7 @@
         >
           <input
             ref="inputArquivoRef"
-            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp"
             class="input-arquivo-oculto"
             type="file"
             @change="tratarArquivoSelecionado"
@@ -84,7 +84,7 @@
               <span class="link-procurar">Procurar arquivo</span>
             </p>
 
-            <span class="dropzone-formatos">PDF ou DOCX</span>
+            <span class="dropzone-formatos">PDF, DOCX ou foto (JPG, PNG, WEBP)</span>
           </template>
         </div>
 
@@ -186,7 +186,7 @@
   const textoOriginal = ref('')
   const origemAtividade = ref<'texto' | 'pdf' | 'docx'>('texto')
 
-  const extensoesPermitidas = ['.pdf', '.docx']
+  const extensoesPermitidas = ['.pdf', '.docx', '.jpg', '.jpeg', '.png', '.webp']
 
   const podeConfirmar = computed(() => {
     return nomeAtividade.value.trim().length > 0
@@ -229,14 +229,14 @@
     const nome = arquivo.name.toLowerCase()
     const validaExtensao = extensoesPermitidas.some(ext => nome.endsWith(ext))
     if (!validaExtensao) {
-      notify.error('Envie apenas arquivos nos formatos PDF ou DOCX.')
+      notify.error('Envie um PDF, um DOCX ou uma foto (JPG, PNG ou WEBP).')
       return false
     }
 
-    // Limite de 25 MB
-    const limiteBytes = 25 * 1024 * 1024
+    // Limite de 20 MB, igual ao backend
+    const limiteBytes = 20 * 1024 * 1024
     if (arquivo.size > limiteBytes) {
-      notify.error('O arquivo deve ter no máximo 25 MB.')
+      notify.error('O arquivo deve ter no máximo 20 MB.')
       return false
     }
 
