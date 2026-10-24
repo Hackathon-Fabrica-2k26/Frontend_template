@@ -184,6 +184,7 @@
   const nomeAtividade = ref('')
   const descricaoAtividade = ref('')
   const textoOriginal = ref('')
+  const origemAtividade = ref<'texto' | 'pdf' | 'docx'>('texto')
 
   const extensoesPermitidas = ['.pdf', '.docx']
 
@@ -209,6 +210,7 @@
     nomeAtividade.value = ''
     descricaoAtividade.value = ''
     textoOriginal.value = ''
+    origemAtividade.value = 'texto'
     if (inputArquivoRef.value) {
       inputArquivoRef.value.value = ''
     }
@@ -254,6 +256,7 @@
       nomeAtividade.value = extracao.titulo || ''
       descricaoAtividade.value = extracao.descricao || ''
       textoOriginal.value = extracao.texto_original || ''
+      origemAtividade.value = extracao.origem === 'docx' ? 'docx' : (extracao.origem === 'pdf' ? 'pdf' : 'texto')
       notify.success('Dados da atividade extraídos com sucesso!')
     } catch (error) {
       notify.error(error instanceof Error ? error.message : 'Não foi possível extrair os dados do arquivo.')
@@ -298,7 +301,7 @@
         descricao: descricaoLimpa,
         objetivo: descricaoLimpa,
         texto_original: textoOriginal.value || undefined,
-        origem: 'arquivo',
+        origem: origemAtividade.value,
         turma: turmaNum,
         tipo: 'Atividade Adaptada',
       })
