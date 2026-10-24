@@ -108,21 +108,25 @@
                 </button>
               </div>
 
-              <div class="pontos-lista">
+              <div v-if="pontosAtencaoLista.length > 0" class="pontos-lista">
                 <article
-                  v-for="ponto in pontosAtencaoExibicao"
+                  v-for="ponto in pontosAtencaoLista"
                   :key="ponto.id"
                   class="ponto"
                 >
                   <span aria-hidden="true" class="ponto-icone">!</span>
 
                   <div class="ponto-info">
-                    <h5>{{ ponto.titulo || 'Observação' }}</h5>
+                    <h5>{{ ponto.titulo }}</h5>
                     <p>{{ ponto.descricao }}</p>
-                    <small>Atenção<template v-if="ponto.visibilidade"> · {{ ponto.visibilidade }}</template> · {{ formatarData(ponto.created_at) }}</small>
+                    <small v-if="ponto.subtexto">{{ ponto.subtexto }}</small>
                   </div>
                 </article>
               </div>
+
+              <p v-else class="texto-vazio">
+                Nenhum ponto de atenção identificado no momento.
+              </p>
             </section>
 
             <!-- Metadados do Aluno (Matrícula, Nascimento, Idade) -->
@@ -188,8 +192,28 @@
               <section class="bloco acompanhamento">
                 <h4>Acompanhamento</h4>
 
-                <p>
-                  Participa das propostas em sala e demonstra interesse pela leitura, escrita e atividades de contagem.
+                <p v-if="perfilApoio?.observacoes">
+                  {{ perfilApoio.observacoes }}
+                </p>
+
+                <div
+                  v-if="perfilApoio?.estrategias && perfilApoio.estrategias.length > 0"
+                  class="acompanhamento-estrategias"
+                >
+                  <strong>Estratégias pedagógicas recomendadas:</strong>
+
+                  <ul>
+                    <li v-for="(est, idx) in perfilApoio.estrategias" :key="idx">
+                      {{ est }}
+                    </li>
+                  </ul>
+                </div>
+
+                <p
+                  v-if="!perfilApoio?.observacoes && (!perfilApoio?.estrategias || perfilApoio.estrategias.length === 0)"
+                  class="texto-vazio"
+                >
+                  Sem registros de acompanhamento específicos para este aluno.
                 </p>
               </section>
 
@@ -198,13 +222,13 @@
                 <div class="atividades-topo">
                   <h4>
                     Atividades
-                    <span class="badge-contador">{{ atividadesExibicao.length }}</span>
+                    <span class="badge-contador">{{ atividades.length }}</span>
                   </h4>
                 </div>
 
-                <div class="atividades-lista">
+                <div v-if="atividades.length > 0" class="atividades-lista">
                   <article
-                    v-for="atividade in atividadesExibicao"
+                    v-for="atividade in atividades"
                     :key="atividade.id"
                     class="atividade-card"
                   >
@@ -234,6 +258,10 @@
                     </div>
                   </article>
                 </div>
+
+                <p v-else class="texto-vazio">
+                  Nenhuma atividade cadastrada para esta turma.
+                </p>
               </section>
             </div>
 
@@ -260,31 +288,38 @@
                   </button>
                 </div>
 
-                <div class="pontos-lista">
+                <div v-if="pontosAtencaoLista.length > 0" class="pontos-lista">
                   <article
-                    v-for="ponto in pontosAtencaoExibicao"
+                    v-for="ponto in pontosAtencaoLista"
                     :key="ponto.id"
                     class="ponto"
                   >
                     <span aria-hidden="true" class="ponto-icone">!</span>
 
                     <div class="ponto-info">
-                      <h5>{{ ponto.titulo || 'Observação' }}</h5>
+                      <h5>{{ ponto.titulo }}</h5>
                       <p>{{ ponto.descricao }}</p>
-                      <small>Atenção<template v-if="ponto.visibilidade"> · {{ ponto.visibilidade }}</template> · {{ formatarData(ponto.created_at) }}</small>
+                      <small v-if="ponto.subtexto">{{ ponto.subtexto }}</small>
                     </div>
                   </article>
                 </div>
+
+                <p v-else class="texto-vazio">
+                  Nenhum ponto de atenção identificado no momento.
+                </p>
               </section>
             </div>
           </div>
 
           <!-- Rodapé de Ações -->
           <footer class="rodape">
-            <p class="rodape-aviso">Exporte os relatórios das duas atividades em conjunto.</p>
+            <p class="rodape-aviso">
+              {{ atividades.length > 0 ? 'Exporte os relatórios das atividades em conjunto.' : 'Nenhuma atividade disponível para exportação.' }}
+            </p>
 
             <button
               class="btn-principal"
+              :disabled="atividades.length === 0"
               type="button"
               @click="exportarTodas"
             >
@@ -309,15 +344,23 @@
 </template>
 
 <script setup lang="ts">
-  import type { Aluno, Observacao } from '@/interfaces/aluno'
+  import type { Aluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
   import { Camera, Check, Copy, Download, FileText, UserRound, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { observacoesService } from '@/services/alunos'
+  import { alunosService, observacoesService } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
+  import { pedagogicoService } from '@/services/pedagogico'
   import { notify } from '@/utils/notify'
+
+  interface PontoExibicao {
+    id: string | number
+    titulo: string
+    descricao: string
+    subtexto?: string
+  }
 
   const props = defineProps<{
     aluno: Aluno
@@ -355,48 +398,52 @@
   })
 
   const atividades = ref<Atividade[]>([])
-  const pontosAtencao = ref<Observacao[]>([])
+  const observacoes = ref<Observacao[]>([])
+  const perfilApoio = ref<PerfilApoio | null>(null)
+  const pontosIa = ref<PontoAtencaoItem[]>([])
 
-  // Exibição dos pontos de atenção conforme o print de referência (ou vindos da API)
-  const pontosAtencaoExibicao = computed(() => {
-    if (pontosAtencao.value.length > 0) return pontosAtencao.value
-    return [
-      {
-        id: 1,
-        titulo: 'Dificuldade em soma',
-        descricao: 'Tem dificuldade em somas simples até 10.',
-        visibilidade: 'Somente professora',
-        created_at: '2026-10-21T10:00:00Z',
-      },
-      {
-        id: 2,
-        titulo: 'Dificuldade em separar sílabas',
-        descricao: 'Precisa de apoio para ler palavras de duas sílabas.',
-        visibilidade: 'Visível para os pais',
-        created_at: '2026-10-22T10:00:00Z',
-      },
-    ] as Observacao[]
-  })
+  const pontosAtencaoLista = computed<PontoExibicao[]>(() => {
+    const lista: PontoExibicao[] = []
 
-  // Exibição das atividades conforme o print de referência (ou vindas da API)
-  const atividadesExibicao = computed(() => {
-    if (atividades.value.length > 0) return atividades.value
-    return [
-      {
-        id: 1,
-        titulo: 'Explorando as vogais',
-        descricao: 'Reconhece as vogais nas palavras trabalhadas.',
-        created_at: '2026-10-23T10:00:00Z',
-        relatorios: [1],
-      },
-      {
-        id: 2,
-        titulo: 'Contando até 10',
-        descricao: 'Associa os números às quantidades apresentadas.',
-        created_at: '2026-10-21T10:00:00Z',
-        relatorios: [2],
-      },
-    ] as Atividade[]
+    // 1. Necessidades vindas do perfil de apoio (laudo cadastrado)
+    if (perfilApoio.value?.necessidades) {
+      for (const [idx, nec] of perfilApoio.value.necessidades.entries()) {
+        lista.push({
+          id: `perfil-${idx}-${nec}`,
+          titulo: nec,
+          descricao: 'Necessidade identificada para adaptação pedagógica.',
+          subtexto: 'Perfil de apoio',
+        })
+      }
+    }
+
+    // 2. Pontos de atenção pedagógicos calculados pela IA a partir dos trabalhos
+    if (pontosIa.value.length > 0) {
+      for (const [idx, p] of pontosIa.value.entries()) {
+        lista.push({
+          id: `ia-${idx}-${p.padrao}`,
+          titulo: p.padrao,
+          descricao: p.texto,
+          subtexto: p.base_pedagogica ? `Pedagógico · ${p.base_pedagogica}` : 'Análise pedagógica',
+        })
+      }
+    }
+
+    // 3. Observações registradas pelo professor
+    for (const obs of observacoes.value) {
+      const parts = [
+        obs.visibilidade,
+        formatarData(obs.created_at),
+      ].filter(Boolean)
+      lista.push({
+        id: `obs-${obs.id}`,
+        titulo: obs.titulo || 'Observação',
+        descricao: obs.descricao,
+        subtexto: parts.length > 0 ? parts.join(' · ') : undefined,
+      })
+    }
+
+    return lista
   })
 
   function formatarData (iso?: string | null): string {
@@ -404,12 +451,17 @@
   }
 
   async function carregar () {
-    const [ativ, obs] = await Promise.allSettled([
+    const [ativ, obs, perfil, pontos] = await Promise.allSettled([
       atividadesService.list({ turma: props.aluno.turma }),
       observacoesService.list({ aluno: props.aluno.id }),
+      pedagogicoService.obterPerfilApoio(props.aluno.id),
+      alunosService.obterPontosAtencao(props.aluno.id),
     ])
+
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
-    pontosAtencao.value = obs.status === 'fulfilled' ? obs.value.results : []
+    observacoes.value = obs.status === 'fulfilled' ? obs.value.results : []
+    perfilApoio.value = perfil.status === 'fulfilled' ? perfil.value : null
+    pontosIa.value = pontos.status === 'fulfilled' ? pontos.value.pontos : []
   }
 
   function trocarFoto (evento: Event) {
@@ -432,7 +484,7 @@
   }
 
   function exportarTodas () {
-    const primeiro = atividadesExibicao.value.find(a => a.relatorios && a.relatorios.length > 0)
+    const primeiro = atividades.value.find(a => a.relatorios && a.relatorios.length > 0)
     if (primeiro?.relatorios?.[0]) {
       abrirRelatorio(primeiro.relatorios[0])
     } else {
@@ -880,6 +932,41 @@
   line-height: 1.45;
 }
 
+.acompanhamento-estrategias {
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  color: #52695f;
+}
+
+.acompanhamento-estrategias strong {
+  display: block;
+  color: #1a3628;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.acompanhamento-estrategias ul {
+  margin: 0 0 0 1.2rem;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.acompanhamento-estrategias li {
+  margin-bottom: 0.2rem;
+  line-height: 1.4;
+}
+
+.texto-vazio {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background-color: #f7faf8;
+  border: 1px dashed #d5e2d9;
+  color: #698276;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 /* Atividades */
 .atividades-bloco {
   margin-bottom: 1.25rem;
@@ -1026,6 +1113,12 @@
 
 .btn-principal:hover {
   background: #356b5b;
+}
+
+.btn-principal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #739083;
 }
 
 .sr-only {
