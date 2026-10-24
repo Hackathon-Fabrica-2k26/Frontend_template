@@ -183,6 +183,7 @@
 
   const nomeAtividade = ref('')
   const descricaoAtividade = ref('')
+  const textoOriginal = ref('')
 
   const extensoesPermitidas = ['.pdf', '.docx']
 
@@ -207,6 +208,7 @@
     salvando.value = false
     nomeAtividade.value = ''
     descricaoAtividade.value = ''
+    textoOriginal.value = ''
     if (inputArquivoRef.value) {
       inputArquivoRef.value.value = ''
     }
@@ -251,6 +253,7 @@
       const extracao = await atividadesStore.extrairAtividade(arquivo)
       nomeAtividade.value = extracao.titulo || ''
       descricaoAtividade.value = extracao.descricao || ''
+      textoOriginal.value = extracao.texto_original || ''
       notify.success('Dados da atividade extraídos com sucesso!')
     } catch {
       notify.error('Não foi possível extrair os dados do arquivo.')
@@ -287,9 +290,15 @@
     salvando.value = true
     try {
       const turmaNum = props.turmaId ? Number(props.turmaId) : undefined
+      const tituloLimpo = nomeAtividade.value.trim()
+      const descricaoLimpa = descricaoAtividade.value.trim()
       const novaAtividade = await atividadesStore.criarAtividade({
-        nome: nomeAtividade.value.trim(),
-        descricao: descricaoAtividade.value.trim(),
+        nome: tituloLimpo,
+        titulo: tituloLimpo,
+        descricao: descricaoLimpa,
+        objetivo: descricaoLimpa,
+        texto_original: textoOriginal.value || undefined,
+        origem: 'arquivo',
         turma: turmaNum,
         tipo: 'Atividade Adaptada',
       })

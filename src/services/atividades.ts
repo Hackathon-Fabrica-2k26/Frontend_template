@@ -7,6 +7,12 @@ import type {
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
+const mockEnabled = import.meta.env.VITE_MOCK_ATIVIDADES === 'true'
+
+function wait (ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 export interface AtividadesFilters {
   turma?: number
   search?: string
@@ -15,17 +21,8 @@ export interface AtividadesFilters {
 
 class AtividadesService {
   async extrair (arquivo: File): Promise<AtividadeExtracao> {
-    const formData = new FormData()
-    formData.append('arquivo', arquivo)
-
-    try {
-      const { data } = await api.post<AtividadeExtracao>('atividades/extrair/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      return data
-    } catch {
-      // Mock enquanto o endpoint do backend não estiver integrado à branch dev
-      await new Promise(resolve => setTimeout(resolve, 2000))
+    if (mockEnabled) {
+      await wait(2000)
 
       const nomeBase = arquivo.name
         .replace(/\.[^/.]+$/, '')
@@ -42,34 +39,49 @@ class AtividadesService {
           'Atividade interdisciplinar com foco no desenvolvimento de raciocínio lógico, '
           + 'leitura interpretativa e dinâmicas de colaboração em grupo adaptadas '
           + 'aos perfis dos estudantes da turma.',
+        texto_original: `Conteúdo extraído do arquivo ${arquivo.name}.`,
       }
+    }
+
+    const formData = new FormData()
+    formData.append('arquivo', arquivo)
+
+    try {
+      const { data } = await api.post<AtividadeExtracao>('atividades/extrair/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível extrair os dados do arquivo.')
     }
   }
 
   async create (payload: AtividadePayload): Promise<Atividade> {
+    if (mockEnabled) {
+      await wait(600)
+      const titulo = payload.titulo || payload.nome || 'Atividade'
+      const descricao = payload.descricao || payload.objetivo || ''
+      return {
+        id: Math.floor(Math.random() * 1000) + 1,
+        nome: titulo,
+        titulo,
+        descricao,
+        objetivo: descricao,
+        texto_original: payload.texto_original || '',
+        origem: payload.origem || 'arquivo',
+        turma: payload.turma,
+        tipo: payload.tipo || 'Atividade Regular',
+        aluno: payload.aluno,
+        relatorios: payload.relatorios || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    }
+
     try {
       const { data } = await api.post<Atividade>('atividades/', payload)
       return data
     } catch (error) {
-      // Se for erro de validação ou de rede não relacionado à rota inexistente, poderia tratar.
-      // Caso 404/indisponível na dev, simula criação mockada para não bloquear o fluxo da professora:
-      const status = (error as { response?: { status?: number } })?.response?.status
-      if (status === 404 || !status) {
-        await new Promise(resolve => setTimeout(resolve, 600))
-        return {
-          id: Math.floor(Math.random() * 1000) + 1,
-          nome: payload.nome,
-          titulo: payload.nome,
-          descricao: payload.descricao || '',
-          turma: payload.turma,
-          tipo: payload.tipo || 'Atividade Regular',
-          aluno: payload.aluno,
-          relatorios: payload.relatorios || [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-      }
-
       throw buildApiError(error, 'Não foi possível cadastrar a atividade.')
     }
   }

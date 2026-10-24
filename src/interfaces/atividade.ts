@@ -3,13 +3,17 @@ import type { Paginated } from '@/interfaces/item'
 export interface AtividadeExtracao {
   titulo: string
   descricao: string
+  texto_original?: string
 }
 
 export interface Atividade {
   id: number
-  nome: string
+  nome?: string
   titulo?: string
   descricao?: string
+  objetivo?: string
+  texto_original?: string
+  origem?: string
   turma?: number
   tipo?: string
   aluno?: number
@@ -19,8 +23,12 @@ export interface Atividade {
 }
 
 export interface AtividadePayload {
-  nome: string
+  nome?: string
+  titulo?: string
   descricao?: string
+  objetivo?: string
+  texto_original?: string
+  origem?: string
   turma?: number
   tipo?: string
   aluno?: number

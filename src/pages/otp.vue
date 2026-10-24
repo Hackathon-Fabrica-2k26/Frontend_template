@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useCountdown } from '@/composables/useCountdown'
   import { useShake } from '@/composables/useShake'

@@ -30,18 +30,11 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/atividades/criar': RouteRecordInfo<
-      '/atividades/criar',
-      '/atividades/criar',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/erro': RouteRecordInfo<
-      '/erro',
-      '/erro',
-      Record<never, never>,
-      Record<never, never>,
+    '/[...all]': RouteRecordInfo<
+      '/[...all]',
+      '/:all(.*)',
+      { all: ParamValue<true> },
+      { all: ParamValue<false> },
       | never
     >,
     '/items/': RouteRecordInfo<
@@ -98,15 +91,9 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/atividades/criar.vue': {
+    'src/pages/[...all].vue': {
       routes:
-        | '/atividades/criar'
-      views:
-        | never
-    }
-    'src/pages/erro.vue': {
-      routes:
-        | '/erro'
+        | '/[...all]'
       views:
         | never
     }
