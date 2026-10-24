@@ -10,7 +10,14 @@ import { useAuthStore } from '@/stores/auth'
 export function useNomeAluno (padrao = 'o aluno') {
   const route = useRoute()
   const auth = useAuthStore()
-  const nome = ref(padrao)
+  const nomeInicial = computed(() => {
+    const raw = route.query.nome
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.trim().split(' ', 1)[0]
+    }
+    return padrao
+  })
+  const nome = ref(nomeInicial.value)
 
   const alunoId = computed(() => Number(route.query.aluno))
   const turmaId = computed(() => Number(route.query.turma) || undefined)
