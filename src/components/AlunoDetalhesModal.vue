@@ -7,14 +7,6 @@
       @click.self="fechar"
     >
       <div class="painel">
-        <!-- Canguru espiando pela borda esquerda: corpo completo e arredondado atrás do painel -->
-        <div aria-hidden="true" class="canguru canguru--tras">
-          <svg class="canguru-svg" viewBox="180 80 850 1150">
-            <g class="canguru-corpo">
-              <path :d="SIMBOLO" fill="#356B5B" fill-rule="evenodd" />
-            </g>
-          </svg>
-        </div>
 
         <section
           aria-labelledby="aluno-detalhes-titulo"
@@ -203,39 +195,15 @@
           </footer>
         </section>
 
-        <!-- Pata do canguru apoiada na borda do painel (na frente do cartão) -->
-        <div aria-hidden="true" class="canguru canguru--frente">
-          <svg class="canguru-svg" viewBox="180 80 850 1150">
-            <g class="canguru-pata-wrap">
-              <g class="canguru-pata" transform="translate(752 710) rotate(-90)">
-                <g transform="scale(1.15)">
-                  <template v-for="dx in [-34, 0, 34]" :key="dx">
-                    <line
-                      stroke="#F7F7F1"
-                      stroke-linecap="round"
-                      stroke-width="42"
-                      :x1="dx"
-                      :x2="dx"
-                      y1="0"
-                      y2="46"
-                    />
-
-                    <line
-                      stroke="#356B5B"
-                      stroke-linecap="round"
-                      stroke-width="30"
-                      :x1="dx"
-                      :x2="dx"
-                      y1="0"
-                      y2="46"
-                    />
-                  </template>
-
-                  <path d="M -72 6 C -72 -30 -40 -44 0 -44 C 40 -44 72 -30 72 6 C 72 30 40 36 0 36 C -40 36 -72 30 -72 6 Z" fill="#356B5B" stroke="#F7F7F1" stroke-width="9" />
-                </g>
+        <!-- Patinha apoiada na borda do painel -->
+        <div aria-hidden="true" class="patinha-borda">
+          <div class="patinha-animada">
+            <svg class="patinha-svg" viewBox="-70 -100 170 200">
+              <g transform="rotate(-90)">
+                <MascotePata :x="0" :y="0" />
               </g>
-            </g>
-          </svg>
+            </svg>
+          </div>
         </div>
 
         <TermoConsentimentoDialog
@@ -258,7 +226,6 @@
   import { Camera, Check, Download, FileText, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { SIMBOLO } from '@/assets/mascote-simbolo'
   import { observacoesService } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
   import { useConsentimentoStore } from '@/stores'
@@ -386,42 +353,30 @@
   font-family: Poppins, sans-serif;
 }
 
-/* Canguru espiando pela borda esquerda: corpo arredondado e completo */
-.canguru {
+/* Patinha do mascote apoiada na borda do painel */
+.patinha-borda {
   position: absolute;
-  top: 60px;
-  left: -165px;
-  width: 245px;
-  height: 331px;
-  pointer-events: none;
-  animation: canguru-espia 0.6s 0.25s cubic-bezier(.3, 1.5, .5, 1) both;
-}
-
-.canguru--tras {
-  z-index: 0;
-}
-
-.canguru--frente {
+  top: 130px;
+  left: -24px;
+  width: 58px;
+  height: 68px;
   z-index: 2;
+  pointer-events: none;
+  animation: patinha-entra 0.4s 0.2s cubic-bezier(0.3, 1.5, 0.5, 1) both;
 }
 
-.canguru-svg {
+.patinha-animada {
+  width: 100%;
+  height: 100%;
+  transform-origin: 0% 50%;
+  animation: pata-acena 3.2s 1s ease-in-out infinite;
+}
+
+.patinha-svg {
   display: block;
   width: 100%;
   height: 100%;
   overflow: visible;
-}
-
-.canguru-corpo {
-  transform-box: fill-box;
-  transform-origin: 85% 65%;
-  animation: canguru-balanca 3.6s 1.2s ease-in-out infinite;
-}
-
-.canguru-pata-wrap {
-  transform-box: fill-box;
-  transform-origin: 752px 710px;
-  animation: pata-acena 3.2s 1.6s ease-in-out infinite;
 }
 
 .topo {
@@ -794,34 +749,31 @@
   from { opacity: 0; translate: 0 10px; }
 }
 
-/* Sai de trás do painel, depois balança de leve como quem espia. */
-@keyframes canguru-espia {
-  from { opacity: 0; translate: 50px 0; }
-  to { opacity: 1; translate: 0 0; }
-}
-
-@keyframes canguru-balanca {
-  0%, 100% { rotate: 0deg; }
-  40% { rotate: 3.5deg; }
-  60% { rotate: -1.5deg; }
+@keyframes patinha-entra {
+  from {
+    opacity: 0;
+    translate: 16px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 @keyframes pata-acena {
-  0%, 60%, 100% { rotate: 0deg; }
-  70%, 90% { rotate: -12deg; }
-  80% { rotate: -4deg; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .canguru,
-  .canguru-corpo,
-  .canguru-pata-wrap {
-    animation: none;
+  0%, 60%, 100% {
+    rotate: 0deg;
+  }
+  70%, 90% {
+    rotate: -10deg;
+  }
+  80% {
+    rotate: -3deg;
   }
 }
 
 @media (max-width: 640px) {
-  .canguru {
+  .patinha-borda {
     display: none;
   }
 
@@ -883,9 +835,8 @@
   .fundo,
   .painel,
   .atividade,
-  .canguru,
-  .canguru-corpo,
-  .pata {
+  .patinha-borda,
+  .patinha-animada {
     animation: none;
   }
 }
