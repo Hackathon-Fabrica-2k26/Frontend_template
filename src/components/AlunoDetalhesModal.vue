@@ -129,27 +129,7 @@
               </p>
             </section>
 
-            <!-- Metadados do Aluno (Matrícula, Nascimento, Idade) -->
-            <dl aria-label="Informações do aluno" class="metadados">
-              <div class="metadado-item">
-                <dt>Matrícula</dt>
-                <dd>{{ matricula }}</dd>
-              </div>
-
-              <div class="metadado-item">
-                <dt>Nascimento</dt>
-
-                <dd>
-                  <span>{{ nascimento }}</span>
-                  <span aria-hidden="true" class="nascimento-idade-mobile">{{ idade === null ? '' : ` · ${idade} anos` }}</span>
-                </dd>
-              </div>
-
-              <div class="metadado-item metadado-idade-desktop">
-                <dt>Idade</dt>
-                <dd>{{ idade === null ? '—' : `${idade} anos` }}</dd>
-              </div>
-            </dl>
+            <!-- LGPD: o painel não exibe matrícula, data de nascimento nem idade do aluno; só o nome. -->
 
             <!-- Abas Visão Geral / Registros -->
             <div aria-label="Seções do aluno" class="abas-navegacao" role="tablist">
@@ -375,19 +355,6 @@
   const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
   const inputFoto = ref<HTMLInputElement | null>(null)
   const foto = ref('')
-
-  const dataNascimento = computed(() => (props.aluno.data_nascimento ? new Date(props.aluno.data_nascimento) : null))
-  const matricula = computed(() => props.aluno.matricula || '—')
-  const nascimento = computed(() => dataNascimento.value ? dataNascimento.value.toLocaleDateString('pt-BR') : '—')
-
-  const idade = computed(() => {
-    const nasc = dataNascimento.value
-    if (!nasc) return null
-    const hoje = new Date()
-    let anos = hoje.getFullYear() - nasc.getFullYear()
-    if (hoje < new Date(hoje.getFullYear(), nasc.getMonth(), nasc.getDate())) anos -= 1
-    return anos
-  })
 
   const isFeminino = computed(() => {
     if (props.aluno.genero === 'F') return true
@@ -846,34 +813,8 @@
   font-size: 0.7rem;
 }
 
-/* Metadados */
-.metadados {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin: 1.25rem 0 0.75rem;
-  text-align: left;
-}
-
-.metadados dt {
-  font-size: 0.72rem;
-  color: #6c8277;
-  margin-bottom: 2px;
-}
-
-.metadados dd {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #1a3628;
-}
-
 .pontos-bloco--desktop {
   display: block;
-}
-
-.nascimento-idade-mobile {
-  display: none;
 }
 
 /* Abas de navegação */
@@ -1218,20 +1159,6 @@
   /* Pontos de atenção no topo ficam ocultos no mobile (exibidos na aba Registros) */
   .pontos-bloco--desktop {
     display: none;
-  }
-
-  /* Metadados em 2 colunas */
-  .metadados {
-    grid-template-columns: 1fr 1fr;
-    margin: 0.75rem 0 1rem;
-  }
-
-  .metadado-idade-desktop {
-    display: none;
-  }
-
-  .nascimento-idade-mobile {
-    display: inline;
   }
 
   /* Atividades no mobile conforme referência */
