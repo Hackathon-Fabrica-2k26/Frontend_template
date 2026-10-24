@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { Estudante, Trabalho } from '@/interfaces/trabalho'
+  import type { Estudante, Identificacao, Trabalho } from '@/interfaces/trabalho'
   import {
     FileImage,
     LoaderCircle,
@@ -120,6 +120,24 @@
     if (value === null) return 'Não informada'
 
     return `${Math.round(value * 100)}%`
+  }
+
+  function formatIdentificacao (identificacao: Identificacao): string {
+    switch (identificacao) {
+      case 'automatica':
+      case 'confirmada': {
+        return 'Identificado'
+      }
+      case 'sem_aluno': {
+        return 'Sem aluno'
+      }
+      case 'sem_consentimento': {
+        return 'Sem consentimento'
+      }
+      default: {
+        return 'Pendente'
+      }
+    }
   }
 
   async function upload (): Promise<void> {
@@ -290,11 +308,7 @@
               </div>
 
               <span class="status" :class="trabalho.identificacao">
-                {{
-                  trabalho.identificacao === 'pendente'
-                    ? 'Pendente'
-                    : 'Identificado'
-                }}
+                {{ formatIdentificacao(trabalho.identificacao) }}
               </span>
             </div>
 
@@ -530,12 +544,15 @@
   font-weight: 600;
 }
 
-.status.confirmada {
+.status.confirmada,
+.status.automatica {
   background: #e5f3e9;
   color: #39734d;
 }
 
-.status.pendente {
+.status.pendente,
+.status.sem_aluno,
+.status.sem_consentimento {
   background: #fff1dc;
   color: #a36c25;
 }

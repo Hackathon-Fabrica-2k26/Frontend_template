@@ -13,7 +13,7 @@ cp .env.example .env      # define VITE_API_URL
 npm run dev               # http://localhost:3000
 ```
 
-Para desenvolver sem login, no backend use `AUTH_DISABLED=True` (veja o README dele). O front continua pedindo login; crie uma conta em `/register`.
+Para desenvolver sem login, no backend use `AUTH_DISABLED=True` (veja o README dele). O front continua pedindo login: entre em `/login` com uma matrícula já cadastrada (não há cadastro pelo front).
 
 ## Comandos
 | Comando | Ação |
@@ -27,7 +27,7 @@ Para desenvolver sem login, no backend use `AUTH_DISABLED=True` (veja o README d
 ## Telas de exemplo
 | Rota | Descrição |
 |---|---|
-| `/login`, `/register` | autenticação (layout `auth`, públicas) |
+| `/login`, `/otp` | autenticação (públicas) |
 | `/` | início |
 | `/items` | CRUD de itens com busca (usa `/api/items/`) |
 

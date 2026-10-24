@@ -94,6 +94,15 @@ class TurmasService {
     }
   }
 
+  async get (id: number) {
+    try {
+      const { data } = await api.get<Turma>(`turmas/${id}/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar a turma.')
+    }
+  }
+
   async create (payload: TurmaPayload) {
     try {
       const { data } = await api.post<Turma>('turmas/', payload)

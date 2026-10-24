@@ -3,7 +3,7 @@ export interface Estudante {
   nome: string
 }
 
-export type Identificacao = 'confirmada' | 'pendente'
+export type Identificacao = 'pendente' | 'automatica' | 'confirmada' | 'sem_aluno' | 'sem_consentimento'
 
 export interface Trabalho {
   id: number

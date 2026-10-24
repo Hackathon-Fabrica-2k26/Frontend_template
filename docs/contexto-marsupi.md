@@ -24,7 +24,7 @@ Resumo local (gitignored) para orientar o trabalho neste repositório. Fontes or
 
 ## Lacunas do template atual frente ao design
 - `src/plugins/vuetify.ts`: tema ainda azul (`#1F8BDD`), sem tokens Marsupi; fonte instalada é `@fontsource/roboto`, falta Poppins.
-- Sem logo nem assets Marsupi em `src/`; páginas existentes: `login`, `register`, `index`, `items/` (exemplo), `[...all]`.
+- Sem logo nem assets Marsupi em `src/`; páginas existentes: `login`, `otp`, `index`, `items/` (exemplo), `[...all]`.
 - Login com "matrícula" e Google: autenticação real não verificada; backend hoje usa JWT do template.
 - Não existe `src/components/` ainda.
 
