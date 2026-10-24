@@ -68,7 +68,7 @@
             </label>
 
             <a class="forgot-link" href="#" @click.prevent>
-              Esqueci minha senha
+              Esqueci minha senha.
             </a>
           </div>
 
