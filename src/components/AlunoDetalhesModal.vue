@@ -28,39 +28,74 @@
           </header>
 
           <div class="corpo">
-            <!-- Seção de Identificação Centralizada (conforme o print de referência) -->
+            <!-- Seção de Identificação do Aluno -->
             <section class="identificacao">
-              <h3 class="aluno-nome">{{ aluno.nome }}</h3>
-              <p class="aluno-sub">{{ turmaNome }} · {{ turno }}</p>
+              <!-- Avatar e ação de foto (mobile) -->
+              <div class="aluno-avatar-bloco">
+                <div class="avatar-caixa" :class="{ 'avatar-caixa--com-foto': !!foto }">
+                  <img
+                    v-if="foto"
+                    :alt="`Foto de ${aluno.nome}`"
+                    class="avatar-img"
+                    :src="foto"
+                  >
 
-              <div class="aluno-acoes-linha">
+                  <UserRound
+                    v-else
+                    aria-hidden="true"
+                    class="avatar-placeholder-icone"
+                    :size="40"
+                    :stroke-width="1.3"
+                  />
+                </div>
+
                 <button
-                  aria-label="Trocar foto do aluno"
-                  class="btn-foto-mini"
+                  class="btn-adicionar-foto"
                   type="button"
                   @click="inputFoto?.click()"
                 >
-                  <Camera :size="16" />
+                  {{ foto ? 'Trocar foto' : 'Adicionar foto' }}
                 </button>
+              </div>
 
-                <input
-                  ref="inputFoto"
-                  accept="image/*"
-                  class="sr-only"
-                  type="file"
-                  @change="trocarFoto"
-                >
+              <!-- Dados textuais do aluno -->
+              <div class="aluno-dados-bloco">
+                <h3 class="aluno-nome">{{ aluno.nome }}</h3>
+                <p class="aluno-sub">{{ turmaNome }} · {{ turno }}</p>
 
-                <span class="status-pilula">
-                  {{ isFeminino ? 'Aluna ativa' : 'Aluno ativo' }}
-                </span>
+                <div class="aluno-acoes-linha">
+                  <button
+                    aria-label="Trocar foto do aluno"
+                    class="btn-foto-mini desktop-only"
+                    type="button"
+                    @click="inputFoto?.click()"
+                  >
+                    <Camera :size="16" />
+                  </button>
+
+                  <input
+                    ref="inputFoto"
+                    accept="image/*"
+                    class="sr-only"
+                    type="file"
+                    @change="trocarFoto"
+                  >
+
+                  <span class="status-pilula">
+                    {{ isFeminino ? 'Aluna ativa' : 'Aluno ativo' }}
+                  </span>
+                </div>
               </div>
             </section>
 
-            <!-- Pontos de atenção com link para envio de laudo -->
-            <section aria-labelledby="pontos-titulo" class="bloco pontos-bloco">
+            <!-- Pontos de atenção no Desktop (visível no topo no desktop conforme print de referência) -->
+            <section
+              v-show="abaAtiva === 'visao_geral'"
+              aria-labelledby="pontos-titulo-desktop"
+              class="bloco pontos-bloco pontos-bloco--desktop"
+            >
               <div class="pontos-topo">
-                <h4 id="pontos-titulo">Pontos de atenção</h4>
+                <h4 id="pontos-titulo-desktop">Pontos de atenção</h4>
 
                 <button
                   class="btn-copiar-link-laudo"
@@ -92,76 +127,156 @@
 
             <!-- Metadados do Aluno (Matrícula, Nascimento, Idade) -->
             <dl aria-label="Informações do aluno" class="metadados">
-              <div>
+              <div class="metadado-item">
                 <dt>Matrícula</dt>
                 <dd>{{ matricula }}</dd>
               </div>
 
-              <div>
+              <div class="metadado-item">
                 <dt>Nascimento</dt>
-                <dd>{{ nascimento }}</dd>
+
+                <dd>
+                  <span>{{ nascimento }}</span>
+                  <span aria-hidden="true" class="nascimento-idade-mobile">{{ idade === null ? '' : ` · ${idade} anos` }}</span>
+                </dd>
               </div>
 
-              <div>
+              <div class="metadado-item metadado-idade-desktop">
                 <dt>Idade</dt>
                 <dd>{{ idade === null ? '—' : `${idade} anos` }}</dd>
               </div>
             </dl>
 
-            <!-- Botão de Visão Geral -->
-            <div class="aba-atual">Visão geral</div>
+            <!-- Abas Visão Geral / Registros -->
+            <div aria-label="Seções do aluno" class="abas-navegacao" role="tablist">
+              <button
+                id="tab-visao-geral"
+                aria-controls="painel-visao-geral"
+                :aria-selected="abaAtiva === 'visao_geral'"
+                class="aba-btn"
+                :class="{ 'aba-btn--ativa': abaAtiva === 'visao_geral' }"
+                role="tab"
+                type="button"
+                @click="abaAtiva = 'visao_geral'"
+              >
+                Visão geral
+              </button>
 
-            <!-- Seção de Acompanhamento -->
-            <section class="bloco acompanhamento">
-              <h4>Acompanhamento</h4>
+              <button
+                id="tab-registros"
+                aria-controls="painel-registros"
+                :aria-selected="abaAtiva === 'registros'"
+                class="aba-btn"
+                :class="{ 'aba-btn--ativa': abaAtiva === 'registros' }"
+                role="tab"
+                type="button"
+                @click="abaAtiva = 'registros'"
+              >
+                Registros
+              </button>
+            </div>
 
-              <p>
-                Participa das propostas em sala e demonstra interesse pela leitura, escrita e atividades de contagem.
-              </p>
-            </section>
+            <!-- Conteúdo da Aba Visão Geral -->
+            <div
+              v-show="abaAtiva === 'visao_geral'"
+              id="painel-visao-geral"
+              aria-labelledby="tab-visao-geral"
+              class="painel-aba"
+              role="tabpanel"
+            >
+              <!-- Seção de Acompanhamento -->
+              <section class="bloco acompanhamento">
+                <h4>Acompanhamento</h4>
 
-            <!-- Seção de Atividades -->
-            <section class="bloco atividades-bloco">
-              <div class="atividades-topo">
-                <h4>
-                  Atividades
-                  <span class="badge-contador">{{ atividadesExibicao.length }}</span>
-                </h4>
-              </div>
+                <p>
+                  Participa das propostas em sala e demonstra interesse pela leitura, escrita e atividades de contagem.
+                </p>
+              </section>
 
-              <div class="atividades-lista">
-                <article
-                  v-for="atividade in atividadesExibicao"
-                  :key="atividade.id"
-                  class="atividade-card"
-                >
-                  <div class="atividade-cabecalho">
-                    <FileText class="atividade-icone" :size="20" />
+              <!-- Seção de Atividades -->
+              <section class="bloco atividades-bloco">
+                <div class="atividades-topo">
+                  <h4>
+                    Atividades
+                    <span class="badge-contador">{{ atividadesExibicao.length }}</span>
+                  </h4>
+                </div>
 
-                    <div class="atividade-titulos">
-                      <h5>{{ atividade.titulo || atividade.nome }}</h5>
-                      <span class="atividade-data">Enviada em {{ formatarData(atividade.created_at) }}</span>
+                <div class="atividades-lista">
+                  <article
+                    v-for="atividade in atividadesExibicao"
+                    :key="atividade.id"
+                    class="atividade-card"
+                  >
+                    <div class="atividade-cabecalho">
+                      <FileText class="atividade-icone" :size="20" />
+
+                      <div class="atividade-titulos">
+                        <h5>{{ atividade.titulo || atividade.nome }}</h5>
+                        <span class="atividade-data">Enviada em {{ formatarData(atividade.created_at) }}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <p class="atividade-desc">{{ atividade.descricao }}</p>
+                    <p class="atividade-desc">{{ atividade.descricao }}</p>
 
-                  <div class="atividade-rodape">
-                    <span class="relatorio-ok">
-                      <Check :size="15" /> Relatório disponível
-                    </span>
+                    <div class="atividade-rodape">
+                      <span class="relatorio-ok">
+                        <Check :size="15" /> Relatório disponível
+                      </span>
 
-                    <button
-                      class="btn-exportar-relatorio"
-                      type="button"
-                      @click="exportarRelatorio(atividade)"
-                    >
-                      <Download :size="15" /> Exportar relatório
-                    </button>
-                  </div>
-                </article>
-              </div>
-            </section>
+                      <button
+                        class="btn-exportar-relatorio"
+                        type="button"
+                        @click="exportarRelatorio(atividade)"
+                      >
+                        <Download :size="15" /> Exportar relatório
+                      </button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+
+            <!-- Conteúdo da Aba Registros -->
+            <div
+              v-show="abaAtiva === 'registros'"
+              id="painel-registros"
+              aria-labelledby="tab-registros"
+              class="painel-aba"
+              role="tabpanel"
+            >
+              <section aria-labelledby="pontos-titulo-registros" class="bloco pontos-bloco">
+                <div class="pontos-topo">
+                  <h4 id="pontos-titulo-registros">Pontos de atenção</h4>
+
+                  <button
+                    class="btn-copiar-link-laudo"
+                    :title="linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo para os pais'"
+                    type="button"
+                    @click="copiarLinkLaudo"
+                  >
+                    <component :is="linkCopiado ? Check : Copy" :size="13" />
+                    {{ linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo' }}
+                  </button>
+                </div>
+
+                <div class="pontos-lista">
+                  <article
+                    v-for="ponto in pontosAtencaoExibicao"
+                    :key="ponto.id"
+                    class="ponto"
+                  >
+                    <span aria-hidden="true" class="ponto-icone">!</span>
+
+                    <div class="ponto-info">
+                      <h5>{{ ponto.titulo || 'Observação' }}</h5>
+                      <p>{{ ponto.descricao }}</p>
+                      <small>Atenção<template v-if="ponto.visibilidade"> · {{ ponto.visibilidade }}</template> · {{ formatarData(ponto.created_at) }}</small>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
           </div>
 
           <!-- Rodapé de Ações -->
@@ -197,7 +312,7 @@
   import type { Aluno, Observacao } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
-  import { Camera, Check, Copy, Download, FileText, X } from '@lucide/vue'
+  import { Camera, Check, Copy, Download, FileText, UserRound, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { observacoesService } from '@/services/alunos'
@@ -216,6 +331,7 @@
   }>()
 
   const router = useRouter()
+  const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
   const inputFoto = ref<HTMLInputElement | null>(null)
   const foto = ref('')
 
@@ -473,13 +589,59 @@
   padding: 1.25rem 1.5rem;
 }
 
-/* Seção de Identificação Centralizada */
+/* Seção de Identificação */
 .identificacao {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   margin-bottom: 1.25rem;
+}
+
+.aluno-avatar-bloco {
+  display: none;
+}
+
+.avatar-caixa {
+  width: 82px;
+  height: 82px;
+  border-radius: 16px;
+  background: #eaf2ed;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #dfeae2;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder-icone {
+  color: #356b5b;
+}
+
+.btn-adicionar-foto {
+  border: none;
+  background: none;
+  color: #52695f;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s;
+}
+
+.btn-adicionar-foto:hover {
+  color: #274d3d;
+  text-decoration: underline;
+}
+
+.aluno-dados-bloco {
+  display: flex;
+  flex-direction: column;
 }
 
 .aluno-nome {
@@ -517,6 +679,10 @@
 
 .btn-foto-mini:hover {
   background: #356b5b;
+}
+
+.desktop-only {
+  display: grid;
 }
 
 .status-pilula {
@@ -645,19 +811,54 @@
   color: #1a3628;
 }
 
-/* Aba/Botão de Visão Geral */
-.aba-atual {
-  width: 100%;
-  padding: 9px;
-  text-align: center;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #274d3d;
-  background: #ffffff;
-  border: 1px solid #dfe8e0;
+.pontos-bloco--desktop {
+  display: block;
+}
+
+.nascimento-idade-mobile {
+  display: none;
+}
+
+/* Abas de navegação */
+.abas-navegacao {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: #eef5f0;
   border-radius: 12px;
   margin: 0.75rem 0 1.25rem;
   box-sizing: border-box;
+}
+
+.aba-btn {
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #52695f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.aba-btn:hover {
+  color: #1a3628;
+}
+
+.aba-btn--ativa {
+  background: #ffffff;
+  color: #1a3628;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgb(26 54 40 / 8%);
+}
+
+.painel-aba {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Acompanhamento */
@@ -874,6 +1075,79 @@
   .painel {
     inset: 8px;
     width: auto;
+  }
+
+  /* Identificação lado a lado com avatar (conforme print mobile) */
+  .identificacao {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 16px;
+    margin-bottom: 1rem;
+  }
+
+  .aluno-avatar-bloco {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .aluno-dados-bloco {
+    justify-content: center;
+    min-height: 82px;
+  }
+
+  .aluno-nome {
+    font-size: 1.25rem;
+    margin: 0 0 2px;
+  }
+
+  .aluno-sub {
+    font-size: 0.82rem;
+    margin: 0 0 8px;
+  }
+
+  .aluno-acoes-linha {
+    justify-content: flex-start;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  /* Pontos de atenção no topo ficam ocultos no mobile (exibidos na aba Registros) */
+  .pontos-bloco--desktop {
+    display: none;
+  }
+
+  /* Metadados em 2 colunas */
+  .metadados {
+    grid-template-columns: 1fr 1fr;
+    margin: 0.75rem 0 1rem;
+  }
+
+  .metadado-idade-desktop {
+    display: none;
+  }
+
+  .nascimento-idade-mobile {
+    display: inline;
+  }
+
+  /* Atividades no mobile conforme referência */
+  .relatorio-ok {
+    display: none;
+  }
+
+  .atividade-rodape {
+    padding-top: 0.6rem;
+    border-top: 1px solid #f0f4f1;
+  }
+
+  .btn-exportar-relatorio {
+    padding: 0;
   }
 }
 
