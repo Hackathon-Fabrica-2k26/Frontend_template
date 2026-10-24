@@ -16,6 +16,7 @@
   definePage({
     meta: {
       layout: false,
+      public: true,
     },
   })
 
@@ -54,27 +55,7 @@
         adaptacoes: adaptacoes.value,
         observacao: laudo.value.observacao,
       })
-      if (window.opener) {
-        try {
-          window.opener.postMessage({
-            tipo: 'laudo_concluido',
-            alunoId: Number(route.query.aluno) || undefined,
-            turmaId: Number(route.query.turma) || undefined,
-            necessidades: necessidades.value,
-            adaptacoes: adaptacoes.value,
-            sucesso: true,
-          }, window.location.origin)
-        } catch {
-          // Fallback se postMessage bloqueado
-        }
-      }
-      await router.replace({
-        path: '/sair-site',
-        query: {
-          ...route.query,
-          apagado_em: arquivo_apagado_em,
-        },
-      })
+      await router.replace({ path: '/sair-site', query: { apagado_em: arquivo_apagado_em } })
     } catch (error) {
       notify.error(error instanceof Error ? error.message : 'Não foi possível salvar o laudo.')
       salvando.value = false

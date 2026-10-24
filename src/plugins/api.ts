@@ -63,10 +63,15 @@ api.interceptors.response.use(
       auth.logout()
 
       const rotaAtual = globalRouter.router?.currentRoute.value
+      const caminho = typeof window === 'undefined' ? '' : window.location.pathname
       const ehPublica
         = rotaAtual?.meta?.public === true
           || rotaAtual?.matched.some(r => r.meta?.public === true)
-          || (typeof window !== 'undefined' && window.location.pathname.startsWith('/responsavel'))
+          || caminho.startsWith('/responsavel')
+          || caminho.startsWith('/apoio')
+          || caminho === '/enviar-laudo'
+          || caminho === '/conferir-dados'
+          || caminho === '/sair-site'
 
       if (!ehPublica) {
         await globalRouter.router?.push('/login')
