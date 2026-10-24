@@ -8,9 +8,8 @@ import type {
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
-// Sem backend de trabalhos ainda, o padrão é simular as respostas. Use VITE_MOCK_TRABALHOS=false
-// no .env para falar com a API de verdade.
-const mockEnabled = import.meta.env.VITE_MOCK_TRABALHOS !== 'false'
+// Padrão: false (consome a API real). Use VITE_MOCK_TRABALHOS=true no .env para simular.
+const mockEnabled = import.meta.env.VITE_MOCK_TRABALHOS === 'true'
 
 let mockId = 0
 // Só no modo simulado, para testar os estados de erro:

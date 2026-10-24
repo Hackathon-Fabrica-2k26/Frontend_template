@@ -35,6 +35,7 @@ declare module 'vue' {
     LaudoLista: typeof import('./components/laudo/LaudoLista.vue')['default']
     LaudoMascote: typeof import('./components/laudo/LaudoMascote.vue')['default']
     LaudoPagina: typeof import('./components/laudo/LaudoPagina.vue')['default']
+    LoginMascote: typeof import('./components/auth/LoginMascote.vue')['default']
     MarsupiLoading: typeof import('./components/MarsupiLoading.vue')['default']
     MascoteCard: typeof import('./components/MascoteCard.vue')['default']
     MascoteModal: typeof import('./components/MascoteModal.vue')['default']
