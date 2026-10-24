@@ -62,7 +62,32 @@
 
       <div class="grelha-conteudo">
         <MascoteCard ref="mascote" :intervalo="9000" lado="dir" saudar>
-          <section class="cartao-vazio">
+          <section v-if="estudantes.length > 0" class="cartao-lista">
+            <button
+              v-for="(estudante, index) in estudantesVisiveis"
+              :key="estudante.id"
+              class="cartao-estudante"
+              type="button"
+              @click="abrirDetalhes(estudante)"
+            >
+              <div aria-hidden="true" class="estudante-avatar">
+                {{ iniciais(estudante.nome) }}
+              </div>
+
+              <div class="estudante-info">
+                <h3>{{ estudante.nome }}</h3>
+                <p>{{ descricaoEstudante(estudante, index) }}</p>
+              </div>
+
+              <v-icon color="primary" icon="mdi-chevron-right" />
+            </button>
+
+            <button class="ver-todos" type="button" @click="mostrarTodos = !mostrarTodos">
+              {{ mostrarTodos ? 'Mostrar menos' : `Ver todos os ${turma.totalEstudantes} estudantes` }}
+            </button>
+          </section>
+
+          <section v-else class="cartao-vazio">
             <div class="icone-vazio-container">
               <v-icon color="primary" icon="mdi-image-outline" size="30" />
             </div>
@@ -88,6 +113,15 @@
           </v-btn>
         </aside>
       </div>
+
+      <AlunoDetalhesModal
+        v-if="estudanteSelecionado"
+        :aberto="Boolean(estudanteSelecionado)"
+        :aluno="estudanteSelecionado"
+        :turma-nome="turma.nome"
+        :turno="turma.turno"
+        @fechar="estudanteSelecionado = null"
+      />
     </template>
 
     <section v-else class="cartao-vazio estado-aba">
@@ -99,15 +133,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, useTemplateRef } from 'vue'
+  import type { Aluno } from '@/interfaces/aluno'
 
+  import { computed, ref, useTemplateRef } from 'vue'
   import iconeNotebookUrl from '@/assets/icone-notebook.svg'
 
   const turma = {
     nome: '1º ano A',
     nivel: 'Ensino fundamental',
     turno: 'Manhã',
-    totalEstudantes: 0,
+    totalEstudantes: 25,
     slogan: 'Cada descoberta começa aqui.',
     codigoNumero: '01',
   }
@@ -118,6 +153,63 @@
 
   const abaAtiva = ref<(typeof abas)[number]['id']>('estudantes')
   const mascote = useTemplateRef<{ acenar: (ms?: number) => void }>('mascote')
+  const estudantes = ref<Aluno[]>([
+    { id: 14, nome: 'Alice Santos', turma: 1, meta_dados: null, responsavel: null },
+    { id: 15, nome: 'Bruno Oliveira', turma: 1, meta_dados: null, responsavel: null },
+    { id: 16, nome: 'Clara Souza', turma: 1, meta_dados: 1, responsavel: null },
+    { id: 17, nome: 'Davi Costa', turma: 1, meta_dados: null, responsavel: null },
+    { id: 18, nome: 'Elisa Martins', turma: 1, meta_dados: null, responsavel: null },
+    { id: 19, nome: 'Felipe Rocha', turma: 1, meta_dados: null, responsavel: null },
+    { id: 20, nome: 'Gabriela Alves', turma: 1, meta_dados: 1, responsavel: null },
+    { id: 21, nome: 'Henrique Lima', turma: 1, meta_dados: null, responsavel: null },
+    { id: 22, nome: 'Isabela Moraes', turma: 1, meta_dados: null, responsavel: null },
+    { id: 23, nome: 'João Pedro', turma: 1, meta_dados: null, responsavel: null },
+    { id: 24, nome: 'Laura Mendes', turma: 1, meta_dados: 1, responsavel: null },
+    { id: 25, nome: 'Miguel Castro', turma: 1, meta_dados: null, responsavel: null },
+    { id: 26, nome: 'Nina Ferreira', turma: 1, meta_dados: null, responsavel: null },
+    { id: 27, nome: 'Otávio Souza', turma: 1, meta_dados: null, responsavel: null },
+    { id: 28, nome: 'Paula Freitas', turma: 1, meta_dados: 1, responsavel: null },
+    { id: 29, nome: 'Rafael Gomes', turma: 1, meta_dados: null, responsavel: null },
+    { id: 30, nome: 'Sofia Nunes', turma: 1, meta_dados: null, responsavel: null },
+    { id: 31, nome: 'Tiago Martins', turma: 1, meta_dados: null, responsavel: null },
+    { id: 32, nome: 'Valentina Dias', turma: 1, meta_dados: 1, responsavel: null },
+    { id: 33, nome: 'William Costa', turma: 1, meta_dados: null, responsavel: null },
+    { id: 34, nome: 'Yasmin Cardoso', turma: 1, meta_dados: null, responsavel: null },
+    { id: 35, nome: 'Arthur Mendes', turma: 1, meta_dados: null, responsavel: null },
+    { id: 36, nome: 'Beatriz Lopes', turma: 1, meta_dados: 1, responsavel: null },
+    { id: 37, nome: 'Caio Andrade', turma: 1, meta_dados: null, responsavel: null },
+    { id: 38, nome: 'Manuela Reis', turma: 1, meta_dados: null, responsavel: null },
+  ])
+  const mostrarTodos = ref(false)
+  const estudantesVisiveis = computed(() =>
+    mostrarTodos.value ? estudantes.value : estudantes.value.slice(0, 4))
+  const descricoesEstudantes = [
+    'Perfil pedagógico atualizado',
+    '2 registros recentes',
+    'Perfil pedagógico atualizado',
+    '1 observação pendente',
+  ]
+  const estudanteSelecionado = ref<Aluno | null>(null)
+
+  function iniciais (nome: string) {
+    return nome
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(parte => parte[0])
+      .join('')
+      .toUpperCase()
+  }
+
+  function descricaoEstudante (estudante: Aluno, index: number) {
+    return descricoesEstudantes[index] ?? (
+      estudante.meta_dados ? 'Perfil pedagógico atualizado' : 'Sem registros recentes'
+    )
+  }
+
+  function abrirDetalhes (aluno: Aluno) {
+    estudanteSelecionado.value = aluno
+  }
 
   function adicionarAlunos () {
     // TODO: abrir o fluxo de cadastro de alunos. Por enquanto o canguru só reage ao clique.
@@ -369,6 +461,7 @@
 }
 
 .cartao-vazio,
+.cartao-estudante,
 .cartao-apoio {
   min-height: 280px;
   padding: 2rem;
@@ -376,6 +469,85 @@
   border-radius: 18px;
   background: #fff;
   text-align: center;
+}
+
+.cartao-lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  padding: 1.15rem;
+  border: 1px solid #e1eee6;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.cartao-estudante {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #e1eee6;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.cartao-estudante + .cartao-estudante {
+  margin-top: 0.35rem;
+}
+
+.cartao-estudante:hover,
+.cartao-estudante:focus-visible {
+  border-color: #8ebda2;
+  box-shadow: 0 8px 20px rgb(38 61 53 / 10%);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.estudante-avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaf3ed;
+  color: #27523f;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cartao-estudante h3 {
+  margin: 0;
+  color: #1b3829;
+  font-size: 0.84rem;
+}
+
+.cartao-estudante p {
+  margin: 0;
+  color: #6a8276;
+  font-size: 0.7rem;
+}
+
+.estudante-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.ver-todos {
+  margin-top: auto;
+  padding: 0.75rem 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: #2b6a51;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .cartao-vazio {
@@ -404,6 +576,8 @@
 .cartao-apoio {
   display: flex;
   flex-direction: column;
+  align-self: start;
+  box-sizing: border-box;
   justify-content: space-between;
   background: #eef5f0;
   border-color: #d9eae0;
