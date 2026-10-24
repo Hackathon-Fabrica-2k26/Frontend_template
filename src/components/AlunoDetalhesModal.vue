@@ -62,13 +62,15 @@
               <div class="pontos-topo">
                 <h4 id="pontos-titulo">Pontos de atenção</h4>
 
-                <a
-                  class="link-laudo"
-                  :href="urlLaudo"
-                  @click.prevent="abrirJanelaLaudo"
+                <button
+                  class="btn-copiar-link-laudo"
+                  :title="linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo para os pais'"
+                  type="button"
+                  @click="copiarLinkLaudo"
                 >
-                  Link para envio de laudo
-                </a>
+                  <component :is="linkCopiado ? Check : Copy" :size="13" />
+                  {{ linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo' }}
+                </button>
               </div>
 
               <div class="pontos-lista">
@@ -195,7 +197,7 @@
   import type { Aluno, Observacao } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
-  import { Camera, Check, Download, FileText, X } from '@lucide/vue'
+  import { Camera, Check, Copy, Download, FileText, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { observacoesService } from '@/services/alunos'
@@ -322,51 +324,33 @@
     }
   }
 
+  const linkCopiado = ref(false)
+
   const urlLaudo = computed(() => {
-    return router.resolve({
-      path: '/apoio/concordar',
-      query: {
-        aluno: String(props.aluno.id),
-        turma: String(props.aluno.turma),
-        nome: props.aluno.nome,
-        popup: '1',
-      },
-    }).href
+    if (typeof window === 'undefined') return ''
+    const baseUrl = `${window.location.origin}/apoio/concordar`
+    const params = new URLSearchParams()
+    params.set('aluno', String(props.aluno.id))
+    if (props.aluno.turma) {
+      params.set('turma', String(props.aluno.turma))
+    }
+    if (props.aluno.nome) {
+      params.set('nome', props.aluno.nome)
+    }
+    return `${baseUrl}?${params.toString()}`
   })
 
-  function abrirJanelaLaudo () {
-    const largura = 580
-    const altura = 760
-    const esquerda = Math.max(0, Math.round(window.screenX + (window.outerWidth - largura) / 2))
-    const topo = Math.max(0, Math.round(window.screenY + (window.outerHeight - altura) / 2))
-
-    const popup = window.open(
-      urlLaudo.value,
-      'envio_laudo_apoio',
-      `width=${largura},height=${altura},left=${esquerda},top=${topo},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`,
-    )
-    popup?.focus()
-  }
-
-  function aoReceberMensagemPopup (evento: MessageEvent) {
-    if (evento.origin !== window.location.origin) return
-    if (evento.data?.tipo === 'laudo_concluido') {
-      const alunoId = evento.data?.alunoId
-      if (!alunoId || alunoId === props.aluno.id) {
-        notify.success('Laudo enviado e analisado com sucesso!')
-        void carregar()
-
-        if (Array.isArray(evento.data?.necessidades) && evento.data.necessidades.length > 0) {
-          const novasObs: Observacao[] = evento.data.necessidades.map((nec: string, idx: number) => ({
-            id: Date.now() + idx,
-            titulo: 'Necessidade identificada no laudo',
-            descricao: nec,
-            visibilidade: 'Visível para os pais',
-            created_at: new Date().toISOString(),
-          }))
-          pontosAtencao.value = [...novasObs, ...pontosAtencao.value]
-        }
-      }
+  async function copiarLinkLaudo () {
+    if (!urlLaudo.value) return
+    try {
+      await navigator.clipboard.writeText(urlLaudo.value)
+      linkCopiado.value = true
+      notify.success('Link para envio de laudo copiado para a área de transferência!')
+      setTimeout(() => {
+        linkCopiado.value = false
+      }, 3000)
+    } catch {
+      notify.error('Não foi possível copiar o link.')
     }
   }
 
@@ -379,13 +363,11 @@
   }
 
   onMounted(() => {
-    window.addEventListener('message', aoReceberMensagemPopup)
     document.addEventListener('keydown', aoTeclar)
     void carregar()
   })
 
   onBeforeUnmount(() => {
-    window.removeEventListener('message', aoReceberMensagemPopup)
     document.removeEventListener('keydown', aoTeclar)
     if (foto.value) URL.revokeObjectURL(foto.value)
   })
@@ -565,17 +547,31 @@
   color: #1a3628;
 }
 
-.link-laudo {
+.btn-copiar-link-laudo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-family: inherit;
   font-size: 0.74rem;
   font-weight: 600;
   color: #274d3d;
-  text-decoration: none;
-  transition: color 0.2s;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
 }
 
-.link-laudo:hover {
+.btn-copiar-link-laudo:hover {
   color: #356b5b;
+  background-color: #eef5f0;
   text-decoration: underline;
+}
+
+.btn-copiar-link-laudo:focus-visible {
+  outline: 2px solid #274d3d;
+  outline-offset: 2px;
 }
 
 .pontos-lista {
