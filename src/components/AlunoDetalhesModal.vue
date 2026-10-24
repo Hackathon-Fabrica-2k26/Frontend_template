@@ -7,24 +7,13 @@
       @click.self="fechar"
     >
       <div class="painel">
-        <!-- Canguru espiando pela borda esquerda: só a cabeça (corte no queixo) e duas patas no painel. -->
-        <div aria-hidden="true" class="canguru">
-          <svg class="canguru-cabeca" viewBox="25 111 976 651">
-            <g class="canguru-corpo">
-              <path :d="SIMBOLO" />
-            </g>
-          </svg>
-
-          <span class="pata pata--acena" />
-          <span class="pata pata--apoio" />
-        </div>
-
         <section
           aria-labelledby="aluno-detalhes-titulo"
           aria-modal="true"
           class="cartao"
           role="dialog"
         >
+          <!-- Cabeçalho do modal -->
           <header class="topo">
             <h2 id="aluno-detalhes-titulo">Detalhes do aluno</h2>
 
@@ -39,145 +28,339 @@
           </header>
 
           <div class="corpo">
+            <!-- Seção de Identificação do Aluno -->
             <section class="identificacao">
-              <div class="avatar-area">
-                <div aria-hidden="true" class="avatar">
-                  <img v-if="foto" alt="" :src="foto">
-                  <span v-else>{{ iniciais }}</span>
+              <!-- Avatar e ação de foto (mobile) -->
+              <div class="aluno-avatar-bloco">
+                <div class="avatar-caixa" :class="{ 'avatar-caixa--com-foto': !!foto }">
+                  <img
+                    v-if="foto"
+                    :alt="`Foto de ${aluno.nome}`"
+                    class="avatar-img"
+                    :src="foto"
+                  >
+
+                  <UserRound
+                    v-else
+                    aria-hidden="true"
+                    class="avatar-placeholder-icone"
+                    :size="40"
+                    :stroke-width="1.3"
+                  />
                 </div>
 
                 <button
-                  aria-label="Trocar foto do aluno"
-                  class="btn-foto"
+                  class="btn-adicionar-foto"
                   type="button"
                   @click="inputFoto?.click()"
                 >
-                  <Camera :size="16" />
+                  {{ foto ? 'Trocar foto' : 'Adicionar foto' }}
                 </button>
-
-                <input
-                  ref="inputFoto"
-                  accept="image/*"
-                  class="sr-only"
-                  type="file"
-                  @change="trocarFoto"
-                >
               </div>
 
-              <div class="nome-bloco">
-                <h3>{{ aluno.nome }}</h3>
-                <p>{{ turmaNome }} · {{ turno }}</p>
-                <span class="status">Aluno ativo</span>
-              </div>
-            </section>
+              <!-- Dados textuais do aluno -->
+              <div class="aluno-dados-bloco">
+                <h3 class="aluno-nome">{{ aluno.nome }}</h3>
+                <p class="aluno-sub">{{ turmaNome }} · {{ turno }}</p>
 
-            <section v-if="pontosAtencao.length > 0" aria-labelledby="pontos-titulo" class="bloco pontos">
-              <h4 id="pontos-titulo">Pontos de atenção</h4>
+                <div class="aluno-acoes-linha">
+                  <button
+                    aria-label="Trocar foto do aluno"
+                    class="btn-foto-mini desktop-only"
+                    type="button"
+                    @click="inputFoto?.click()"
+                  >
+                    <Camera :size="16" />
+                  </button>
 
-              <article v-for="ponto in pontosAtencao" :key="ponto.id" class="ponto">
-                <span aria-hidden="true" class="ponto-icone">!</span>
+                  <input
+                    ref="inputFoto"
+                    accept="image/*"
+                    class="sr-only"
+                    type="file"
+                    @change="trocarFoto"
+                  >
 
-                <div>
-                  <h5>{{ ponto.titulo || 'Observação' }}</h5>
-                  <p>{{ ponto.descricao }}</p>
-                  <small>Atenção<template v-if="ponto.visibilidade"> · {{ ponto.visibilidade }}</template> · {{ formatarData(ponto.created_at) }}</small>
+                  <span class="status-pilula">
+                    {{ isFeminino ? 'Aluna ativa' : 'Aluno ativo' }}
+                  </span>
                 </div>
-              </article>
+              </div>
             </section>
 
+            <!-- Pontos de atenção no Desktop (visível no topo no desktop conforme print de referência) -->
+            <section
+              v-show="abaAtiva === 'visao_geral'"
+              aria-labelledby="pontos-titulo-desktop"
+              class="bloco pontos-bloco pontos-bloco--desktop"
+            >
+              <div class="pontos-topo">
+                <h4 id="pontos-titulo-desktop">Pontos de atenção</h4>
+
+                <button
+                  class="btn-copiar-link-laudo"
+                  :title="linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo para os pais'"
+                  type="button"
+                  @click="copiarLinkLaudo"
+                >
+                  <component :is="linkCopiado ? Check : Copy" :size="13" />
+                  {{ linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo' }}
+                </button>
+              </div>
+
+              <div v-if="pontosAtencaoLista.length > 0" class="pontos-lista">
+                <article
+                  v-for="ponto in pontosAtencaoLista"
+                  :key="ponto.id"
+                  class="ponto"
+                >
+                  <span aria-hidden="true" class="ponto-icone">!</span>
+
+                  <div class="ponto-info">
+                    <h5>{{ ponto.titulo }}</h5>
+                    <p>{{ ponto.descricao }}</p>
+                    <small v-if="ponto.subtexto">{{ ponto.subtexto }}</small>
+                  </div>
+                </article>
+              </div>
+
+              <p v-else class="texto-vazio">
+                Nenhum ponto de atenção identificado no momento.
+              </p>
+            </section>
+
+            <!-- Metadados do Aluno (Matrícula, Nascimento, Idade) -->
             <dl aria-label="Informações do aluno" class="metadados">
-              <div>
+              <div class="metadado-item">
                 <dt>Matrícula</dt>
                 <dd>{{ matricula }}</dd>
               </div>
 
-              <div>
+              <div class="metadado-item">
                 <dt>Nascimento</dt>
-                <dd>{{ nascimento }}</dd>
+
+                <dd>
+                  <span>{{ nascimento }}</span>
+                  <span aria-hidden="true" class="nascimento-idade-mobile">{{ idade === null ? '' : ` · ${idade} anos` }}</span>
+                </dd>
               </div>
 
-              <div>
+              <div class="metadado-item metadado-idade-desktop">
                 <dt>Idade</dt>
                 <dd>{{ idade === null ? '—' : `${idade} anos` }}</dd>
               </div>
             </dl>
 
-            <div class="aba-atual">Visão geral</div>
-
-            <section class="bloco">
-              <h4>Acompanhamento</h4>
-
-              <p>
-                Participa das propostas em sala e demonstra interesse pela leitura, escrita e
-                atividades de contagem.
-              </p>
-            </section>
-
-            <section class="bloco">
-              <h4>
-                Atividades
-                <span class="contador">{{ atividades.length }}</span>
-              </h4>
-
-              <p v-if="atividades.length === 0" class="vazio">Nenhuma atividade conectada à turma ainda.</p>
-
-              <article
-                v-for="(atividade, i) in atividades"
-                :key="atividade.id"
-                class="atividade"
-                :style="{ '--i': i }"
+            <!-- Abas Visão Geral / Registros -->
+            <div aria-label="Seções do aluno" class="abas-navegacao" role="tablist">
+              <button
+                id="tab-visao-geral"
+                aria-controls="painel-visao-geral"
+                :aria-selected="abaAtiva === 'visao_geral'"
+                class="aba-btn"
+                :class="{ 'aba-btn--ativa': abaAtiva === 'visao_geral' }"
+                role="tab"
+                type="button"
+                @click="abaAtiva = 'visao_geral'"
               >
-                <div class="atividade-topo">
-                  <FileText class="atividade-icone" :size="26" />
+                Visão geral
+              </button>
 
-                  <div>
-                    <h5>{{ atividade.titulo || atividade.nome }}</h5>
-                    <span>Criada em {{ formatarData(atividade.created_at) }}</span>
-                  </div>
+              <button
+                id="tab-registros"
+                aria-controls="painel-registros"
+                :aria-selected="abaAtiva === 'registros'"
+                class="aba-btn"
+                :class="{ 'aba-btn--ativa': abaAtiva === 'registros' }"
+                role="tab"
+                type="button"
+                @click="abaAtiva = 'registros'"
+              >
+                Registros
+              </button>
+            </div>
+
+            <!-- Conteúdo da Aba Visão Geral -->
+            <div
+              v-show="abaAtiva === 'visao_geral'"
+              id="painel-visao-geral"
+              aria-labelledby="tab-visao-geral"
+              class="painel-aba"
+              role="tabpanel"
+            >
+              <!-- Seção de Acompanhamento -->
+              <section class="bloco acompanhamento">
+                <h4>Acompanhamento</h4>
+
+                <p v-if="perfilApoio?.observacoes">
+                  {{ perfilApoio.observacoes }}
+                </p>
+
+                <div
+                  v-if="perfilApoio?.estrategias && perfilApoio.estrategias.length > 0"
+                  class="acompanhamento-estrategias"
+                >
+                  <strong>Estratégias pedagógicas recomendadas:</strong>
+
+                  <ul>
+                    <li v-for="(est, idx) in perfilApoio.estrategias" :key="idx">
+                      {{ est }}
+                    </li>
+                  </ul>
                 </div>
 
-                <p>{{ atividade.descricao }}</p>
+                <p
+                  v-if="!perfilApoio?.observacoes && (!perfilApoio?.estrategias || perfilApoio.estrategias.length === 0)"
+                  class="texto-vazio"
+                >
+                  Sem registros de acompanhamento específicos para este aluno.
+                </p>
+              </section>
 
-                <div class="atividade-rodape">
-                  <template v-if="atividade.relatorios && atividade.relatorios.length > 0">
-                    <span class="relatorio-ok"><Check :size="14" /> Relatório disponível</span>
-
-                    <button class="btn-link" type="button" @click="abrirRelatorio(atividade.relatorios[0])">
-                      <Download :size="15" /> Exportar relatório
-                    </button>
-                  </template>
-
-                  <span v-else class="relatorio-pendente">Sem relatório ainda</span>
+              <!-- Seção de Atividades -->
+              <section class="bloco atividades-bloco">
+                <div class="atividades-topo">
+                  <h4>
+                    Atividades
+                    <span class="badge-contador">{{ atividades.length }}</span>
+                  </h4>
                 </div>
-              </article>
-            </section>
+
+                <div v-if="atividades.length > 0" class="atividades-lista">
+                  <article
+                    v-for="atividade in atividades"
+                    :key="atividade.id"
+                    class="atividade-card"
+                  >
+                    <div class="atividade-cabecalho">
+                      <FileText class="atividade-icone" :size="20" />
+
+                      <div class="atividade-titulos">
+                        <h5>{{ atividade.titulo || atividade.nome }}</h5>
+                        <span class="atividade-data">Enviada em {{ formatarData(atividade.created_at) }}</span>
+                      </div>
+                    </div>
+
+                    <p class="atividade-desc">{{ atividade.descricao }}</p>
+
+                    <div class="atividade-rodape">
+                      <span class="relatorio-ok">
+                        <Check :size="15" /> Relatório disponível
+                      </span>
+
+                      <button
+                        class="btn-exportar-relatorio"
+                        type="button"
+                        @click="exportarRelatorio(atividade)"
+                      >
+                        <Download :size="15" /> Exportar relatório
+                      </button>
+                    </div>
+                  </article>
+                </div>
+
+                <p v-else class="texto-vazio">
+                  Nenhuma atividade cadastrada para esta turma.
+                </p>
+              </section>
+            </div>
+
+            <!-- Conteúdo da Aba Registros -->
+            <div
+              v-show="abaAtiva === 'registros'"
+              id="painel-registros"
+              aria-labelledby="tab-registros"
+              class="painel-aba"
+              role="tabpanel"
+            >
+              <section aria-labelledby="pontos-titulo-registros" class="bloco pontos-bloco">
+                <div class="pontos-topo">
+                  <h4 id="pontos-titulo-registros">Pontos de atenção</h4>
+
+                  <button
+                    class="btn-copiar-link-laudo"
+                    :title="linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo para os pais'"
+                    type="button"
+                    @click="copiarLinkLaudo"
+                  >
+                    <component :is="linkCopiado ? Check : Copy" :size="13" />
+                    {{ linkCopiado ? 'Link copiado!' : 'Copiar link de envio de laudo' }}
+                  </button>
+                </div>
+
+                <div v-if="pontosAtencaoLista.length > 0" class="pontos-lista">
+                  <article
+                    v-for="ponto in pontosAtencaoLista"
+                    :key="ponto.id"
+                    class="ponto"
+                  >
+                    <span aria-hidden="true" class="ponto-icone">!</span>
+
+                    <div class="ponto-info">
+                      <h5>{{ ponto.titulo }}</h5>
+                      <p>{{ ponto.descricao }}</p>
+                      <small v-if="ponto.subtexto">{{ ponto.subtexto }}</small>
+                    </div>
+                  </article>
+                </div>
+
+                <p v-else class="texto-vazio">
+                  Nenhum ponto de atenção identificado no momento.
+                </p>
+              </section>
+            </div>
           </div>
 
+          <!-- Rodapé de Ações -->
           <footer class="rodape">
-            <button class="btn-principal" :disabled="!primeiroRelatorio" type="button" @click="primeiroRelatorio && abrirRelatorio(primeiroRelatorio)">
-              <Download :size="18" /> Exportar todas as atividades
-            </button>
+            <p class="rodape-aviso">
+              {{ atividades.length > 0 ? 'Exporte os relatórios das atividades em conjunto.' : 'Nenhuma atividade disponível para exportação.' }}
+            </p>
 
-            <button class="btn-secundario" type="button" @click="novoRelatorio">
-              Gerar novo relatório
+            <button
+              class="btn-principal"
+              :disabled="atividades.length === 0"
+              type="button"
+              @click="exportarTodas"
+            >
+              <Download :size="18" /> Exportar todas as atividades
             </button>
           </footer>
         </section>
+
+        <!-- Patinha apoiada na borda do painel -->
+        <div aria-hidden="true" class="patinha-borda">
+          <div class="patinha-animada">
+            <svg class="patinha-svg" viewBox="-70 -100 170 200">
+              <g transform="rotate(-90)">
+                <MascotePata :x="0" :y="0" />
+              </g>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-  import type { Aluno, Observacao } from '@/interfaces/aluno'
+  import type { Aluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
-  import { Camera, Check, Download, FileText, X } from '@lucide/vue'
+  import { Camera, Check, Copy, Download, FileText, UserRound, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { SIMBOLO } from '@/assets/mascote-simbolo'
-  import { observacoesService } from '@/services/alunos'
+  import { alunosService, observacoesService } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
+  import { pedagogicoService } from '@/services/pedagogico'
+  import { notify } from '@/utils/notify'
+
+  interface PontoExibicao {
+    id: string | number
+    titulo: string
+    descricao: string
+    subtexto?: string
+  }
 
   const props = defineProps<{
     aluno: Aluno
@@ -191,22 +374,14 @@
   }>()
 
   const router = useRouter()
+  const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
   const inputFoto = ref<HTMLInputElement | null>(null)
   const foto = ref('')
-
-  const iniciais = computed(() =>
-    props.aluno.nome
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map(nome => nome[0])
-      .join('')
-      .toUpperCase(),
-  )
 
   const dataNascimento = computed(() => (props.aluno.data_nascimento ? new Date(props.aluno.data_nascimento) : null))
   const matricula = computed(() => props.aluno.matricula || '—')
   const nascimento = computed(() => dataNascimento.value ? dataNascimento.value.toLocaleDateString('pt-BR') : '—')
+
   const idade = computed(() => {
     const nasc = dataNascimento.value
     if (!nasc) return null
@@ -216,22 +391,77 @@
     return anos
   })
 
-  const atividades = ref<Atividade[]>([])
-  const pontosAtencao = ref<Observacao[]>([])
-  const primeiroRelatorio = computed(() => atividades.value.find(a => a.relatorios && a.relatorios.length > 0)?.relatorios?.[0])
+  const isFeminino = computed(() => {
+    if (props.aluno.genero === 'F') return true
+    const primeiroNome = props.aluno.nome.trim().split(' ', 1)[0].toLowerCase()
+    return primeiroNome.endsWith('a') || primeiroNome === 'alice' || primeiroNome === 'beatriz'
+  })
 
-  function formatarData (iso: string): string {
+  const atividades = ref<Atividade[]>([])
+  const observacoes = ref<Observacao[]>([])
+  const perfilApoio = ref<PerfilApoio | null>(null)
+  const pontosIa = ref<PontoAtencaoItem[]>([])
+
+  const pontosAtencaoLista = computed<PontoExibicao[]>(() => {
+    const lista: PontoExibicao[] = []
+
+    // 1. Necessidades vindas do perfil de apoio (laudo cadastrado)
+    if (perfilApoio.value?.necessidades) {
+      for (const [idx, nec] of perfilApoio.value.necessidades.entries()) {
+        lista.push({
+          id: `perfil-${idx}-${nec}`,
+          titulo: nec,
+          descricao: 'Necessidade identificada para adaptação pedagógica.',
+          subtexto: 'Perfil de apoio',
+        })
+      }
+    }
+
+    // 2. Pontos de atenção pedagógicos calculados pela IA a partir dos trabalhos
+    if (pontosIa.value.length > 0) {
+      for (const [idx, p] of pontosIa.value.entries()) {
+        lista.push({
+          id: `ia-${idx}-${p.padrao}`,
+          titulo: p.padrao,
+          descricao: p.texto,
+          subtexto: p.base_pedagogica ? `Pedagógico · ${p.base_pedagogica}` : 'Análise pedagógica',
+        })
+      }
+    }
+
+    // 3. Observações registradas pelo professor
+    for (const obs of observacoes.value) {
+      const parts = [
+        obs.visibilidade,
+        formatarData(obs.created_at),
+      ].filter(Boolean)
+      lista.push({
+        id: `obs-${obs.id}`,
+        titulo: obs.titulo || 'Observação',
+        descricao: obs.descricao,
+        subtexto: parts.length > 0 ? parts.join(' · ') : undefined,
+      })
+    }
+
+    return lista
+  })
+
+  function formatarData (iso?: string | null): string {
     return iso ? new Date(iso).toLocaleDateString('pt-BR') : '—'
   }
 
-  // Atividades da turma e observações do aluno vêm da API; falha em qualquer uma só esvazia a seção.
   async function carregar () {
-    const [ativ, obs] = await Promise.allSettled([
+    const [ativ, obs, perfil, pontos] = await Promise.allSettled([
       atividadesService.list({ turma: props.aluno.turma }),
       observacoesService.list({ aluno: props.aluno.id }),
+      pedagogicoService.obterPerfilApoio(props.aluno.id),
+      alunosService.obterPontosAtencao(props.aluno.id),
     ])
+
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
-    pontosAtencao.value = obs.status === 'fulfilled' ? obs.value.results : []
+    observacoes.value = obs.status === 'fulfilled' ? obs.value.results : []
+    perfilApoio.value = perfil.status === 'fulfilled' ? perfil.value : null
+    pontosIa.value = pontos.status === 'fulfilled' ? pontos.value.pontos : []
   }
 
   function trocarFoto (evento: Event) {
@@ -245,8 +475,51 @@
     void router.push(`/relatorios/${id}`)
   }
 
-  function novoRelatorio () {
-    void router.push({ path: '/relatorios/novo', query: { aluno: props.aluno.id, turma: props.aluno.turma } })
+  function exportarRelatorio (ativ: Atividade) {
+    if (ativ.relatorios && ativ.relatorios.length > 0) {
+      abrirRelatorio(ativ.relatorios[0])
+    } else {
+      notify.info('Exportando relatório da atividade...')
+    }
+  }
+
+  function exportarTodas () {
+    const primeiro = atividades.value.find(a => a.relatorios && a.relatorios.length > 0)
+    if (primeiro?.relatorios?.[0]) {
+      abrirRelatorio(primeiro.relatorios[0])
+    } else {
+      notify.info('Exportando todos os relatórios disponíveis...')
+    }
+  }
+
+  const linkCopiado = ref(false)
+
+  const urlLaudo = computed(() => {
+    if (typeof window === 'undefined') return ''
+    const baseUrl = `${window.location.origin}/apoio/concordar`
+    const params = new URLSearchParams()
+    params.set('aluno', String(props.aluno.id))
+    if (props.aluno.turma) {
+      params.set('turma', String(props.aluno.turma))
+    }
+    if (props.aluno.nome) {
+      params.set('nome', props.aluno.nome)
+    }
+    return `${baseUrl}?${params.toString()}`
+  })
+
+  async function copiarLinkLaudo () {
+    if (!urlLaudo.value) return
+    try {
+      await navigator.clipboard.writeText(urlLaudo.value)
+      linkCopiado.value = true
+      notify.success('Link para envio de laudo copiado para a área de transferência!')
+      setTimeout(() => {
+        linkCopiado.value = false
+      }, 3000)
+    } catch {
+      notify.error('Não foi possível copiar o link.')
+    }
   }
 
   function fechar () {
@@ -261,6 +534,7 @@
     document.addEventListener('keydown', aoTeclar)
     void carregar()
   })
+
   onBeforeUnmount(() => {
     document.removeEventListener('keydown', aoTeclar)
     if (foto.value) URL.revokeObjectURL(foto.value)
@@ -277,11 +551,11 @@
   animation: fundo-entra 0.25s ease both;
 }
 
-/* Painel flutuante com respiro das bordas, como no design. */
+/* Painel flutuante com respiro das bordas */
 .painel {
   position: absolute;
   inset: 16px 16px 16px auto;
-  width: min(520px, calc(100vw - 32px));
+  width: min(480px, calc(100vw - 32px));
   animation: painel-entra 0.45s var(--ease-out-expo, cubic-bezier(.16, 1, .3, 1)) both;
 }
 
@@ -292,59 +566,40 @@
   height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 24px;
-  background: #fff;
-  box-shadow: 0 16px 48px rgb(22 36 28 / 22%);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 16px 48px rgb(22 36 28 / 18%);
   color: #1a3628;
   font-family: Poppins, sans-serif;
 }
 
-/* O canguru fica atrás do cartão, com a cabeça (e as orelhas) para fora da borda esquerda. */
-.canguru {
+/* Patinha do mascote apoiada na borda do painel */
+.patinha-borda {
   position: absolute;
-  z-index: 0;
-  top: 52px;
-  left: -176px;
-  width: 270px;
-  animation: canguru-espia 0.6s 0.35s cubic-bezier(.3, 1.5, .5, 1) both;
+  top: 130px;
+  left: -24px;
+  width: 58px;
+  height: 68px;
+  z-index: 2;
+  pointer-events: none;
+  animation: patinha-entra 0.4s 0.2s cubic-bezier(0.3, 1.5, 0.5, 1) both;
 }
 
-.canguru-cabeca {
+.patinha-animada {
+  width: 100%;
+  height: 100%;
+  transform-origin: 0% 50%;
+  animation: pata-acena 3.2s 1s ease-in-out infinite;
+}
+
+.patinha-svg {
   display: block;
   width: 100%;
-  height: auto;
-  fill: #356b5b;
-  overflow: hidden;
+  height: 100%;
+  overflow: visible;
 }
 
-.canguru-corpo {
-  transform-box: fill-box;
-  transform-origin: 85% 100%;
-  animation: canguru-balanca 3.6s 1.2s ease-in-out infinite;
-}
-
-/* Patas agarradas na borda do painel, com contorno na cor do fundo como nos cards. */
-.pata {
-  position: absolute;
-  width: 54px;
-  height: 28px;
-  border: 3px solid #f7f7f1;
-  border-radius: 999px;
-  background: #356b5b;
-}
-
-.pata--acena {
-  top: 168px;
-  left: 150px;
-  transform-origin: 90% 50%;
-  animation: pata-acena 2.8s 1.6s ease-in-out infinite;
-}
-
-.pata--apoio {
-  top: 176px;
-  left: 190px;
-}
-
+/* Topo do modal */
 .topo {
   display: flex;
   align-items: center;
@@ -357,16 +612,17 @@
 .topo h2 {
   margin: 0;
   font-size: 1.15rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: #1a3628;
 }
 
 .btn-fechar {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #eef5f0;
   color: #1a3628;
   cursor: pointer;
@@ -378,207 +634,449 @@
   rotate: 90deg;
 }
 
+/* Corpo com rolagem suave */
 .corpo {
   flex: 1;
   overflow-y: auto;
   padding: 1.25rem 1.5rem;
 }
 
+/* Seção de Identificação */
 .identificacao {
   display: flex;
-  gap: 1.25rem;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   margin-bottom: 1.25rem;
 }
 
-.avatar-area {
-  position: relative;
-  flex: none;
+.aluno-avatar-bloco {
+  display: none;
 }
 
-.avatar {
+.avatar-caixa {
+  width: 82px;
+  height: 82px;
+  border-radius: 16px;
+  background: #eaf2ed;
   display: grid;
-  width: 84px;
-  height: 84px;
   place-items: center;
   overflow: hidden;
-  border-radius: 50%;
-  background: #a9c7b4;
-  font-size: 1.6rem;
-  font-weight: 600;
+  border: 1px solid #dfeae2;
 }
 
-.avatar img {
+.avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.btn-foto {
-  position: absolute;
-  right: -4px;
-  bottom: -2px;
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  background: #356b5b;
-  color: #fff;
+.avatar-placeholder-icone {
+  color: #356b5b;
+}
+
+.btn-adicionar-foto {
+  border: none;
+  background: none;
+  color: #52695f;
+  font-size: 0.76rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: scale 0.2s;
+  padding: 2px 4px;
+  transition: color 0.2s;
 }
 
-.btn-foto:hover {
-  scale: 1.12;
+.btn-adicionar-foto:hover {
+  color: #274d3d;
+  text-decoration: underline;
 }
 
-.nome-bloco h3 {
-  margin: 0.4rem 0 0.15rem;
-  font-size: 1.5rem;
-  font-weight: 600;
+.aluno-dados-bloco {
+  display: flex;
+  flex-direction: column;
 }
 
-.nome-bloco p {
-  margin: 0 0 0.5rem;
+.aluno-nome {
+  margin: 0.2rem 0 0.15rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a3628;
+}
+
+.aluno-sub {
+  margin: 0 0 0.65rem;
   color: #52695f;
   font-size: 0.85rem;
 }
 
-.status {
-  padding: 0.2rem 0.7rem;
-  border-radius: 999px;
-  background: #e3efe7;
-  color: #356b5b;
-  font-size: 0.72rem;
+.aluno-acoes-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
+.btn-foto-mini {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: #274d3d;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-foto-mini:hover {
+  background: #356b5b;
+}
+
+.desktop-only {
+  display: grid;
+}
+
+.status-pilula {
+  background: #eef5f0;
+  color: #356b5b;
+  border-radius: 16px;
+  padding: 5px 14px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+/* Pontos de atenção */
+.pontos-bloco {
+  margin-bottom: 1.25rem;
+}
+
+.pontos-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.pontos-topo h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+}
+
+.btn-copiar-link-laudo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #274d3d;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.btn-copiar-link-laudo:hover {
+  color: #356b5b;
+  background-color: #eef5f0;
+  text-decoration: underline;
+}
+
+.btn-copiar-link-laudo:focus-visible {
+  outline: 2px solid #274d3d;
+  outline-offset: 2px;
+}
+
+.pontos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ponto {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.8rem 1rem;
+  border: 1px solid #dfe8e0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.ponto-icone {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef5f0;
+  color: #356b5b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.ponto-info h5 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a3628;
+}
+
+.ponto-info p {
+  margin: 0.15rem 0 0.25rem;
+  color: #52695f;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.ponto-info small {
+  color: #7a9489;
+  font-size: 0.7rem;
+}
+
+/* Metadados */
 .metadados {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-  margin: 0 0 1.25rem;
+  margin: 1.25rem 0 0.75rem;
+  text-align: left;
 }
 
 .metadados dt {
-  color: #6c8277;
   font-size: 0.72rem;
+  color: #6c8277;
+  margin-bottom: 2px;
 }
 
 .metadados dd {
-  margin: 0.15rem 0 0;
-  font-size: 0.85rem;
-  font-weight: 500;
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a3628;
 }
 
-.aba-atual {
-  margin-bottom: 1.25rem;
-  padding: 0.55rem;
+.pontos-bloco--desktop {
+  display: block;
+}
+
+.nascimento-idade-mobile {
+  display: none;
+}
+
+/* Abas de navegação */
+.abas-navegacao {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: #eef5f0;
   border-radius: 12px;
-  background: #f4f8f5;
-  box-shadow: inset 0 0 0 2px #e3ece6;
-  font-size: 0.85rem;
-  font-weight: 600;
+  margin: 0.75rem 0 1.25rem;
+  box-sizing: border-box;
+}
+
+.aba-btn {
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #52695f;
+  cursor: pointer;
+  transition: all 0.2s ease;
   text-align: center;
 }
 
-.bloco {
+.aba-btn:hover {
+  color: #1a3628;
+}
+
+.aba-btn--ativa {
+  background: #ffffff;
+  color: #1a3628;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgb(26 54 40 / 8%);
+}
+
+.painel-aba {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Acompanhamento */
+.acompanhamento {
   margin-bottom: 1.25rem;
 }
 
-.bloco h4 {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.acompanhamento h4 {
   margin: 0 0 0.4rem;
   font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+}
+
+.acompanhamento p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #52695f;
+  line-height: 1.45;
+}
+
+.acompanhamento-estrategias {
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  color: #52695f;
+}
+
+.acompanhamento-estrategias strong {
+  display: block;
+  color: #1a3628;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.acompanhamento-estrategias ul {
+  margin: 0 0 0 1.2rem;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.acompanhamento-estrategias li {
+  margin-bottom: 0.2rem;
+  line-height: 1.4;
+}
+
+.texto-vazio {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background-color: #f7faf8;
+  border: 1px dashed #d5e2d9;
+  color: #698276;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+/* Atividades */
+.atividades-bloco {
+  margin-bottom: 1.25rem;
+}
+
+.atividades-topo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.atividades-topo h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-contador {
+  background: #eef5f0;
+  color: #356b5b;
+  border-radius: 12px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
-.bloco > p {
-  margin: 0;
-  max-width: 44ch;
-  color: #3d5a4c;
-  font-size: 0.85rem;
-  line-height: 1.55;
-}
-
-.contador {
-  display: grid;
-  min-width: 22px;
-  height: 22px;
-  place-items: center;
-  border-radius: 999px;
-  background: #e3efe7;
-  font-size: 0.72rem;
-}
-
-.atividade {
-  margin-top: 0.75rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid #dfe8e0;
-  border-radius: 16px;
-  animation: item-entra 0.45s calc(0.3s + var(--i) * 0.08s) both;
-}
-
-.atividade-topo {
+.atividades-lista {
   display: flex;
-  gap: 0.6rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.atividade-card {
+  border: 1px solid #dfe8e0;
+  border-radius: 12px;
+  padding: 0.95rem 1.1rem;
+  background: #ffffff;
+}
+
+.atividade-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .atividade-icone {
-  color: #356b5b;
-  flex: none;
+  color: #274d3d;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.atividade h5 {
+.atividade-titulos h5 {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1a3628;
 }
 
-.atividade-topo span {
-  color: #6c8277;
+.atividade-data {
   font-size: 0.7rem;
+  color: #7a9489;
 }
 
-.atividade > p {
-  margin: 0.5rem 0;
-  color: #3d5a4c;
+.atividade-desc {
+  margin: 0.5rem 0 0.75rem;
   font-size: 0.8rem;
+  color: #52695f;
+  line-height: 1.4;
 }
 
 .atividade-rodape {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
+  padding-top: 0.4rem;
 }
 
 .relatorio-ok {
   display: inline-flex;
-  gap: 0.3rem;
   align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #274d3d;
 }
 
-.btn-link {
+.btn-exportar-relatorio {
   display: inline-flex;
-  gap: 0.3rem;
   align-items: center;
-  border: 0;
+  gap: 4px;
+  border: none;
   background: none;
-  color: #1a3628;
-  font: inherit;
+  color: #3d5a4c;
+  font-size: 0.78rem;
+  font-weight: 500;
   cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s;
 }
 
-.btn-link:hover {
-  color: #356b5b;
+.btn-exportar-relatorio:hover {
+  color: #274d3d;
   text-decoration: underline;
 }
 
+/* Rodapé */
 .rodape {
   display: flex;
   flex-direction: column;
@@ -586,33 +1084,30 @@
   margin: 0 1.5rem;
   padding: 1rem 0 1.25rem;
   border-top: 1px solid #e3ece6;
+  text-align: center;
 }
 
-.rodape p {
+.rodape-aviso {
   margin: 0;
-  color: #52695f;
-  font-size: 0.72rem;
+  color: #6c8277;
+  font-size: 0.75rem;
 }
 
-.btn-principal,
-.btn-secundario {
+.btn-principal {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: 48px;
   border-radius: 12px;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.btn-principal {
-  padding: 0.8rem;
   border: 0;
   background: #274d3d;
   color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
   transition: background-color 0.2s;
 }
 
@@ -620,79 +1115,10 @@
   background: #356b5b;
 }
 
-.btn-secundario {
-  padding: 0.65rem;
-  border: 1px solid #a9c7b4;
-  background: #fff;
-  color: #274d3d;
-}
-
-.btn-secundario:hover {
-  background: #f4f8f5;
-}
-
-.pontos-topo {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.btn-link--forte {
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.ponto {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  margin-top: 0.6rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid #dfe8e0;
-  border-radius: 16px;
-}
-
-.ponto-icone {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  background: #eef5f0;
-  color: #356b5b;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.ponto h5 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.ponto p {
-  margin: 0.15rem 0;
-  color: #3d5a4c;
-  font-size: 0.78rem;
-}
-
-.ponto small {
-  color: #6c8277;
-  font-size: 0.7rem;
-}
-
-.vazio,
-.relatorio-pendente {
-  margin: 0.4rem 0 0;
-  color: #6c8277;
-  font-size: 0.78rem;
-}
-
 .btn-principal:disabled {
-  background: #a9c7b4;
+  opacity: 0.5;
   cursor: not-allowed;
+  background: #739083;
 }
 
 .sr-only {
@@ -711,29 +1137,31 @@
   from { opacity: 0; translate: 48px 0; }
 }
 
-@keyframes item-entra {
-  from { opacity: 0; translate: 0 10px; }
-}
-
-/* Sai de trás do painel, depois balança de leve como quem espia. */
-@keyframes canguru-espia {
-  from { opacity: 0; translate: 60px 0; }
-}
-
-@keyframes canguru-balanca {
-  0%, 100% { rotate: 0deg; }
-  40% { rotate: 4deg; }
-  60% { rotate: -2deg; }
+@keyframes patinha-entra {
+  from {
+    opacity: 0;
+    translate: 16px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 @keyframes pata-acena {
-  0%, 60%, 100% { rotate: 0deg; }
-  70%, 90% { rotate: -22deg; }
-  80% { rotate: -6deg; }
+  0%, 60%, 100% {
+    rotate: 0deg;
+  }
+  70%, 90% {
+    rotate: -10deg;
+  }
+  80% {
+    rotate: -3deg;
+  }
 }
 
 @media (max-width: 640px) {
-  .canguru {
+  .patinha-borda {
     display: none;
   }
 
@@ -741,15 +1169,86 @@
     inset: 8px;
     width: auto;
   }
+
+  /* Identificação lado a lado com avatar (conforme print mobile) */
+  .identificacao {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 16px;
+    margin-bottom: 1rem;
+  }
+
+  .aluno-avatar-bloco {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .aluno-dados-bloco {
+    justify-content: center;
+    min-height: 82px;
+  }
+
+  .aluno-nome {
+    font-size: 1.25rem;
+    margin: 0 0 2px;
+  }
+
+  .aluno-sub {
+    font-size: 0.82rem;
+    margin: 0 0 8px;
+  }
+
+  .aluno-acoes-linha {
+    justify-content: flex-start;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  /* Pontos de atenção no topo ficam ocultos no mobile (exibidos na aba Registros) */
+  .pontos-bloco--desktop {
+    display: none;
+  }
+
+  /* Metadados em 2 colunas */
+  .metadados {
+    grid-template-columns: 1fr 1fr;
+    margin: 0.75rem 0 1rem;
+  }
+
+  .metadado-idade-desktop {
+    display: none;
+  }
+
+  .nascimento-idade-mobile {
+    display: inline;
+  }
+
+  /* Atividades no mobile conforme referência */
+  .relatorio-ok {
+    display: none;
+  }
+
+  .atividade-rodape {
+    padding-top: 0.6rem;
+    border-top: 1px solid #f0f4f1;
+  }
+
+  .btn-exportar-relatorio {
+    padding: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .fundo,
   .painel,
-  .atividade,
-  .canguru,
-  .canguru-corpo,
-  .pata {
+  .patinha-borda,
+  .patinha-animada {
     animation: none;
   }
 }

@@ -5,6 +5,7 @@ import type {
   MetaDadosPayload,
   Observacao,
   Paginated,
+  PontosAtencaoResposta,
   Responsavel,
   ResponsavelPayload,
 } from '@/interfaces/aluno'
@@ -44,6 +45,15 @@ class AlunosService {
       await api.delete(`alunos/${id}/`)
     } catch (error) {
       throw buildApiError(error, 'Não foi possível excluir o aluno.')
+    }
+  }
+
+  async obterPontosAtencao (alunoId: number): Promise<PontosAtencaoResposta> {
+    try {
+      const { data } = await api.get<PontosAtencaoResposta>(`alunos/${alunoId}/pontos-atencao/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar os pontos de atenção.')
     }
   }
 }

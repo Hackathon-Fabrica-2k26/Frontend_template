@@ -1,3 +1,4 @@
+import type { PerfilApoio } from '@/interfaces/aluno'
 import type { Paginated } from '@/interfaces/item'
 import type {
   GerarRelatorioPayload,
@@ -99,6 +100,26 @@ class PedagogicoService {
       return data
     } catch (error) {
       throw buildApiError(error, 'Não foi possível baixar o PDF do relatório.')
+    }
+  }
+
+  async obterPerfilApoio (alunoId: number): Promise<PerfilApoio | null> {
+    try {
+      const { data } = await api.get<Paginated<PerfilApoio>>('perfis-apoio/', {
+        params: { aluno: alunoId, ativo: true },
+      })
+      return data.results?.[0] ?? null
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar o perfil de apoio do aluno.')
+    }
+  }
+
+  async atualizarPerfilApoio (id: number, payload: Partial<PerfilApoio>): Promise<PerfilApoio> {
+    try {
+      const { data } = await api.patch<PerfilApoio>(`perfis-apoio/${id}/`, payload)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível atualizar o perfil de apoio.')
     }
   }
 }

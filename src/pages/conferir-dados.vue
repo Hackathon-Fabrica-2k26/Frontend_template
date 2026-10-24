@@ -16,6 +16,7 @@
   definePage({
     meta: {
       layout: false,
+      public: true,
     },
   })
 
