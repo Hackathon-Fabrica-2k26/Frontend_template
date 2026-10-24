@@ -58,16 +58,6 @@
 
         <div class="acoes-header">
           <v-btn
-            class="btn-adicionar-estudante"
-            color="primary"
-            :prepend-icon="UserPlus"
-            variant="outlined"
-            @click="abrirDialogNovoEstudante"
-          >
-            Adicionar estudante
-          </v-btn>
-
-          <v-btn
             class="btn-adicionar-foto"
             color="primary"
             :prepend-icon="Camera"
@@ -225,7 +215,7 @@
 
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
-  import { Camera, ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
+  import { Camera, ChevronRight, Clock, Image } from '@lucide/vue'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
@@ -606,7 +596,6 @@
   gap: 0.75rem;
 }
 
-.btn-adicionar-estudante,
 .btn-adicionar-foto {
   min-width: 180px;
   min-height: 44px;
@@ -789,7 +778,6 @@
   }
 
   .acoes-header,
-  .btn-adicionar-estudante,
   .btn-adicionar-foto {
     width: 100%;
   }
