@@ -15,7 +15,7 @@
 
       <div class="flex min-w-0 flex-col gap-4 lg:gap-5">
         <div class="entra [animation-delay:70ms]">
-          <PerfilResumo :carregando="estadoResumo === 'carregando'" :erro="estadoResumo === 'erro' || estadoTurmas === 'erro'" :resumo="resumo" />
+          <PerfilResumo :carregando="estadoResumo === 'carregando'" :erro="estadoResumo === 'erro'" :resumo="resumo" />
         </div>
 
         <div class="entra [animation-delay:140ms]">
@@ -47,6 +47,7 @@
   const auth = useAuthStore()
   const router = useRouter()
 
+  const estadoUsuario = ref<Estado>('carregando')
   const estadoResumo = ref<Estado>('carregando')
   const estadoTurmas = ref<Estado>('carregando')
   const estadoAtividades = ref<Estado>('carregando')
@@ -56,12 +57,17 @@
   const sairAberto = ref(false)
 
   const usuario = computed(() => auth.user)
-  const carregandoTudo = computed(() => !auth.user)
+  const carregandoTudo = computed(() => !auth.user && estadoUsuario.value === 'carregando')
 
   async function carregar (): Promise<void> {
-    estadoResumo.value = estadoTurmas.value = estadoAtividades.value = 'carregando'
+    estadoUsuario.value = estadoResumo.value = estadoTurmas.value = estadoAtividades.value = 'carregando'
 
     await Promise.all([
+      auth.fetchUser().then(() => {
+        estadoUsuario.value = 'ok'
+      }, () => {
+        estadoUsuario.value = auth.user ? 'ok' : 'erro'
+      }),
       perfilService.resumo().then(dados => {
         resumo.value = dados
         estadoResumo.value = 'ok'
