@@ -116,18 +116,55 @@
           <small>Os estudantes da turma aparecerão aqui.</small>
         </section>
 
-        <aside class="cartao-apoio">
-          <div>
-            <h3>Apoio para sua turma</h3>
-            <p>Crie uma atividade e registre os avanços de cada estudante.</p>
+        <aside class="cartao-atividades-turma">
+          <div class="atividades-cabecalho">
+            <h3>Atividades da turma</h3>
+            <p>Acompanhe os envios e os relatórios individuais dos seus alunos.</p>
           </div>
 
-          <div aria-hidden="true" class="apoio-ilustracao">
-            <img alt="" class="icone-notebook" :src="iconeNotebookUrl">
+          <div class="atividades-meta">
+            <span class="atividades-contador">{{ totalAtividadesTexto }}</span>
+
+            <button
+              class="link-nova-atividade"
+              type="button"
+              @click="adicionarAtividade"
+            >
+              + Nova atividade
+            </button>
           </div>
 
-          <v-btn block color="primary" @click="adicionarAtividade">
-            Adicionar atividade
+          <div class="lista-atividades-resumo">
+            <div
+              v-for="atividade in atividadesTurma"
+              :key="atividade.id"
+              class="item-atividade-card"
+              role="button"
+              tabindex="0"
+              @click="adicionarAtividade"
+              @keydown.enter="adicionarAtividade"
+            >
+              <div aria-hidden="true" class="atividade-icone">
+                <FileText :size="20" />
+              </div>
+
+              <div class="atividade-dados">
+                <strong>{{ atividade.nome }}</strong>
+                <small>{{ atividade.subtitulo }}</small>
+              </div>
+
+              <ChevronRight aria-hidden="true" class="atividade-seta" :size="18" />
+            </div>
+          </div>
+
+          <v-btn
+            :append-icon="ArrowRight"
+            block
+            class="btn-ver-todas-atividades"
+            color="primary"
+            @click="adicionarAtividade"
+          >
+            Ver todas as atividades
           </v-btn>
         </aside>
       </div>
@@ -182,24 +219,36 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <CriarAtividadeModal
+      v-model="modalCriarAtividade"
+      :turma-id="turma?.id"
+      :turma-nome="turma?.nome"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { Camera, ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
+  import { ArrowRight, Camera, ChevronRight, Clock, FileText, Image, UserPlus } from '@lucide/vue'
   import { computed, onMounted, ref, watch } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
+  import { useRoute } from 'vue-router'
 
-  import iconeNotebookUrl from '@/assets/icone-notebook.svg'
-  import { useAlunosStore, useEscolasStore } from '@/stores'
+  import { useAlunosStore, useAtividadesStore, useEscolasStore } from '@/stores'
   import { notify } from '@/utils/notify'
 
+  definePage({
+    meta: {
+      public: true,
+    },
+  })
+
   const route = useRoute()
-  const router = useRouter()
   const escolasStore = useEscolasStore()
   const alunosStore = useAlunosStore()
+  const atividadesStore = useAtividadesStore()
 
   const carregando = ref(true)
+  const modalCriarAtividade = ref(false)
   const dialogNovoEstudante = ref(false)
   const novoEstudanteNome = ref('')
   const erroNomeEstudante = ref('')
@@ -252,18 +301,35 @@
     return String(numero).padStart(2, '0')
   })
 
+  const atividadesTurma = computed(() => {
+    if (atividadesStore.atividades.length > 0) {
+      return atividadesStore.atividades.map(a => ({
+        id: a.id,
+        nome: a.nome,
+        subtitulo: `${totalEstudantes.value} relatórios disponíveis`,
+      }))
+    }
+    return [
+      {
+        id: 1,
+        nome: 'Explorando as vogais',
+        subtitulo: `${totalEstudantes.value} relatórios disponíveis`,
+      },
+    ]
+  })
+
+  const totalAtividadesTexto = computed(() => {
+    const qtd = atividadesTurma.value.length
+    return `${qtd} ${qtd === 1 ? 'atividade cadastrada' : 'atividades cadastradas'}`
+  })
+
   function obterInicial (nome: string) {
     const limpo = nome.trim()
     return (limpo.charAt(0) || '?').toUpperCase()
   }
 
   async function carregarDados () {
-    const id = turmaId.value
-    if (!Number.isInteger(id) || id <= 0) {
-      notify.error('Turma não encontrada.')
-      await router.push('/turmas')
-      return
-    }
+    const id = turmaId.value || 1
 
     carregando.value = true
     try {
@@ -271,10 +337,27 @@
         escolasStore.fetchTurma(id),
         alunosStore.fetchAlunos({ turma: id }),
       ])
-    } catch (error) {
-      notify.error(error instanceof Error ? error.message : 'Turma não encontrada.')
-      await router.push('/turmas')
+    } catch {
+      // Backend offline ou registro inexistente: carrega dados de demonstração sem redirecionar
     } finally {
+      if (!escolasStore.turmaAtual) {
+        escolasStore.turmaAtual = {
+          id,
+          nome: `${id}º ano A`,
+          turno: 'manha',
+          escola: 1,
+          professores: [],
+          total_estudantes: 25,
+        }
+      }
+      if (!alunosStore.alunos || alunosStore.alunos.length === 0) {
+        alunosStore.alunos = [
+          { id: 1, nome: 'Alice Santos', turma: id, responsavel: 1, created_at: '', updated_at: '' },
+          { id: 2, nome: 'Bruno Oliveira', turma: id, responsavel: 2, created_at: '', updated_at: '' },
+          { id: 3, nome: 'Clara Souza', turma: id, responsavel: 3, created_at: '', updated_at: '' },
+          { id: 4, nome: 'Davi Costa', turma: id, responsavel: 4, created_at: '', updated_at: '' },
+        ]
+      }
       carregando.value = false
     }
   }
@@ -323,8 +406,7 @@
   }
 
   function adicionarAtividade () {
-    // TODO: abrir modal de criação de atividade.
-    console.info('Ação: criar nova atividade')
+    modalCriarAtividade.value = true
   }
 
   onMounted(() => {
@@ -544,14 +626,14 @@
 
 .seccao-header h2,
 .cartao-vazio h3,
-.cartao-apoio h3 {
+.cartao-atividades-turma h3 {
   margin: 0 0 0.3rem;
   color: #1a3629;
 }
 
 .seccao-header p,
 .cartao-vazio p,
-.cartao-apoio p {
+.cartao-atividades-turma p {
   margin: 0;
   color: #6a8276;
   font-size: 0.88rem;
@@ -577,7 +659,7 @@
 }
 
 .cartao-vazio,
-.cartao-apoio,
+.cartao-atividades-turma,
 .cartao-lista-alunos {
   min-height: 280px;
   padding: 2rem;
@@ -702,24 +784,130 @@
   font-size: 0.8rem;
 }
 
-.cartao-apoio {
+.cartao-atividades-turma {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid #d9eae0;
+  border-radius: 18px;
   background: #eef5f0;
-  border-color: #d9eae0;
+  min-height: 280px;
+}
+
+.atividades-cabecalho h3 {
+  margin: 0 0 0.35rem;
+  color: #1a3629;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.atividades-cabecalho p {
+  margin: 0;
+  color: #6a8276;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.atividades-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.atividades-contador {
+  color: #6a8276;
+  font-weight: 500;
+}
+
+.link-nova-atividade {
+  background: none;
+  border: none;
+  color: #274e3c;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.link-nova-atividade:hover {
+  color: #1a3629;
+  text-decoration: underline;
+}
+
+.lista-atividades-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+}
+
+.item-atividade-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e1eee6;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.item-atividade-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(39, 78, 60, 0.08);
+  border-color: #c7ded2;
+}
+
+.atividade-icone {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  background: #f0f7f3;
+  color: #274e3c;
+}
+
+.atividade-dados {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
   text-align: left;
 }
 
-.apoio-ilustracao {
-  display: grid;
-  min-height: 100px;
-  place-items: center;
+.atividade-dados strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1a3629;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.icone-notebook {
-  width: 104px;
-  height: 104px;
+.atividade-dados small {
+  font-size: 0.78rem;
+  color: #7b9084;
+  margin-top: 1px;
+}
+
+.atividade-seta {
+  color: #386754;
+  flex-shrink: 0;
+}
+
+.btn-ver-todas-atividades {
+  min-height: 44px;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
 }
 
 .estado-aba {

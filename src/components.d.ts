@@ -19,6 +19,7 @@ declare module 'vue' {
     AppNotifications: typeof import('./components/AppNotifications.vue')['default']
     AuthInput: typeof import('./components/auth/AuthInput.vue')['default']
     AuthWaves: typeof import('./components/auth/AuthWaves.vue')['default']
+    CriarAtividadeModal: typeof import('./components/CriarAtividadeModal.vue')['default']
     IlustracaoCaderno: typeof import('./components/IlustracaoCaderno.vue')['default']
     IlustracaoMesa: typeof import('./components/IlustracaoMesa.vue')['default']
     IlustracaoQuadro: typeof import('./components/IlustracaoQuadro.vue')['default']
