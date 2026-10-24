@@ -44,7 +44,7 @@
         </p>
 
         <v-btn
-          class="nova-turma mt-2"
+          class="nova-turma nova-turma--cheia mt-2"
           color="primary"
           to="/turmas/nova"
           variant="flat"
