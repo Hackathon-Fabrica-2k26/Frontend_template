@@ -45,7 +45,7 @@
     LockKeyhole,
     UserRound,
   } from '@lucide/vue'
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
 
   const props = withDefaults(defineProps<{
     label: string
@@ -66,7 +66,10 @@
 
   const model = defineModel<string>({ required: true })
 
+  const emit = defineEmits<{ visibilidade: [visivel: boolean] }>()
+
   const visible = ref(false)
+  watch(visible, valor => emit('visibilidade', valor))
   const input = ref<HTMLInputElement | null>(null)
 
   // Permite à página devolver o foco ao campo (ex.: depois de errar a senha).
