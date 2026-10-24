@@ -1,3 +1,4 @@
+
 <template>
   <div class="relative isolate h-[calc(100dvh-158px)]">
     <TurmasFundo />
@@ -8,7 +9,9 @@
           Bem-vinda, <strong class="font-semibold">{{ nome }}</strong>!
         </p>
 
-        <h1 class="entrada text-2xl font-semibold text-text [animation-delay:80ms] lg:text-center">Minhas turmas</h1>
+        <h1 class="entrada text-2xl font-semibold text-text [animation-delay:80ms] lg:text-center">
+          Minhas turmas
+        </h1>
 
         <div class="entrada [animation-delay:160ms] lg:justify-self-end">
           <v-btn
@@ -23,7 +26,30 @@
         </div>
       </div>
 
-      <section aria-label="Lista de turmas" class="lista-turmas -mt-3 min-h-0 flex-1 flex flex-col gap-10">
+      <section
+        aria-label="Lista de turmas"
+        class="lista-turmas -mt-3 min-h-0 flex-1 flex flex-col gap-10"
+      >
+        <p v-if="carregando" class="estado-lista">
+          Carregando suas turmas...
+        </p>
+
+        <div v-else-if="erro" class="estado-lista" role="alert">
+          <p>{{ erro }}</p>
+          <v-btn variant="outlined" color="primary" @click="carregarTurmas">
+            Tentar novamente
+          </v-btn>
+        </div>
+
+        <div v-else-if="turmas.length === 0" class="estado-lista">
+          <h2>Você ainda não tem turmas cadastradas.</h2>
+          <p>Crie sua primeira turma para começar.</p>
+          <v-btn color="primary" @click="novaTurma">
+            <Plus class="mr-2" :size="16" />
+            Criar primeira turma
+          </v-btn>
+        </div>
+
         <TurmaCard
           v-for="(turma, index) in turmas"
           :key="turma.id"
@@ -41,38 +67,63 @@
 </template>
 
 <script setup lang="ts">
-  import { Plus } from '@lucide/vue'
-  import { ref } from 'vue'
+import { Plus } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import turmasService from '@/services/turmas'
 
-  // TODO: trocar pelo nome do usuário logado (auth.user?.name) quando o backend entregar.
-  const nome = ref('Ana')
+interface TurmaCardItem {
+  id: number
+  nome: string
+  turno: string
+  estudantes: number
+  icone: 'lapis' | 'caderno' | 'carteira'
+}
 
-  // TODO: carregar de turmasService.list() quando o backend entregar turno e total de estudantes.
-  const turmas = ref<{
-    id: number
-    nome: string
-    turno: string
-    estudantes: number
-    icone: 'lapis' | 'caderno' | 'carteira'
-  }[]>([
-    { id: 1, nome: '1º ano A', turno: 'Manhã', estudantes: 25, icone: 'lapis' },
-    { id: 2, nome: '2º ano B', turno: 'Tarde', estudantes: 28, icone: 'caderno' },
-    { id: 3, nome: '3º ano A', turno: 'Manhã', estudantes: 26, icone: 'carteira' },
-    { id: 4, nome: '4º ano B', turno: 'Tarde', estudantes: 27, icone: 'lapis' },
-    { id: 5, nome: '5º ano A', turno: 'Manhã', estudantes: 24, icone: 'caderno' },
-    { id: 6, nome: '6º ano C', turno: 'Tarde', estudantes: 30, icone: 'carteira' },
-    { id: 7, nome: '7º ano A', turno: 'Manhã', estudantes: 29, icone: 'lapis' },
-    { id: 8, nome: '8º ano B', turno: 'Tarde', estudantes: 25, icone: 'caderno' },
-  ])
+const router = useRouter()
 
-  function novaTurma () {
-    // TODO: abrir o fluxo de criação de turma.
+// Temporário até integrar o nome do usuário autenticado.
+const nome = ref('Ana')
+
+const turmas = ref<TurmaCardItem[]>([])
+const carregando = ref(false)
+const erro = ref('')
+
+async function carregarTurmas (): Promise<void> {
+  carregando.value = true
+  erro.value = ''
+
+  try {
+    const resultado = await turmasService.list()
+
+    const icones = ['lapis', 'caderno', 'carteira'] as const
+
+    turmas.value = resultado.map((turma, index) => ({
+      id: turma.id,
+      nome: turma.nome,
+      turno: turma.turno,
+      estudantes: turma.alunos?.length ?? 0,
+      icone: icones[index % icones.length] ?? 'lapis',
+    }))
+  } catch (error) {
+    erro.value = error instanceof Error
+      ? error.message
+      : 'Não foi possível carregar suas turmas.'
+  } finally {
+    carregando.value = false
   }
+}
+
+function novaTurma (): void {
+  router.push('/turmas/nova')
+}
+
+onMounted(() => {
+  carregarTurmas()
+})
 </script>
 
 <style scoped>
-/* Rolagem própria da lista. O respiro (padding) evita cortar o glow, o zoom do hover e o
-   canguru que sobe acima do primeiro cartão; a margem negativa devolve esse espaço ao topo. */
 .lista-turmas {
   width: 100%;
   max-width: 606px;
@@ -80,12 +131,15 @@
   padding: 72px 26px 48px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* Os cartões somem suavemente nas bordas da lista, sem passar por cima do título. */
-  mask-image: linear-gradient(to bottom, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 32px,
+    #000 calc(100% - 32px),
+    transparent
+  );
 }
 
-/* Barra de rolagem na identidade do Marsupi: trilho verde claro, thumb verde de apoio que
-   escurece no hover. Chromium usa o pseudo-elemento; Firefox, as propriedades padrão. */
 .lista-turmas::-webkit-scrollbar {
   display: block;
   width: 10px;
@@ -144,5 +198,25 @@
   background: rgb(255 255 255 / 0.35);
   font-size: 0.9375rem;
   font-weight: 500;
+}
+
+.estado-lista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 20px;
+  color: var(--color-primary);
+  text-align: center;
+}
+
+.estado-lista h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.estado-lista p {
+  font-size: 14px;
 }
 </style>
