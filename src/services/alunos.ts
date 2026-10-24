@@ -5,6 +5,7 @@ import type {
   MetaDadosPayload,
   Observacao,
   Paginated,
+  PontosAtencaoResposta,
   Responsavel,
   ResponsavelPayload,
 } from '@/interfaces/aluno'
@@ -46,6 +47,64 @@ class AlunosService {
       throw buildApiError(error, 'Não foi possível excluir o aluno.')
     }
   }
+
+  async obterPontosAtencao (alunoId: number): Promise<PontosAtencaoResposta> {
+    try {
+      const { data } = await api.get<PontosAtencaoResposta>(`alunos/${alunoId}/pontos-atencao/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar os pontos de atenção.')
+    }
+  }
+
+  /** Relatórios do aluno (id e atividade de cada um), do mais novo para o mais antigo. */
+  async listarRelatorios (alunoId: number): Promise<RelatorioDoAluno[]> {
+    try {
+      const { data } = await api.get<RelatorioDoAluno[] | { results: RelatorioDoAluno[] }>(
+        `alunos/${alunoId}/relatorios/`,
+        { params: { page_size: 100 } },
+      )
+      return Array.isArray(data) ? data : data.results
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar os relatórios do aluno.')
+    }
+  }
+
+  /** Baixa um PDF com todos os relatórios do aluno. */
+  async baixarRelatoriosPdf (alunoId: number, nomeArquivo: string): Promise<void> {
+    try {
+      const { data } = await api.get<Blob>(`alunos/${alunoId}/relatorios/pdf/`, {
+        responseType: 'blob',
+      })
+      const url = window.URL.createObjectURL(data)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = nomeArquivo.endsWith('.pdf') ? nomeArquivo : `${nomeArquivo}.pdf`
+      document.body.append(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível baixar os relatórios em PDF.')
+    }
+  }
+
+  /** Gera o código do link do responsável (aparece só nesta resposta; vale 7 dias, uma vez). */
+  async gerarCodigoAcesso (alunoId: number): Promise<string> {
+    try {
+      const { data } = await api.post<{ codigo: string }>(`alunos/${alunoId}/codigo-acesso/`)
+      return data.codigo
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível gerar o link do responsável.')
+    }
+  }
+}
+
+export interface RelatorioDoAluno {
+  id: number
+  atividade: number | null
+  tipo: string
+  created_at: string
 }
 
 class ObservacoesService {

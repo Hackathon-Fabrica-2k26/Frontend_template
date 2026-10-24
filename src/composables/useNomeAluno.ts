@@ -1,6 +1,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import alunosService from '@/services/alunos'
+import responsavelAcesso from '@/services/responsavelAcesso'
 import { useAuthStore } from '@/stores/auth'
 
 /**
@@ -10,12 +11,29 @@ import { useAuthStore } from '@/stores/auth'
 export function useNomeAluno (padrao = 'o aluno') {
   const route = useRoute()
   const auth = useAuthStore()
-  const nome = ref(padrao)
+  const nomeInicial = computed(() => {
+    const raw = route.query.nome
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.trim().split(' ', 1)[0]
+    }
+    return padrao
+  })
+  const nome = ref(nomeInicial.value)
 
   const alunoId = computed(() => Number(route.query.aluno))
   const turmaId = computed(() => Number(route.query.turma) || undefined)
 
   onMounted(async () => {
+    // Responsável entrou pelo código: o backend devolve o nome do aluno do token.
+    if (responsavelAcesso.temSessao()) {
+      try {
+        const aluno = await responsavelAcesso.aluno()
+        nome.value = aluno.nome.split(' ', 1)[0] || padrao
+      } catch {
+        // Sem o nome, o texto continua genérico.
+      }
+      return
+    }
     if (!Number.isInteger(alunoId.value) || alunoId.value <= 0 || !auth.isLogged) {
       return
     }

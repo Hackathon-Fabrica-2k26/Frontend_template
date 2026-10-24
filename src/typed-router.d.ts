@@ -107,6 +107,20 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/responsavel': RouteRecordInfo<
+      '/responsavel',
+      '/responsavel',
+      Record<never, never>,
+      Record<never, never>,
+      | '/responsavel/consentimento'
+    >,
+    '/responsavel/consentimento': RouteRecordInfo<
+      '/responsavel/consentimento',
+      '/responsavel/consentimento',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/sair-site': RouteRecordInfo<
       '/sair-site',
       '/sair-site',
@@ -218,6 +232,19 @@ declare module 'vue-router/auto-routes' {
     'src/pages/relatorios/novo.vue': {
       routes:
         | '/relatorios/novo'
+      views:
+        | never
+    }
+    'src/pages/responsavel.vue': {
+      routes:
+        | '/responsavel'
+        | '/responsavel/consentimento'
+      views:
+        | 'default'
+    }
+    'src/pages/responsavel/consentimento.vue': {
+      routes:
+        | '/responsavel/consentimento'
       views:
         | never
     }

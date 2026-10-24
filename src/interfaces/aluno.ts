@@ -58,3 +58,28 @@ export interface Observacao {
   visibilidade?: string
   created_at: string
 }
+
+export interface PerfilApoio {
+  id: number
+  aluno: number
+  necessidades: string[]
+  estrategias: string[]
+  observacoes: string
+  ativo: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface PontoAtencaoItem {
+  padrao: string
+  texto: string
+  base_pedagogica: string
+  total_trabalhos: number
+}
+
+export interface PontosAtencaoResposta {
+  pontos: PontoAtencaoItem[]
+  disclaimer: string
+  minimo_trabalhos: number
+  mensagem?: string
+}

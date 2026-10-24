@@ -1,5 +1,6 @@
 export { useAlunosStore } from './alunos'
 export { useAtividadesStore } from './atividades'
 export { useAuthStore } from './auth'
+export { useConsentimentoStore } from './consentimento'
 export { useEscolasStore } from './escolas'
 export { usePedagogicoStore } from './pedagogico'

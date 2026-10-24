@@ -1,76 +1,39 @@
+import type { PerfilApoio } from '@/interfaces/aluno'
 import type { EnvioLaudoOpcoes, Laudo, LaudoConfirmado, LaudoDados } from '@/interfaces/laudo'
 import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
+import responsavelAcesso from './responsavelAcesso'
 
-// Sem backend de laudos ainda, o padrão é simular o envio. Use VITE_MOCK_LAUDOS=false
-// no .env para falar com a API de verdade.
-const mockEnabled = import.meta.env.VITE_MOCK_LAUDOS !== 'false'
-
-let mockId = 0
-
-function wait (ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+interface AlunoLaudoResposta {
+  perfil_apoio: PerfilApoio
+  nome_conferiu: boolean
+  arquivo_excluido_em: string
 }
 
-// Leitura simulada: a mesma para qualquer laudo, assim a tela abre até depois de recarregar.
-function laudoSimulado (id: number, alunoId = 0, nomeArquivo = 'laudo.pdf'): Laudo {
-  return {
-    id,
-    aluno: alunoId,
-    nome_arquivo: nomeArquivo,
-    nome_confere: true,
-    necessidades: [
-      'Necessidade de apoio na rotina escolar',
-      'Previsibilidade nas atividades diárias',
-      'Apoio na organização de materiais e tarefas',
-    ],
-    adaptacoes: [
-      'Utilizar rotina visual na sala de aula',
-      'Oferecer instruções claras e objetivas',
-      'Permitir pausas curtas durante as atividades prolongadas',
-      'Garantir ambiente organizado com estímulos visuais adequados',
-    ],
-    observacao: 'Acompanhamento regular necessário para o desenvolvimento escolar.',
+// Com sessão do responsável (link com código) usa as rotas dele; sem ela, as da professora.
+function rotas (alunoId: number, perfilId: number) {
+  if (responsavelAcesso.temSessao()) {
+    return {
+      cliente: responsavelAcesso.cliente,
+      envio: 'responsavel/laudo/',
+      perfil: 'responsavel/perfil-apoio/',
+    }
   }
-}
-
-// Só no modo simulado: um arquivo com "erro" no nome falha no meio do envio.
-function simularEnvio (alunoId: number, arquivo: File, { onProgresso, signal }: EnvioLaudoOpcoes): Promise<Laudo> {
-  return new Promise((resolve, reject) => {
-    let percentual = 0
-
-    const timer = setInterval(() => {
-      percentual = Math.min(100, percentual + 4 + Math.round(Math.random() * 8))
-      onProgresso?.(percentual)
-
-      if (percentual >= 60 && arquivo.name.toLowerCase().includes('erro')) {
-        clearInterval(timer)
-        reject(new Error('Não foi possível enviar o laudo.'))
-      } else if (percentual === 100) {
-        clearInterval(timer)
-        resolve(laudoSimulado(++mockId, alunoId, arquivo.name))
-      }
-    }, 180)
-
-    signal?.addEventListener('abort', () => {
-      clearInterval(timer)
-      reject(new Error('Envio cancelado.'))
-    })
-  })
+  return { cliente: api, envio: `alunos/${alunoId}/laudo/`, perfil: `perfis-apoio/${perfilId}/` }
 }
 
 class LaudosService {
-  async enviar (alunoId: number, arquivo: File, opcoes: EnvioLaudoOpcoes = {}) {
-    if (mockEnabled) {
-      return simularEnvio(alunoId, arquivo, opcoes)
-    }
-
+  /**
+   * Envia o laudo para processamento em memória pela IA no backend (Gemini).
+   * O backend confere o nome, gera/atualiza o PerfilApoio e descarta o arquivo imediatamente.
+   */
+  async enviar (alunoId: number, arquivo: File, opcoes: EnvioLaudoOpcoes = {}): Promise<Laudo> {
     const formData = new FormData()
-    formData.append('aluno', String(alunoId))
     formData.append('arquivo', arquivo)
 
+    const { cliente, envio } = rotas(alunoId, 0)
     try {
-      const { data } = await api.post<Laudo>('laudos/', formData, {
+      const { data } = await cliente.post<AlunoLaudoResposta>(envio, formData, {
         headers: {
           'Content-Type': undefined,
         },
@@ -82,38 +45,59 @@ class LaudosService {
           }
         },
       })
-      return data
+
+      return {
+        id: data.perfil_apoio.id,
+        aluno: data.perfil_apoio.aluno,
+        nome_arquivo: arquivo.name,
+        nome_confere: data.nome_conferiu,
+        necessidades: data.perfil_apoio.necessidades || [],
+        adaptacoes: data.perfil_apoio.estrategias || [],
+        observacao: data.perfil_apoio.observacoes || '',
+        arquivo_apagado_em: data.arquivo_excluido_em,
+      }
     } catch (error) {
-      throw buildApiError(error, 'Não foi possível enviar o laudo.')
+      throw buildApiError(error, 'Não foi possível enviar o laudo para análise.')
     }
   }
 
-  async buscar (id: number) {
-    if (mockEnabled) {
-      await wait(400)
-      return laudoSimulado(id)
-    }
-
+  /**
+   * Busca o perfil de apoio gerado pelo laudo para conferência na tela de revisão.
+   */
+  async buscar (id: number): Promise<Laudo> {
+    const { cliente, perfil } = rotas(0, id)
     try {
-      const { data } = await api.get<Laudo>(`laudos/${id}/`)
-      return data
+      const { data } = await cliente.get<PerfilApoio>(perfil)
+      return {
+        id: data.id,
+        aluno: data.aluno,
+        nome_arquivo: 'laudo.pdf',
+        nome_confere: true,
+        necessidades: data.necessidades || [],
+        adaptacoes: data.estrategias || [],
+        observacao: data.observacoes || '',
+      }
     } catch (error) {
-      throw buildApiError(error, 'Não foi possível carregar o laudo.')
+      throw buildApiError(error, 'Não foi possível carregar os dados do laudo.')
     }
   }
 
-  /** Salva o que a professora conferiu. O backend apaga o arquivo e devolve quando. */
-  async confirmar (id: number, payload: LaudoDados) {
-    if (mockEnabled) {
-      await wait(800)
-      return { arquivo_apagado_em: new Date().toISOString() }
-    }
-
+  /**
+   * Salva as correções feitas na tela de conferência diretamente no PerfilApoio ativo.
+   */
+  async confirmar (id: number, payload: LaudoDados): Promise<LaudoConfirmado> {
+    const { cliente, perfil } = rotas(0, id)
     try {
-      const { data } = await api.post<LaudoConfirmado>(`laudos/${id}/confirmar/`, payload)
-      return data
+      await cliente.patch<PerfilApoio>(perfil, {
+        necessidades: payload.necessidades,
+        estrategias: payload.adaptacoes,
+        observacoes: payload.observacao,
+      })
+      return {
+        arquivo_apagado_em: new Date().toISOString(),
+      }
     } catch (error) {
-      throw buildApiError(error, 'Não foi possível salvar o laudo.')
+      throw buildApiError(error, 'Não foi possível salvar o perfil de apoio.')
     }
   }
 }

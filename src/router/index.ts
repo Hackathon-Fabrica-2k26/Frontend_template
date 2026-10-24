@@ -36,8 +36,16 @@ router.beforeEach(to => {
     return true
   }
 
-  // Páginas públicas não exigem autenticação.
-  if (to.meta.public === true) {
+  // Páginas públicas e rotas do responsável/apoio não exigem autenticação.
+  if (
+    to.meta.public === true
+    || to.matched.some(record => record.meta?.public === true)
+    || to.path.startsWith('/responsavel')
+    || to.path.startsWith('/apoio')
+    || to.path === '/enviar-laudo'
+    || to.path === '/conferir-dados'
+    || to.path === '/sair-site'
+  ) {
     return true
   }
 
