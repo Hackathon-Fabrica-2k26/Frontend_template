@@ -4,6 +4,7 @@
       v-for="link in links"
       :key="link.to"
       class="group relative rounded-xl px-3 py-2.5 text-[19px] whitespace-nowrap text-primary no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:px-3.5"
+      :class="{ 'font-semibold text-text!': isLinkActive(link.to) }"
       exact-active-class="font-semibold text-text!"
       :to="link.to"
     >
@@ -33,6 +34,7 @@
       <v-list-item
         v-for="link in links"
         :key="link.to"
+        :active="isLinkActive(link.to)"
         :title="link.title"
         :to="link.to"
       />
@@ -42,9 +44,18 @@
 
 <script setup lang="ts">
   import { Menu } from '@lucide/vue'
+  import { useRoute } from 'vue-router'
   import { useDisplay } from 'vuetify'
 
   defineProps<{ links: { title: string, to: string }[] }>()
 
+  const route = useRoute()
   const { mdAndUp } = useDisplay()
+
+  function isLinkActive (to: string): boolean {
+    if (to === '/') {
+      return route.path === '/' || route.path === '/turmas'
+    }
+    return route.path === to || route.path.startsWith(`${to}/`)
+  }
 </script>
