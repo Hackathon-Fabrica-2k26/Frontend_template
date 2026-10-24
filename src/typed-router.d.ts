@@ -37,6 +37,34 @@ declare module 'vue-router/auto-routes' {
       { all: ParamValue<false> },
       | never
     >,
+    '/apoio': RouteRecordInfo<
+      '/apoio',
+      '/apoio',
+      Record<never, never>,
+      Record<never, never>,
+      | '/apoio/concordar'
+    >,
+    '/apoio/concordar': RouteRecordInfo<
+      '/apoio/concordar',
+      '/apoio/concordar',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/conferir-dados': RouteRecordInfo<
+      '/conferir-dados',
+      '/conferir-dados',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/enviar-laudo': RouteRecordInfo<
+      '/enviar-laudo',
+      '/enviar-laudo',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/items/': RouteRecordInfo<
       '/items/',
       '/items',
@@ -93,6 +121,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/sair-site': RouteRecordInfo<
+      '/sair-site',
+      '/sair-site',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/turmas/': RouteRecordInfo<
       '/turmas/',
       '/turmas',
@@ -136,6 +171,31 @@ declare module 'vue-router/auto-routes' {
     'src/pages/[...all].vue': {
       routes:
         | '/[...all]'
+      views:
+        | never
+    }
+    'src/pages/apoio.vue': {
+      routes:
+        | '/apoio'
+        | '/apoio/concordar'
+      views:
+        | 'default'
+    }
+    'src/pages/apoio/concordar.vue': {
+      routes:
+        | '/apoio/concordar'
+      views:
+        | never
+    }
+    'src/pages/conferir-dados.vue': {
+      routes:
+        | '/conferir-dados'
+      views:
+        | never
+    }
+    'src/pages/enviar-laudo.vue': {
+      routes:
+        | '/enviar-laudo'
       views:
         | never
     }
@@ -185,6 +245,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/responsavel/consentimento.vue': {
       routes:
         | '/responsavel/consentimento'
+      views:
+        | never
+    }
+    'src/pages/sair-site.vue': {
+      routes:
+        | '/sair-site'
       views:
         | never
     }
