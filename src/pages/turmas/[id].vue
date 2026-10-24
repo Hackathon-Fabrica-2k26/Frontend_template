@@ -95,6 +95,14 @@
       <h3>{{ abaAtiva === 'atividades' ? 'Atividades' : 'Registros' }}</h3>
       <p>Esta seção estará disponível em breve.</p>
     </section>
+
+    <EnviarTrabalhosDialog
+      v-model="enviarAberto"
+      :atividade-id="atividade.id"
+      :atividade-nome="atividade.nome"
+      :estudantes="estudantes"
+      @completed="aoConcluirEnvio"
+    />
   </div>
 </template>
 
@@ -124,9 +132,25 @@
     mascote.value?.acenar()
   }
 
+  // TODO: trocar pela atividade e pelos estudantes reais da turma quando o backend entregar.
+  const atividade = { id: 1, nome: 'Explorando as vogais' }
+  const estudantes = [
+    { id: 1, nome: 'Alice Santos' },
+    { id: 2, nome: 'Bruno Oliveira' },
+    { id: 3, nome: 'Clara Souza' },
+    { id: 4, nome: 'Davi Costa' },
+  ]
+
+  const enviarAberto = ref(false)
+
+  // "Adicionar atividade" abre o envio dos trabalhos (a IA identifica os alunos).
   function adicionarAtividade () {
-    // TODO: abrir o fluxo de nova atividade. Por enquanto o canguru só reage ao clique.
-    mascote.value?.acenar()
+    enviarAberto.value = true
+  }
+
+  // Terminou a revisão: o canguru comemora.
+  function aoConcluirEnvio () {
+    mascote.value?.acenar(3200)
   }
 </script>
 
