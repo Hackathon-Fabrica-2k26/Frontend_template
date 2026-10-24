@@ -14,7 +14,7 @@
 
     <section class="banner-turma">
       <div class="banner-conteudo">
-        <span class="badge-nivel">Ensino fundamental</span>
+        <span class="badge-nivel">{{ turma.nivel }}</span>
         <h1>{{ turma.nome }}</h1>
         <p class="banner-info">{{ turnoFormatado }} · {{ totalEstudantes }} {{ totalEstudantes === 1 ? 'estudante' : 'estudantes' }}</p>
         <small>Cada descoberta começa aqui.</small>
@@ -56,70 +56,58 @@
           <p>Acompanhe os perfis e registros da turma.</p>
         </div>
 
-        <div class="acoes-header">
-          <v-btn
-            class="btn-adicionar-estudante"
-            color="primary"
-            :prepend-icon="UserPlus"
-            variant="outlined"
-            @click="abrirDialogNovoEstudante"
-          >
-            Adicionar estudante
-          </v-btn>
-
-          <v-btn
-            class="btn-adicionar-foto"
-            color="primary"
-            :prepend-icon="Camera"
-            @click="acionarUploadFoto"
-          >
-            Adicionar foto
-          </v-btn>
-        </div>
+        <v-btn
+          class="btn-adicionar-alunos"
+          color="primary"
+          prepend-icon="mdi-account-plus"
+          @click="adicionarAlunos"
+        >
+          Adicionar alunos
+        </v-btn>
       </header>
 
       <div class="grelha-conteudo">
-        <section v-if="alunos.length > 0" class="cartao-lista-alunos">
-          <ul aria-label="Estudantes da turma" class="lista-alunos">
-            <li
-              v-for="(aluno, index) in alunos"
+        <MascoteCard ref="mascote" :intervalo="9000" lado="dir" saudar>
+          <section v-if="alunos.length > 0" class="cartao-lista">
+            <button
+              v-for="(aluno, index) in alunosVisiveis"
               :key="aluno.id"
-              class="item-aluno"
-              role="button"
-              tabindex="0"
-              @click="alunoSelecionado = aluno"
-              @keydown.enter.prevent="alunoSelecionado = aluno"
-              @keydown.space.prevent="alunoSelecionado = aluno"
+              class="cartao-estudante"
+              type="button"
+              @click="abrirDetalhes(aluno)"
             >
-              <div class="aluno-principal">
-                <div
-                  aria-hidden="true"
-                  class="avatar-aluno"
-                  :class="`avatar-tom-${index % 3}`"
-                >
-                  {{ obterInicial(aluno.nome) }}
-                </div>
-
-                <div class="aluno-texto">
-                  <strong>{{ aluno.nome }}</strong>
-                  <small>Perfil pedagógico atualizado</small>
-                </div>
+              <div aria-hidden="true" class="estudante-avatar">
+                {{ iniciais(aluno.nome) }}
               </div>
 
-              <ChevronRight class="icone-seta" :size="18" />
-            </li>
-          </ul>
-        </section>
+              <div class="estudante-info">
+                <h3>{{ aluno.nome }}</h3>
+                <p>{{ descricaoEstudante(aluno, index) }}</p>
+              </div>
 
-        <section v-else class="cartao-vazio">
-          <div class="icone-vazio-container">
-            <Image class="icone-vazio" :size="30" />
-          </div>
+              <v-icon color="primary" icon="mdi-chevron-right" />
+            </button>
 
-          <h3>Nenhum aluno cadastrado</h3>
-          <p>Adicione uma foto da chamada para cadastrar os alunos.</p>
-          <small>Os estudantes da turma aparecerão aqui.</small>
-        </section>
+            <button
+              v-if="alunos.length > 4"
+              class="ver-todos"
+              type="button"
+              @click="mostrarTodos = !mostrarTodos"
+            >
+              {{ mostrarTodos ? 'Mostrar menos' : `Ver todos os ${totalEstudantes} estudantes` }}
+            </button>
+          </section>
+
+          <section v-else class="cartao-vazio">
+            <div class="icone-vazio-container">
+              <v-icon color="primary" icon="mdi-image-outline" size="30" />
+            </div>
+
+            <h3>Nenhum aluno cadastrado</h3>
+            <p>Adicione os alunos para começar a acompanhar a turma.</p>
+            <small>Os estudantes da turma aparecerão aqui.</small>
+          </section>
+        </MascoteCard>
 
         <aside class="cartao-apoio">
           <div>
@@ -138,17 +126,17 @@
       </div>
 
       <AlunoDetalhesModal
-        v-if="alunoSelecionado"
-        :aberto="Boolean(alunoSelecionado)"
-        :aluno="alunoSelecionado"
+        v-if="estudanteSelecionado"
+        :aberto="Boolean(estudanteSelecionado)"
+        :aluno="estudanteSelecionado"
         :turma-nome="turma.nome"
         :turno="turnoFormatado"
-        @fechar="alunoSelecionado = null"
+        @fechar="estudanteSelecionado = null"
       />
     </template>
 
     <section v-else class="cartao-vazio estado-aba">
-      <Clock class="icone-vazio" :size="40" />
+      <v-icon color="primary" icon="mdi-progress-clock" size="40" />
       <h3>{{ abaAtiva === 'atividades' ? 'Atividades' : 'Registros' }}</h3>
       <p>Esta seção estará disponível em breve.</p>
     </section>
@@ -177,20 +165,11 @@
         </v-card-text>
 
         <v-card-actions class="px-6 pb-5 pt-0 justify-end ga-2">
-          <v-btn
-            :disabled="salvandoEstudante"
-            variant="text"
-            @click="fecharDialogNovoEstudante"
-          >
+          <v-btn :disabled="salvandoEstudante" variant="text" @click="fecharDialogNovoEstudante">
             Cancelar
           </v-btn>
 
-          <v-btn
-            color="primary"
-            :loading="salvandoEstudante"
-            variant="flat"
-            @click="salvarNovoEstudante"
-          >
+          <v-btn color="primary" :loading="salvandoEstudante" variant="flat" @click="salvarNovoEstudante">
             Salvar
           </v-btn>
         </v-card-actions>
@@ -201,10 +180,9 @@
 
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
-  import { Camera, ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
-  import { computed, onMounted, ref, watch } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
 
+  import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import iconeNotebookUrl from '@/assets/icone-notebook.svg'
   import { useAlunosStore, useEscolasStore } from '@/stores'
   import { notify } from '@/utils/notify'
@@ -213,19 +191,29 @@
   const router = useRouter()
   const escolasStore = useEscolasStore()
   const alunosStore = useAlunosStore()
-
   const carregando = ref(true)
   const dialogNovoEstudante = ref(false)
   const novoEstudanteNome = ref('')
   const erroNomeEstudante = ref('')
   const salvandoEstudante = ref(false)
-  const alunoSelecionado = ref<Aluno | null>(null)
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
   ] as const
 
   const abaAtiva = ref<(typeof abas)[number]['id']>('estudantes')
+  const mascote = useTemplateRef<{ acenar: (ms?: number) => void }>('mascote')
+  const alunos = computed(() => alunosStore.alunos)
+  const mostrarTodos = ref(false)
+  const alunosVisiveis = computed(() =>
+    mostrarTodos.value ? alunos.value : alunos.value.slice(0, 4))
+  const descricoesEstudantes = [
+    'Perfil pedagógico atualizado',
+    '2 registros recentes',
+    'Perfil pedagógico atualizado',
+    '1 observação pendente',
+  ]
+  const estudanteSelecionado = ref<Aluno | null>(null)
 
   const mapaTurno: Record<string, string> = {
     manha: 'Manhã',
@@ -241,41 +229,46 @@
   })
 
   const turma = computed(() => escolasStore.turmaAtual)
-  const alunos = computed(() => alunosStore.alunos)
-
   const turnoFormatado = computed(() => {
-    if (!turma.value) {
-      return 'Manhã'
-    }
-    if (turma.value.turno_display) {
-      return turma.value.turno_display
-    }
-    const chave = turma.value.turno ?? ''
-    return mapaTurno[chave] ?? (chave || 'Manhã')
+    if (!turma.value) return 'Manhã'
+    if (turma.value.turno_display) return turma.value.turno_display
+    return mapaTurno[turma.value.turno ?? ''] ?? (turma.value.turno || 'Manhã')
   })
-
   const totalEstudantes = computed(() => {
-    if (typeof turma.value?.total_estudantes === 'number') {
-      return Math.max(turma.value.total_estudantes, alunos.value.length)
-    }
-    return alunos.value.length
+    const total = turma.value?.total_estudantes
+    return typeof total === 'number' ? Math.max(total, alunos.value.length) : alunos.value.length
   })
-
   const codigoNumero = computed(() => {
-    const nome = turma.value?.nome ?? ''
-    const match = nome.match(/\d+/)
-    const numero = match ? Number(match[0]) : (turma.value?.id ?? 1)
-    return String(numero).padStart(2, '0')
+    const match = turma.value?.nome.match(/\d+/)
+    return String(match ? Number(match[0]) : (turma.value?.id ?? 1)).padStart(2, '0')
   })
 
-  function obterInicial (nome: string) {
-    const limpo = nome.trim()
-    return (limpo.charAt(0) || '?').toUpperCase()
+  function iniciais (nome: string) {
+    return nome
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(parte => parte[0])
+      .join('')
+      .toUpperCase()
+  }
+
+  function descricaoEstudante (estudante: Aluno, index: number) {
+    return descricoesEstudantes[index] ?? (
+      estudante.meta_dados ? 'Perfil pedagógico atualizado' : 'Sem registros recentes'
+    )
+  }
+
+  function abrirDetalhes (aluno: Aluno) {
+    estudanteSelecionado.value = aluno
+  }
+
+  function adicionarAlunos () {
+    abrirDialogNovoEstudante()
   }
 
   async function carregarDados () {
-    const id = turmaId.value
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(turmaId.value) || turmaId.value <= 0) {
       notify.error('Turma não encontrada.')
       await router.push('/turmas')
       return
@@ -284,8 +277,8 @@
     carregando.value = true
     try {
       await Promise.all([
-        escolasStore.fetchTurma(id),
-        alunosStore.fetchAlunos({ turma: id }),
+        escolasStore.fetchTurma(turmaId.value),
+        alunosStore.fetchAlunos({ turma: turmaId.value }),
       ])
     } catch (error) {
       notify.error(error instanceof Error ? error.message : 'Turma não encontrada.')
@@ -316,14 +309,7 @@
 
     salvandoEstudante.value = true
     try {
-      await alunosStore.createAluno({
-        nome,
-        turma: turmaId.value,
-      })
-      await Promise.all([
-        escolasStore.fetchTurma(turmaId.value),
-        alunosStore.fetchAlunos({ turma: turmaId.value }),
-      ])
+      await alunosStore.createAluno({ nome, turma: turmaId.value })
       notify.success('Estudante cadastrado com sucesso!')
       fecharDialogNovoEstudante()
     } catch (error) {
@@ -333,34 +319,35 @@
     }
   }
 
-  function acionarUploadFoto () {
-    // TODO: integrar chamada por foto (Backend_template#38).
-    console.info('Ação: adicionar foto da chamada')
-  }
-
   function adicionarAtividade () {
     // TODO: abrir modal de criação de atividade.
-    console.info('Ação: criar nova atividade')
+    mascote.value?.acenar()
   }
 
-  onMounted(() => {
-    carregarDados()
-  })
-
+  onMounted(carregarDados)
   watch(turmaId, (novoId, antigoId) => {
-    if (novoId !== antigoId) {
-      alunoSelecionado.value = null
-      carregarDados()
-    }
+    if (novoId !== antigoId) carregarDados()
   })
 </script>
 
 <style scoped>
+/* Sai do v-container para usar a largura da tela, com as mesmas laterais do header. */
 .pagina-turma {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 0 1rem;
+  margin-inline: calc(50% - 50vw);
+  padding: 0 16px 1rem;
   color: #1f3a2c;
+}
+
+@media (min-width: 640px) {
+  .pagina-turma {
+    padding-inline: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pagina-turma {
+    padding-inline: 112px;
+  }
 }
 
 .breadcrumbs {
@@ -375,10 +362,6 @@
 .crumb-link {
   color: inherit;
   text-decoration: none;
-}
-
-.crumb-link:hover {
-  text-decoration: underline;
 }
 
 .banner-turma {
@@ -555,7 +538,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
   margin-bottom: 1.8rem;
 }
 
@@ -574,17 +556,10 @@
   font-size: 0.88rem;
 }
 
-.acoes-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-adicionar-estudante,
-.btn-adicionar-foto {
+.btn-adicionar-alunos {
   min-width: 180px;
   min-height: 44px;
+  transform: translateY(4px);
 }
 
 .grelha-conteudo {
@@ -594,13 +569,93 @@
 }
 
 .cartao-vazio,
-.cartao-apoio,
-.cartao-lista-alunos {
+.cartao-estudante,
+.cartao-apoio {
   min-height: 280px;
   padding: 2rem;
   border: 1px solid #e1eee6;
   border-radius: 18px;
   background: #fff;
+  text-align: center;
+}
+
+.cartao-lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  padding: 1.15rem;
+  border: 1px solid #e1eee6;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.cartao-estudante {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #e1eee6;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.cartao-estudante + .cartao-estudante {
+  margin-top: 0.35rem;
+}
+
+.cartao-estudante:hover,
+.cartao-estudante:focus-visible {
+  border-color: #8ebda2;
+  box-shadow: 0 8px 20px rgb(38 61 53 / 10%);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.estudante-avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaf3ed;
+  color: #27523f;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cartao-estudante h3 {
+  margin: 0;
+  color: #1b3829;
+  font-size: 0.84rem;
+}
+
+.cartao-estudante p {
+  margin: 0;
+  color: #6a8276;
+  font-size: 0.7rem;
+}
+
+.estudante-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.ver-todos {
+  margin-top: auto;
+  padding: 0.75rem 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: #2b6a51;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .cartao-vazio {
@@ -608,98 +663,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-}
-
-.cartao-lista-alunos {
-  padding: 1.25rem;
-}
-
-.lista-alunos {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.item-aluno {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1.1rem;
-  border: 1px solid #e1eee6;
-  border-radius: 12px;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.item-aluno:hover,
-.item-aluno:focus-visible {
-  border-color: #bdd3c6;
-  background: #f9fcfa;
-  outline: none;
-}
-
-.aluno-principal {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  min-width: 0;
-}
-
-.avatar-aluno {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.avatar-tom-0 {
-  background: #a8c5b8;
-  color: #1f3a2c;
-}
-
-.avatar-tom-1 {
-  background: #d7e5dd;
-  color: #224334;
-}
-
-.avatar-tom-2 {
-  background: #ebd9c0;
-  color: #5a4221;
-}
-
-.aluno-texto {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.aluno-texto strong {
-  overflow: hidden;
-  color: #1a3629;
-  font-size: 0.96rem;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.aluno-texto small {
-  color: #6a8276;
-  font-size: 0.8rem;
-}
-
-.icone-seta {
-  flex-shrink: 0;
-  color: #386754;
 }
 
 .icone-vazio-container {
@@ -712,10 +675,6 @@
   background: #eaf3ed;
 }
 
-.icone-vazio {
-  color: #386754;
-}
-
 .cartao-vazio small {
   margin-top: 0.25rem;
   color: #8da498;
@@ -725,6 +684,8 @@
 .cartao-apoio {
   display: flex;
   flex-direction: column;
+  align-self: start;
+  box-sizing: border-box;
   justify-content: space-between;
   background: #eef5f0;
   border-color: #d9eae0;
@@ -753,13 +714,7 @@
 }
 
 @media (max-width: 680px) {
-  .pagina-turma {
-    padding: 1rem;
-  }
-
-  .acoes-header,
-  .btn-adicionar-estudante,
-  .btn-adicionar-foto {
+  .btn-adicionar-alunos {
     width: 100%;
   }
 

@@ -85,6 +85,15 @@ class EscolasService {
 }
 
 class TurmasService {
+  async get (id: number) {
+    try {
+      const { data } = await api.get<Turma>(`turmas/${id}/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar a turma.')
+    }
+  }
+
   async list (params: { escola?: number, search?: string, page?: number } = {}) {
     try {
       const { data } = await api.get<Paginated<Turma>>('turmas/', { params })

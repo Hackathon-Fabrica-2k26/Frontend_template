@@ -45,7 +45,7 @@ export interface Turma {
 
 export interface TurmaPayload {
   nome: string
-  escola: number
+  escola?: number
   professores?: number[]
   turno?: TurnoTurma
 }
