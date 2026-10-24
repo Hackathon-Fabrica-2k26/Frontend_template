@@ -18,6 +18,7 @@ declare module 'vue' {
     AppHeaderUser: typeof import('./components/AppHeaderUser.vue')['default']
     AppNotice: typeof import('./components/AppNotice.vue')['default']
     AppNotifications: typeof import('./components/AppNotifications.vue')['default']
+    AtividadeDetalhesDialog: typeof import('./components/perfil/AtividadeDetalhesDialog.vue')['default']
     AuthInput: typeof import('./components/auth/AuthInput.vue')['default']
     AuthWaves: typeof import('./components/auth/AuthWaves.vue')['default']
     CriarAtividadeModal: typeof import('./components/CriarAtividadeModal.vue')['default']

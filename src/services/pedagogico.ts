@@ -79,6 +79,28 @@ class PedagogicoService {
       throw buildApiError(error, 'Não foi possível gerar o relatório pedagógico.')
     }
   }
+
+  async downloadPdf (id: number, nomeArquivo?: string): Promise<Blob> {
+    try {
+      const { data } = await api.get<Blob>(`relatorios/${id}/pdf/`, {
+        responseType: 'blob',
+      })
+
+      const nomeFinal = nomeArquivo?.endsWith('.pdf') ? nomeArquivo : `${nomeArquivo || `relatorio-${id}`}.pdf`
+      const url = window.URL.createObjectURL(data)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = nomeFinal
+      document.body.append(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível baixar o PDF do relatório.')
+    }
+  }
 }
 
 export const pedagogicoService = new PedagogicoService()
