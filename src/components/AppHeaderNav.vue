@@ -3,15 +3,14 @@
     <router-link
       v-for="link in links"
       :key="link.to"
-      class="group relative rounded-xl px-3 py-2.5 text-[19px] whitespace-nowrap text-primary no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:px-3.5"
-      :class="{ 'font-semibold text-text!': isLinkActive(link.to) }"
-      exact-active-class="font-semibold text-text!"
+      class="group relative rounded-xl px-3 py-2.5 text-[19px] font-semibold whitespace-nowrap text-primary no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:px-3.5"
+      :class="{ 'is-active text-text!': isLinkActive(link.to) }"
       :to="link.to"
     >
       {{ link.title }}
       <span
         aria-hidden="true"
-        class="absolute inset-x-3 bottom-0.5 h-[3px] origin-left scale-x-0 rounded-full bg-accent transition-transform duration-500 ease-out-expo group-hover:scale-x-100 group-[.font-semibold]:scale-x-100 motion-reduce:transition-none"
+        class="absolute inset-x-3 bottom-0.5 h-[3px] origin-left scale-x-0 rounded-full bg-accent transition-transform duration-500 ease-out-expo group-hover:scale-x-100 group-[.is-active]:scale-x-100 motion-reduce:transition-none"
       />
     </router-link>
   </nav>
@@ -53,6 +52,7 @@
   const { mdAndUp } = useDisplay()
 
   function isLinkActive (to: string): boolean {
+    // O Início abre a lista de turmas: fica ativo (com a borda embaixo) só em / e /turmas.
     if (to === '/') {
       return route.path === '/' || route.path === '/turmas'
     }
