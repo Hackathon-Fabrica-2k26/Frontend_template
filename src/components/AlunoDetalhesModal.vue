@@ -67,7 +67,16 @@
               <div class="nome-bloco">
                 <h3>{{ aluno.nome }}</h3>
                 <p>{{ turmaNome }} · {{ turno }}</p>
-                <span class="status">Aluno ativo</span>
+
+                <div class="status-linha">
+                  <span class="status">Aluno ativo</span>
+
+                  <ConsentimentoBadge
+                    compacto
+                    :status="consentimentoStore.obterStatus(aluno.id)"
+                    @click="dialogTermoAberto = true"
+                  />
+                </div>
               </div>
             </section>
 
@@ -111,6 +120,39 @@
                 Participa das propostas em sala e demonstra interesse pela leitura, escrita e
                 atividades de contagem.
               </p>
+            </section>
+
+            <section class="bloco bloco-consentimento">
+              <div class="consentimento-topo">
+                <h4>Privacidade & LGPD (Art. 14)</h4>
+
+                <ConsentimentoBadge
+                  :status="consentimentoStore.obterStatus(aluno.id)"
+                  @click="dialogTermoAberto = true"
+                />
+              </div>
+
+              <p v-if="consentimentoStore.obterStatus(aluno.id) === 'ativo'" class="texto-consentimento">
+                Autorização registrada para uso pedagógico assistido por IA. Dados processados com anonimização.
+              </p>
+
+              <p v-else-if="consentimentoStore.obterStatus(aluno.id) === 'revogado'" class="texto-consentimento texto-consentimento--alerta">
+                Autorização revogada pelo responsável. Relatórios e análises de IA deste aluno foram excluídos.
+              </p>
+
+              <p v-else class="texto-consentimento texto-consentimento--pendente">
+                Autorização pendente. O sistema bloqueia análises por IA deste estudante até que o responsável autorize.
+              </p>
+
+              <v-btn
+                class="btn-gerenciar-lgpd"
+                color="primary"
+                size="small"
+                variant="outlined"
+                @click="dialogTermoAberto = true"
+              >
+                Gerenciar autorização LGPD
+              </v-btn>
             </section>
 
             <section class="bloco">
@@ -163,6 +205,15 @@
             </button>
           </footer>
         </section>
+
+        <TermoConsentimentoDialog
+          v-if="dialogTermoAberto"
+          v-model="dialogTermoAberto"
+          :aluno-id="aluno.id"
+          :aluno-nome="aluno.nome"
+          :turma-id="aluno.turma"
+          @alterado="carregar"
+        />
       </div>
     </div>
   </Teleport>
@@ -178,6 +229,7 @@
   import { SIMBOLO } from '@/assets/mascote-simbolo'
   import { observacoesService } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
+  import { useConsentimentoStore } from '@/stores'
 
   const props = defineProps<{
     aluno: Aluno
@@ -191,8 +243,10 @@
   }>()
 
   const router = useRouter()
+  const consentimentoStore = useConsentimentoStore()
   const inputFoto = ref<HTMLInputElement | null>(null)
   const foto = ref('')
+  const dialogTermoAberto = ref(false)
 
   const iniciais = computed(() =>
     props.aluno.nome
@@ -224,11 +278,12 @@
     return iso ? new Date(iso).toLocaleDateString('pt-BR') : '—'
   }
 
-  // Atividades da turma e observações do aluno vêm da API; falha em qualquer uma só esvazia a seção.
+  // Atividades da turma, observações e consentimento do aluno vêm da API; falha em qualquer uma só esvazia a seção.
   async function carregar () {
     const [ativ, obs] = await Promise.allSettled([
       atividadesService.list({ turma: props.aluno.turma }),
       observacoesService.list({ aluno: props.aluno.id }),
+      consentimentoStore.carregarConsentimento(props.aluno.id),
     ])
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
     pontosAtencao.value = obs.status === 'fulfilled' ? obs.value.results : []
@@ -741,6 +796,54 @@
     inset: 8px;
     width: auto;
   }
+}
+
+.status-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bloco-consentimento {
+  background: #f7f9f8;
+  border: 1px solid #e1ebe5;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.consentimento-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.consentimento-topo h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #263d35;
+}
+
+.texto-consentimento {
+  font-size: 0.8rem;
+  color: #52695f;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+
+.texto-consentimento--alerta {
+  color: #8a3434;
+}
+
+.texto-consentimento--pendente {
+  color: #795217;
+}
+
+.btn-gerenciar-lgpd {
+  font-weight: 500;
 }
 
 @media (prefers-reduced-motion: reduce) {

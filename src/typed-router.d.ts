@@ -79,6 +79,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/responsavel/consentimento': RouteRecordInfo<
+      '/responsavel/consentimento',
+      '/responsavel/consentimento',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/turmas/': RouteRecordInfo<
       '/turmas/',
       '/turmas',
@@ -158,6 +165,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/relatorios/novo.vue': {
       routes:
         | '/relatorios/novo'
+      views:
+        | never
+    }
+    'src/pages/responsavel/consentimento.vue': {
+      routes:
+        | '/responsavel/consentimento'
       views:
         | never
     }
