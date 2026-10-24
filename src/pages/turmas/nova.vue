@@ -37,293 +37,293 @@
     },
   })
 
-interface AlunoEditavel extends NomeReconhecido {
-  revisado: boolean
-}
+  interface AlunoEditavel extends NomeReconhecido {
+    revisado: boolean
+  }
 
-const router = useRouter()
+  const router = useRouter()
 
-const passo = ref<1 | 2>(1)
-const criada = ref(false)
-const nome = ref('')
-const anoLetivoTexto = ref(String(new Date().getFullYear()))
-const turno = ref('Manhã')
-const turnos = ['Manhã', 'Tarde', 'Noite', 'Integral']
-const turnoAberto = ref(false)
-const turnoRef = ref<HTMLElement | null>(null)
+  const passo = ref<1 | 2>(1)
+  const criada = ref(false)
+  const nome = ref('')
+  const anoLetivoTexto = ref(String(new Date().getFullYear()))
+  const turno = ref('Manhã')
+  const turnos = ['Manhã', 'Tarde', 'Noite', 'Integral']
+  const turnoAberto = ref(false)
+  const turnoRef = ref<HTMLElement | null>(null)
 
-const foto = ref<File | null>(null)
-const fotoUrl = ref<string | null>(null)
-const fileInput = ref<HTMLInputElement | null>(null)
-const arrastando = ref(false)
+  const foto = ref<File | null>(null)
+  const fotoUrl = ref<string | null>(null)
+  const fileInput = ref<HTMLInputElement | null>(null)
+  const arrastando = ref(false)
 
-const alunos = ref<AlunoEditavel[]>([])
-const processando = ref(false)
-const salvando = ref(false)
-const mensagemErro = ref('')
-const mensagemSucesso = ref('')
-let proximoId = 0
+  const alunos = ref<AlunoEditavel[]>([])
+  const processando = ref(false)
+  const salvando = ref(false)
+  const mensagemErro = ref('')
+  const mensagemSucesso = ref('')
+  let proximoId = 0
 
-const anoLetivo = computed(() => Number(anoLetivoTexto.value))
+  const anoLetivo = computed(() => Number(anoLetivoTexto.value))
 
-const pendentes = computed(() =>
-  alunos.value.filter(aluno =>
-    aluno.confianca !== null
-    && aluno.confianca < 0.8
-    && !aluno.revisado,
-  ).length,
-)
+  const pendentes = computed(() =>
+    alunos.value.filter(aluno =>
+      aluno.confianca !== null
+      && aluno.confianca < 0.8
+      && !aluno.revisado,
+    ).length,
+  )
 
-function limparErro(): void {
-  mensagemErro.value = ''
-}
+  function limparErro (): void {
+    mensagemErro.value = ''
+  }
 
-function mostrarErro(error: unknown, fallback: string): void {
-  mensagemErro.value = error instanceof Error
-    ? error.message
-    : fallback
+  function mostrarErro (error: unknown, fallback: string): void {
+    mensagemErro.value = error instanceof Error
+      ? error.message
+      : fallback
 
-  mensagemSucesso.value = ''
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
+    mensagemSucesso.value = ''
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
-function normalizarAno(event: Event): void {
-  const input = event.target as HTMLInputElement
-  anoLetivoTexto.value = input.value.replace(/\D/g, '').slice(0, 4)
-  input.value = anoLetivoTexto.value
-  limparErro()
-}
+  function normalizarAno (event: Event): void {
+    const input = event.target as HTMLInputElement
+    anoLetivoTexto.value = input.value.replace(/\D/g, '').slice(0, 4)
+    input.value = anoLetivoTexto.value
+    limparErro()
+  }
 
-function selecionarTurno(valor: string): void {
-  turno.value = valor
-  turnoAberto.value = false
-  limparErro()
-}
-
-function fecharTurnoFora(event: PointerEvent): void {
-  if (
-    turnoRef.value
-    && !turnoRef.value.contains(event.target as Node)
-  ) {
+  function selecionarTurno (valor: string): void {
+    turno.value = valor
     turnoAberto.value = false
-  }
-}
-
-function abrirSeletor(): void {
-  fileInput.value?.click()
-}
-
-function aplicarFoto(arquivo: File): void {
-  const tipos = ['image/jpeg', 'image/png', 'image/webp']
-  const maximo = 20 * 1024 * 1024
-
-  if (!tipos.includes(arquivo.type)) {
-    mostrarErro(
-      new Error('Formato inválido. Use JPG, PNG ou WEBP.'),
-      'Arquivo inválido.',
-    )
-    return
+    limparErro()
   }
 
-  if (arquivo.size > maximo) {
-    mostrarErro(
-      new Error('A foto deve ter no máximo 20 MB.'),
-      'Arquivo muito grande.',
-    )
-    return
+  function fecharTurnoFora (event: PointerEvent): void {
+    if (
+      turnoRef.value
+      && !turnoRef.value.contains(event.target as Node)
+    ) {
+      turnoAberto.value = false
+    }
   }
 
-  if (fotoUrl.value) {
-    URL.revokeObjectURL(fotoUrl.value)
+  function abrirSeletor (): void {
+    fileInput.value?.click()
   }
 
-  foto.value = arquivo
-  fotoUrl.value = URL.createObjectURL(arquivo)
-  alunos.value = []
-  limparErro()
-}
+  function aplicarFoto (arquivo: File): void {
+    const tipos = ['image/jpeg', 'image/png', 'image/webp']
+    const maximo = 20 * 1024 * 1024
 
-function selecionarFoto(event: Event): void {
-  const input = event.target as HTMLInputElement
-  const arquivo = input.files?.[0]
-
-  if (arquivo) aplicarFoto(arquivo)
-  input.value = ''
-}
-
-function soltarFoto(event: DragEvent): void {
-  arrastando.value = false
-  const arquivo = event.dataTransfer?.files[0]
-  if (arquivo) aplicarFoto(arquivo)
-}
-
-function validarDados(): boolean {
-  if (!nome.value.trim()) {
-    mostrarErro(
-      new Error('Informe o nome da turma para continuar.'),
-      'Nome obrigatório.',
-    )
-    return false
-  }
-
-  if (
-    anoLetivoTexto.value.length !== 4
-    || !Number.isInteger(anoLetivo.value)
-    || anoLetivo.value < 2000
-    || anoLetivo.value > 2100
-  ) {
-    mostrarErro(
-      new Error('Informe um ano letivo válido com quatro dígitos.'),
-      'Ano inválido.',
-    )
-    return false
-  }
-
-  if (!turno.value) {
-    mostrarErro(
-      new Error('Selecione o turno da turma.'),
-      'Turno obrigatório.',
-    )
-    return false
-  }
-
-  return true
-}
-
-async function continuar(): Promise<void> {
-  if (!validarDados() || processando.value || salvando.value) return
-
-  limparErro()
-
-  if (!foto.value) {
-    await criarTurma()
-    return
-  }
-
-  processando.value = true
-
-  try {
-    const resultado = await turmasService.reconhecer(foto.value)
-
-    if (!Array.isArray(resultado.nomes)) {
-      throw new Error('O reconhecimento não retornou uma lista válida.')
+    if (!tipos.includes(arquivo.type)) {
+      mostrarErro(
+        new Error('Formato inválido. Use JPG, PNG ou WEBP.'),
+        'Arquivo inválido.',
+      )
+      return
     }
 
-    alunos.value = resultado.nomes.map((item, index) => ({
-      id: String(item.id ?? `aluno-${index}`),
-      nome: item.nome ?? '',
-      confianca: item.confianca ?? null,
-      revisado: false,
-    }))
+    if (arquivo.size > maximo) {
+      mostrarErro(
+        new Error('A foto deve ter no máximo 20 MB.'),
+        'Arquivo muito grande.',
+      )
+      return
+    }
 
-    passo.value = 2
-    mensagemSucesso.value = 'Reconhecimento concluído! Confira os nomes abaixo.'
-  } catch (error) {
-    mostrarErro(error, 'Não foi possível reconhecer a chamada.')
-  } finally {
-    processando.value = false
+    if (fotoUrl.value) {
+      URL.revokeObjectURL(fotoUrl.value)
+    }
+
+    foto.value = arquivo
+    fotoUrl.value = URL.createObjectURL(arquivo)
+    alunos.value = []
+    limparErro()
   }
-}
 
-function adicionarAluno(): void {
-  alunos.value.push({
-    id: `manual-${++proximoId}`,
-    nome: '',
-    confianca: null,
-    revisado: true,
+  function selecionarFoto (event: Event): void {
+    const input = event.target as HTMLInputElement
+    const arquivo = input.files?.[0]
+
+    if (arquivo) aplicarFoto(arquivo)
+    input.value = ''
+  }
+
+  function soltarFoto (event: DragEvent): void {
+    arrastando.value = false
+    const arquivo = event.dataTransfer?.files[0]
+    if (arquivo) aplicarFoto(arquivo)
+  }
+
+  function validarDados (): boolean {
+    if (!nome.value.trim()) {
+      mostrarErro(
+        new Error('Informe o nome da turma para continuar.'),
+        'Nome obrigatório.',
+      )
+      return false
+    }
+
+    if (
+      anoLetivoTexto.value.length !== 4
+      || !Number.isInteger(anoLetivo.value)
+      || anoLetivo.value < 2000
+      || anoLetivo.value > 2100
+    ) {
+      mostrarErro(
+        new Error('Informe um ano letivo válido com quatro dígitos.'),
+        'Ano inválido.',
+      )
+      return false
+    }
+
+    if (!turno.value) {
+      mostrarErro(
+        new Error('Selecione o turno da turma.'),
+        'Turno obrigatório.',
+      )
+      return false
+    }
+
+    return true
+  }
+
+  async function continuar (): Promise<void> {
+    if (!validarDados() || processando.value || salvando.value) return
+
+    limparErro()
+
+    if (!foto.value) {
+      await criarTurma()
+      return
+    }
+
+    processando.value = true
+
+    try {
+      const resultado = await turmasService.reconhecer(foto.value)
+
+      if (!Array.isArray(resultado.nomes)) {
+        throw new TypeError('O reconhecimento não retornou uma lista válida.')
+      }
+
+      alunos.value = resultado.nomes.map((item, index) => ({
+        id: String(item.id ?? `aluno-${index}`),
+        nome: item.nome ?? '',
+        confianca: item.confianca ?? null,
+        revisado: false,
+      }))
+
+      passo.value = 2
+      mensagemSucesso.value = 'Reconhecimento concluído! Confira os nomes abaixo.'
+    } catch (error) {
+      mostrarErro(error, 'Não foi possível reconhecer a chamada.')
+    } finally {
+      processando.value = false
+    }
+  }
+
+  function adicionarAluno (): void {
+    alunos.value.push({
+      id: `manual-${++proximoId}`,
+      nome: '',
+      confianca: null,
+      revisado: true,
+    })
+    limparErro()
+  }
+
+  function removerAluno (index: number): void {
+    alunos.value.splice(index, 1)
+    limparErro()
+  }
+
+  function voltar (): void {
+    passo.value = 1
+    limparErro()
+    mensagemSucesso.value = ''
+  }
+
+  async function criarTurma (): Promise<void> {
+    if (salvando.value || !validarDados()) return
+
+    const nomes = passo.value === 2
+      ? alunos.value.map(aluno => aluno.nome.trim())
+      : []
+
+    if (nomes.some(nomeAluno => !nomeAluno)) {
+      mostrarErro(
+        new Error('Preencha ou remova os nomes de estudantes que estão vazios.'),
+        'Nome vazio.',
+      )
+      return
+    }
+
+    if (passo.value === 2 && pendentes.value > 0) {
+      mostrarErro(
+        new Error(
+          `Ainda existem ${pendentes.value} nomes para conferir. Edite ou confirme os nomes sinalizados.`,
+        ),
+        'Revisão pendente.',
+      )
+      return
+    }
+
+    const payload: TurmaPayload = {
+      nome: nome.value.trim(),
+      turno: turno.value,
+      ano_letivo: anoLetivo.value,
+      ...(passo.value === 2 ? { alunos: nomes } : {}),
+    }
+
+    salvando.value = true
+    limparErro()
+
+    try {
+      await turmasService.create(payload)
+      criada.value = true
+      mensagemSucesso.value = 'Turma criada com sucesso!'
+    } catch (error) {
+      mostrarErro(error, 'Não foi possível criar a turma.')
+    } finally {
+      salvando.value = false
+    }
+  }
+
+  onMounted(() => {
+    document.addEventListener('pointerdown', fecharTurnoFora)
   })
-  limparErro()
-}
 
-function removerAluno(index: number): void {
-  alunos.value.splice(index, 1)
-  limparErro()
-}
-
-function voltar(): void {
-  passo.value = 1
-  limparErro()
-  mensagemSucesso.value = ''
-}
-
-async function criarTurma(): Promise<void> {
-  if (salvando.value || !validarDados()) return
-
-  const nomes = passo.value === 2
-    ? alunos.value.map(aluno => aluno.nome.trim())
-    : []
-
-  if (nomes.some(nomeAluno => !nomeAluno)) {
-    mostrarErro(
-      new Error('Preencha ou remova os nomes de estudantes que estão vazios.'),
-      'Nome vazio.',
-    )
-    return
-  }
-
-  if (passo.value === 2 && pendentes.value > 0) {
-    mostrarErro(
-      new Error(
-        `Ainda existem ${pendentes.value} nomes para conferir. Edite ou confirme os nomes sinalizados.`,
-      ),
-      'Revisão pendente.',
-    )
-    return
-  }
-
-  const payload: TurmaPayload = {
-    nome: nome.value.trim(),
-    turno: turno.value,
-    ano_letivo: anoLetivo.value,
-    ...(passo.value === 2 ? { alunos: nomes } : {}),
-  }
-
-  salvando.value = true
-  limparErro()
-
-  try {
-    await turmasService.create(payload)
-    criada.value = true
-    mensagemSucesso.value = 'Turma criada com sucesso!'
-  } catch (error) {
-    mostrarErro(error, 'Não foi possível criar a turma.')
-  } finally {
-    salvando.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('pointerdown', fecharTurnoFora)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', fecharTurnoFora)
-  if (fotoUrl.value) URL.revokeObjectURL(fotoUrl.value)
-})
+  onBeforeUnmount(() => {
+    document.removeEventListener('pointerdown', fecharTurnoFora)
+    if (fotoUrl.value) URL.revokeObjectURL(fotoUrl.value)
+  })
 </script>
 
 <template>
   <main class="nova-turma">
     <div class="page-wrap">
 
-<nav class="breadcrumb" aria-label="Navegação">
-  <RouterLink to="/turmas" class="breadcrumb-link">
-    Minhas turmas
-  </RouterLink>
+      <nav aria-label="Navegação" class="breadcrumb">
+        <RouterLink class="breadcrumb-link" to="/turmas">
+          Minhas turmas
+        </RouterLink>
 
-  <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-separator">/</span>
 
-  <span class="breadcrumb-current" aria-current="page">
-    Nova turma
-  </span>
-</nav>
-
+        <span aria-current="page" class="breadcrumb-current">
+          Nova turma
+        </span>
+      </nav>
 
       <header class="page-heading">
         <div>
           <h1>
             {{ criada ? 'Turma criada!' : passo === 1 ? 'Nova turma' : 'Confira os nomes reconhecidos' }}
           </h1>
+
           <p>
             {{
               criada
@@ -334,6 +334,7 @@ onBeforeUnmount(() => {
             }}
           </p>
         </div>
+
         <div class="heading-illustration">
           <BookOpen :size="35" :stroke-width="1.5" />
           <Sparkles :size="18" />
@@ -366,7 +367,8 @@ onBeforeUnmount(() => {
       <div v-if="mensagemErro" class="message error-message" role="alert">
         <AlertCircle :size="19" />
         <span>{{ mensagemErro }}</span>
-        <button type="button" aria-label="Fechar aviso" @click="mensagemErro = ''">
+
+        <button aria-label="Fechar aviso" type="button" @click="mensagemErro = ''">
           <X :size="16" />
         </button>
       </div>
@@ -380,13 +382,17 @@ onBeforeUnmount(() => {
         <div class="success-icon">
           <CheckCircle2 :size="42" />
         </div>
+
         <h2>{{ nome.trim() }}</h2>
+
         <p>
           {{ anoLetivo }} · {{ turno }}
         </p>
+
         <p>
           {{ alunos.length }} estudantes incluídos no cadastro.
         </p>
+
         <button class="primary-button" type="button" @click="router.push('/turmas')">
           Ver minhas turmas
           <ArrowRight :size="17" />
@@ -397,6 +403,7 @@ onBeforeUnmount(() => {
         <div class="loading-circle">
           <ScanText :size="32" />
         </div>
+
         <h2>Reconhecendo os nomes...</h2>
         <p>A Marsupi está analisando a foto da chamada.</p>
         <div class="loading-track"><span /></div>
@@ -413,14 +420,16 @@ onBeforeUnmount(() => {
             <form novalidate @submit.prevent="continuar">
               <div class="field">
                 <label for="nome-turma">Nome da turma <span>*</span></label>
+
                 <div class="input-shell">
                   <GraduationCap :size="18" />
+
                   <input
                     id="nome-turma"
                     v-model="nome"
-                    placeholder="Ex.: 1º ano A"
-                    maxlength="100"
                     autocomplete="off"
+                    maxlength="100"
+                    placeholder="Ex.: 1º ano A"
                     @input="limparErro"
                   >
                 </div>
@@ -429,15 +438,17 @@ onBeforeUnmount(() => {
               <div class="field-grid">
                 <div class="field">
                   <label for="ano-letivo">Ano letivo <span>*</span></label>
+
                   <div class="input-shell">
                     <CalendarDays :size="18" />
+
                     <input
                       id="ano-letivo"
                       v-model="anoLetivoTexto"
-                      type="text"
                       inputmode="numeric"
                       maxlength="4"
                       placeholder="2026"
+                      type="text"
                       @input="normalizarAno"
                     >
                   </div>
@@ -448,27 +459,27 @@ onBeforeUnmount(() => {
 
                   <div ref="turnoRef" class="select-wrapper">
                     <button
-                      type="button"
-                      class="select-trigger"
-                      :class="{ opened: turnoAberto }"
-                      aria-labelledby="turno-label"
                       :aria-expanded="turnoAberto"
                       aria-haspopup="listbox"
+                      aria-labelledby="turno-label"
+                      class="select-trigger"
+                      :class="{ opened: turnoAberto }"
+                      type="button"
                       @click="turnoAberto = !turnoAberto"
                     >
                       <Sun :size="18" />
                       <span>{{ turno || 'Selecione o turno' }}</span>
-                      <ChevronDown :size="17" class="select-chevron" />
+                      <ChevronDown class="select-chevron" :size="17" />
                     </button>
 
-                    <div v-if="turnoAberto" class="select-options" role="listbox" aria-labelledby="turno-label">
+                    <div v-if="turnoAberto" aria-labelledby="turno-label" class="select-options" role="listbox">
                       <button
                         v-for="opcao in turnos"
                         :key="opcao"
-                        type="button"
-                        role="option"
                         :aria-selected="turno === opcao"
                         :class="{ selected: turno === opcao }"
+                        role="option"
+                        type="button"
                         @click="selecionarTurno(opcao)"
                       >
                         <span>{{ opcao }}</span>
@@ -485,8 +496,8 @@ onBeforeUnmount(() => {
                 <div
                   class="upload-box"
                   :class="{ 'is-dragging': arrastando }"
-                  @dragover.prevent="arrastando = true"
                   @dragleave.prevent="arrastando = false"
+                  @dragover.prevent="arrastando = true"
                   @drop.prevent="soltarFoto"
                 >
                   <div class="upload-icon">
@@ -495,6 +506,7 @@ onBeforeUnmount(() => {
 
                   <div class="upload-description">
                     <strong>{{ foto?.name || 'Envie a foto da lista de chamada' }}</strong>
+
                     <small>
                       {{
                         foto
@@ -504,16 +516,16 @@ onBeforeUnmount(() => {
                     </small>
                   </div>
 
-                  <button type="button" class="file-button" @click="abrirSeletor">
+                  <button class="file-button" type="button" @click="abrirSeletor">
                     {{ foto ? 'Trocar' : 'Procurar' }}
                   </button>
                 </div>
 
                 <input
                   ref="fileInput"
+                  accept="image/jpeg,image/png,image/webp"
                   class="hidden-file"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
                   @change="selecionarFoto"
                 >
 
@@ -523,12 +535,12 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="form-actions">
-                <button type="button" class="secondary-button" @click="router.push('/turmas')">
+                <button class="secondary-button" type="button" @click="router.push('/turmas')">
                   Cancelar
                 </button>
 
-                <button type="submit" class="primary-button" :disabled="salvando">
-                  <LoaderCircle v-if="salvando" :size="17" class="spin" />
+                <button class="primary-button" :disabled="salvando" type="submit">
+                  <LoaderCircle v-if="salvando" class="spin" :size="17" />
                   {{ salvando ? 'Criando...' : foto ? 'Reconhecer nomes' : 'Criar sem foto' }}
                   <ArrowRight v-if="!salvando" :size="17" />
                 </button>
@@ -540,6 +552,7 @@ onBeforeUnmount(() => {
             <div class="info-icon">
               <ScanText :size="25" />
             </div>
+
             <h2>Uma foto, menos cadastro.</h2>
             <p>Envie a lista completa da turma. A Marsupi encontra os nomes para você.</p>
 
@@ -578,11 +591,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="student-list">
-              <div
-                v-for="(aluno, index) in alunos"
-                :key="aluno.id"
-                class="student-row"
-              >
+              <div v-for="(aluno, index) in alunos" :key="aluno.id" class="student-row">
                 <span class="student-number">
                   {{ String(index + 1).padStart(2, '0') }}
                 </span>
@@ -602,28 +611,24 @@ onBeforeUnmount(() => {
                   {{
                     aluno.revisado
                       ? 'Conferido'
-                      : aluno.confianca !== null && aluno.confianca < 0.8
-                        ? 'Conferir nome'
-                        : 'Reconhecido'
-                  }}
-                </span>
+                      : aluno.confianca !== null && aluno.confianca < 0.8 ? 'Conferir nome' : 'Reconhecido' }} </span>
 
                 <button
                   v-if="aluno.confianca !== null && aluno.confianca < 0.8 && !aluno.revisado"
-                  type="button"
-                  class="review-check"
                   :aria-label="`Confirmar nome ${index + 1}`"
+                  class="review-check"
                   title="Confirmar nome"
+                  type="button"
                   @click="aluno.revisado = true"
                 >
                   <Check :size="15" />
                 </button>
 
                 <button
-                  type="button"
-                  class="remove-student"
                   :aria-label="`Remover estudante ${index + 1}`"
+                  class="remove-student"
                   title="Remover estudante"
+                  type="button"
                   @click="removerAluno(index)"
                 >
                   <Trash2 :size="15" />
@@ -631,7 +636,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <button type="button" class="add-student" @click="adicionarAluno">
+            <button class="add-student" type="button" @click="adicionarAluno">
               <Plus :size="16" />
               Adicionar nome
             </button>
@@ -641,16 +646,14 @@ onBeforeUnmount(() => {
             <h2>Foto da chamada</h2>
 
             <div class="photo-frame">
-              <img
-                v-if="fotoUrl"
-                :src="fotoUrl"
-                alt="Foto da lista de chamada enviada"
-              >
+              <img v-if="fotoUrl" alt="Foto da lista de chamada enviada" :src="fotoUrl">
+
               <FileImage v-else :size="42" />
             </div>
 
             <p class="photo-name">{{ foto?.name || 'Sem foto' }}</p>
-            <button type="button" class="change-photo" @click="voltar">
+
+            <button class="change-photo" type="button" @click="voltar">
               <RefreshCw :size="14" />
               Trocar foto
             </button>
@@ -658,18 +661,13 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="review-actions">
-          <button type="button" class="secondary-button" @click="voltar">
+          <button class="secondary-button" type="button" @click="voltar">
             <ArrowLeft :size="16" />
             Voltar
           </button>
 
-          <button
-            type="button"
-            class="primary-button"
-            :disabled="salvando"
-            @click="criarTurma"
-          >
-            <LoaderCircle v-if="salvando" :size="17" class="spin" />
+          <button class="primary-button" :disabled="salvando" type="button" @click="criarTurma">
+            <LoaderCircle v-if="salvando" class="spin" :size="17" />
             {{ salvando ? 'Criando turma...' : `Confirmar ${alunos.length} alunos` }}
             <ArrowRight v-if="!salvando" :size="17" />
           </button>
@@ -788,7 +786,7 @@ onBeforeUnmount(() => {
   background: #dde8df;
 }
 
-.progress > div {
+.progress>div {
   height: 100%;
   background: #356b5b;
   transition: width 350ms ease;
@@ -836,7 +834,7 @@ onBeforeUnmount(() => {
   font-weight: 650;
 }
 
-.field label > span:not(.optional) {
+.field label>span:not(.optional) {
   color: #b67e5d;
 }
 
@@ -908,7 +906,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-.select-trigger > span {
+.select-trigger>span {
   flex: 1;
   color: #304a3c;
 }
@@ -1112,7 +1110,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.info-panel > p {
+.info-panel>p {
   margin: 0 0 30px;
   color: #7d9784;
   font-size: 13px;
@@ -1171,7 +1169,7 @@ onBeforeUnmount(() => {
   line-height: 1.5;
 }
 
-.message > span {
+.message>span {
   flex: 1;
 }
 
@@ -1413,7 +1411,6 @@ onBeforeUnmount(() => {
   animation: spin 850ms linear infinite;
 }
 
-
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -1450,16 +1447,25 @@ onBeforeUnmount(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes breathe {
-  50% { transform: scale(1.06); }
+  50% {
+    transform: scale(1.06);
+  }
 }
 
 @keyframes loading-slide {
-  from { transform: translateX(0); }
-  to { transform: translateX(190%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(190%);
+  }
 }
 
 @keyframes dropdown-in {
@@ -1467,6 +1473,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateY(-5px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1474,6 +1481,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 850px) {
+
   .content-grid,
   .review-grid {
     grid-template-columns: 1fr;
@@ -1536,6 +1544,7 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
