@@ -109,11 +109,9 @@
   const caixa = ref<HTMLElement | null>(null)
   const lupa = ref<SVGElement | null>(null)
 
-  // Só as orelhas aparecem no envio parado; processando e revisando ele sobe; na etapa final
-  // a cabeça afunda de vez, porque o canguru inteiro pula para dentro do modal.
-  const subido = computed(() =>
-    props.etapa === 'processamento' || props.etapa === 'revisao' || props.arrastando,
-  )
+  // O canguru já abre espiando com as patas na borda (antes só as orelhas apareciam e ele
+  // parecia sumido); na etapa final a cabeça afunda, porque ele pula para dentro do modal.
+  const subido = computed(() => props.etapa !== 'concluido')
 
   const estado = computed(() => [
     `mm--${props.etapa}`,
@@ -193,7 +191,7 @@
 }
 
 /* Parado no envio, as orelhas se mexem de vez em quando (um tique, com longas pausas). */
-.mm--tras.mm--envio:not(.mm--subido) {
+.mm--tras.mm--envio:not(.mm--arrastando) {
   animation: mm-orelha 7s ease-in-out 2s infinite;
 }
 
