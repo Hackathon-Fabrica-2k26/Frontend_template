@@ -39,7 +39,6 @@
   import type { AtividadeRecente, PerfilResumo } from '@/interfaces/perfil'
   import { computed, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { mockUsuario } from '@/mocks/dados'
   import perfilService from '@/services/perfil'
   import { useAuthStore } from '@/stores/auth'
 
@@ -56,8 +55,8 @@
   const atividades = ref<AtividadeRecente[]>([])
   const sairAberto = ref(false)
 
-  const usuario = computed(() => (auth.user ? { ...auth.user, matricula: auth.user.matricula || mockUsuario.matricula } : mockUsuario))
-  const carregandoTudo = computed(() => !auth.user && estadoTurmas.value === 'carregando')
+  const usuario = computed(() => auth.user)
+  const carregandoTudo = computed(() => !auth.user)
 
   async function carregar (): Promise<void> {
     estadoResumo.value = estadoTurmas.value = estadoAtividades.value = 'carregando'

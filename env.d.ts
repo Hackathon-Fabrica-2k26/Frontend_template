@@ -4,8 +4,6 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
-  /** `false` usa a API real de trabalhos; qualquer outro valor (ou vazio) simula as respostas. */
-  readonly VITE_MOCK_TRABALHOS?: string
 }
 
 declare module 'vue-router' {

@@ -1,25 +1,39 @@
 import type { Turma } from '@/interfaces/escola'
 import type { AtividadeRecente, PerfilResumo } from '@/interfaces/perfil'
-import { mockAtividadesRecentes, mockResumo, mockTurmas } from '@/mocks/dados'
+import { atividadesService } from '@/services/atividades'
+import { turmasService } from '@/services/escolas'
+import pedagogicoService from '@/services/pedagogico'
 
-// A tela de perfil usa só dados do front (src/mocks/dados.ts). A pausa imita a espera de uma
-// requisição e deixa o esqueleto aparecer. Para voltar à API, troque estes métodos por chamadas ao `api`.
-const pausa = (ms = 400) => new Promise(resolve => setTimeout(resolve, ms))
-
+// Os dados do perfil vêm dos recursos da API (turmas, atividades e relatórios).
 class PerfilService {
   async resumo (): Promise<PerfilResumo> {
-    await pausa()
-    return { ...mockResumo }
+    const [turmas, atividades, relatorios] = await Promise.all([
+      turmasService.list(),
+      atividadesService.list(),
+      pedagogicoService.list(),
+    ])
+
+    return {
+      turmas: turmas.count,
+      atividades: atividades.count,
+      trabalhos_analisados: relatorios.count,
+    }
   }
 
   async turmas (): Promise<Turma[]> {
-    await pausa()
-    return mockTurmas.map(turma => ({ ...turma }))
+    return (await turmasService.list()).results
   }
 
   async atividadesRecentes (): Promise<AtividadeRecente[]> {
-    await pausa()
-    return mockAtividadesRecentes.map(item => ({ ...item }))
+    const { results } = await atividadesService.list()
+
+    return results.slice(0, 5).map(atividade => ({
+      id: atividade.id,
+      titulo: atividade.titulo || atividade.nome || 'Atividade',
+      data: atividade.created_at,
+      status: atividade.relatorios && atividade.relatorios.length > 0 ? 'analisada' : 'pendente',
+      turma: atividade.turma,
+    }))
   }
 }
 
