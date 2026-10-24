@@ -131,9 +131,20 @@
             <img alt="" class="icone-notebook" :src="iconeNotebookUrl">
           </div>
 
-          <v-btn block color="primary" @click="adicionarAtividade">
-            Adicionar atividade
-          </v-btn>
+          <div class="acoes-apoio">
+            <v-btn block color="primary" @click="adicionarAtividade">
+              Adicionar atividade
+            </v-btn>
+
+            <v-btn
+              block
+              color="primary"
+              variant="outlined"
+              @click="enviarAberto = true"
+            >
+              Enviar trabalhos
+            </v-btn>
+          </div>
         </aside>
       </div>
 
@@ -203,6 +214,12 @@
       :atividade-nome="turma.nome"
       :estudantes="alunos"
     />
+
+    <CriarAtividadeModal
+      v-model="criarAtividadeAberto"
+      :turma-id="turma.id"
+      :turma-nome="turma.nome"
+    />
   </div>
 </template>
 
@@ -228,6 +245,7 @@
   const salvandoEstudante = ref(false)
   const alunoSelecionado = ref<Aluno | null>(null)
   const enviarAberto = ref(false)
+  const criarAtividadeAberto = ref(false)
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
@@ -347,7 +365,7 @@
   }
 
   function adicionarAtividade () {
-    enviarAberto.value = true
+    criarAtividadeAberto.value = true
   }
 
   onMounted(() => {
@@ -747,6 +765,12 @@
 .icone-notebook {
   width: 104px;
   height: 104px;
+}
+
+.acoes-apoio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
 .estado-aba {
