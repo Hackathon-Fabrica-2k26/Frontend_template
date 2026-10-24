@@ -85,6 +85,11 @@
               v-for="(aluno, index) in alunos"
               :key="aluno.id"
               class="item-aluno"
+              role="button"
+              tabindex="0"
+              @click="alunoSelecionado = aluno"
+              @keydown.enter.prevent="alunoSelecionado = aluno"
+              @keydown.space.prevent="alunoSelecionado = aluno"
             >
               <div class="aluno-principal">
                 <div
@@ -131,6 +136,15 @@
           </v-btn>
         </aside>
       </div>
+
+      <AlunoDetalhesModal
+        v-if="alunoSelecionado"
+        :aberto="Boolean(alunoSelecionado)"
+        :aluno="alunoSelecionado"
+        :turma-nome="turma.nome"
+        :turno="turnoFormatado"
+        @fechar="alunoSelecionado = null"
+      />
     </template>
 
     <section v-else class="cartao-vazio estado-aba">
@@ -186,6 +200,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { Aluno } from '@/interfaces/aluno'
   import { Camera, ChevronRight, Clock, Image, UserPlus } from '@lucide/vue'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
@@ -204,6 +219,7 @@
   const novoEstudanteNome = ref('')
   const erroNomeEstudante = ref('')
   const salvandoEstudante = ref(false)
+  const alunoSelecionado = ref<Aluno | null>(null)
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
@@ -333,6 +349,7 @@
 
   watch(turmaId, (novoId, antigoId) => {
     if (novoId !== antigoId) {
+      alunoSelecionado.value = null
       carregarDados()
     }
   })
@@ -616,12 +633,15 @@
   border: 1px solid #e1eee6;
   border-radius: 12px;
   background: #fff;
+  cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.item-aluno:hover {
+.item-aluno:hover,
+.item-aluno:focus-visible {
   border-color: #bdd3c6;
   background: #f9fcfa;
+  outline: none;
 }
 
 .aluno-principal {
