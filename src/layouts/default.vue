@@ -9,10 +9,7 @@
 </template>
 
 <script setup lang="ts">
-  const links = [
-    { title: 'Início', to: '/' },
-    { title: 'Minhas turmas', to: '/turmas' },
-  ]
+  import { menuLinks as links } from '@/config/menu'
 </script>
 
 <style scoped>
