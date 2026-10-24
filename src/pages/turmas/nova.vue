@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { NomeReconhecido, TurmaPayload } from '@/interfaces/turma'
+  import type { NomeReconhecido, TurmaPayload, TurnoTurma } from '@/interfaces/escola'
   import {
     AlertCircle,
     AlertTriangle,
@@ -29,7 +29,7 @@
     ref,
   } from 'vue'
   import { useRouter } from 'vue-router'
-  import turmasService from '@/services/turmas'
+  import { useEscolasStore } from '@/stores/escolas'
 
   definePage({
     meta: {
@@ -42,13 +42,23 @@
   }
 
   const router = useRouter()
+  const escolasStore = useEscolasStore()
 
   const passo = ref<1 | 2>(1)
   const criada = ref(false)
+  const turmaCriadaId = ref<number | null>(null)
   const nome = ref('')
   const anoLetivoTexto = ref(String(new Date().getFullYear()))
-  const turno = ref('Manhã')
-  const turnos = ['Manhã', 'Tarde', 'Noite', 'Integral']
+  const turno = ref<TurnoTurma>('manha')
+  const turnos: Array<{ label: string, value: TurnoTurma }> = [
+    { label: 'Manhã', value: 'manha' },
+    { label: 'Tarde', value: 'tarde' },
+    { label: 'Noite', value: 'noite' },
+    { label: 'Integral', value: 'integral' },
+  ]
+  const turnoLabel = computed(
+    () => turnos.find(opcao => opcao.value === turno.value)?.label ?? turno.value,
+  )
   const turnoAberto = ref(false)
   const turnoRef = ref<HTMLElement | null>(null)
 
@@ -94,7 +104,7 @@
     limparErro()
   }
 
-  function selecionarTurno (valor: string): void {
+  function selecionarTurno (valor: TurnoTurma): void {
     turno.value = valor
     turnoAberto.value = false
     limparErro()
@@ -203,7 +213,7 @@
     processando.value = true
 
     try {
-      const resultado = await turmasService.reconhecer(foto.value)
+      const resultado = await escolasStore.reconhecerChamada(foto.value)
 
       if (!Array.isArray(resultado.nomes)) {
         throw new TypeError('O reconhecimento não retornou uma lista válida.')
@@ -282,9 +292,11 @@
     limparErro()
 
     try {
-      await turmasService.create(payload)
+      const novaTurma = await escolasStore.createTurma(payload)
+      turmaCriadaId.value = novaTurma.id
       criada.value = true
       mensagemSucesso.value = 'Turma criada com sucesso!'
+      await router.push(`/turmas/${novaTurma.id}`)
     } catch (error) {
       mostrarErro(error, 'Não foi possível criar a turma.')
     } finally {
@@ -386,15 +398,15 @@
         <h2>{{ nome.trim() }}</h2>
 
         <p>
-          {{ anoLetivo }} · {{ turno }}
+          {{ anoLetivo }} · {{ turnoLabel }}
         </p>
 
         <p>
           {{ alunos.length }} estudantes incluídos no cadastro.
         </p>
 
-        <button class="primary-button" type="button" @click="router.push('/turmas')">
-          Ver minhas turmas
+        <button class="primary-button" type="button" @click="router.push(turmaCriadaId ? `/turmas/${turmaCriadaId}` : '/turmas')">
+          Ver minha turma
           <ArrowRight :size="17" />
         </button>
       </section>
@@ -468,22 +480,22 @@
                       @click="turnoAberto = !turnoAberto"
                     >
                       <Sun :size="18" />
-                      <span>{{ turno || 'Selecione o turno' }}</span>
+                      <span>{{ turnoLabel || 'Selecione o turno' }}</span>
                       <ChevronDown class="select-chevron" :size="17" />
                     </button>
 
                     <div v-if="turnoAberto" aria-labelledby="turno-label" class="select-options" role="listbox">
                       <button
                         v-for="opcao in turnos"
-                        :key="opcao"
-                        :aria-selected="turno === opcao"
-                        :class="{ selected: turno === opcao }"
+                        :key="opcao.value"
+                        :aria-selected="turno === opcao.value"
+                        :class="{ selected: turno === opcao.value }"
                         role="option"
                         type="button"
-                        @click="selecionarTurno(opcao)"
+                        @click="selecionarTurno(opcao.value)"
                       >
-                        <span>{{ opcao }}</span>
-                        <Check v-if="turno === opcao" :size="16" />
+                        <span>{{ opcao.label }}</span>
+                        <Check v-if="turno === opcao.value" :size="16" />
                       </button>
                     </div>
                   </div>

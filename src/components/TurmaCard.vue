@@ -3,10 +3,7 @@
     ref="item"
     class="turma-item"
     :class="{ 'turma-item--ativo': ativo }"
-    @focusin="foco = true"
-    @focusout="foco = false"
-    @pointerenter="hover = true"
-    @pointerleave="hover = false"
+    v-on="handlers"
     @pointermove="seguirMouse"
   >
     <!-- Glow quente que respira atrás do card -->
@@ -53,7 +50,8 @@
 
 <script setup lang="ts">
   import { ArrowRight } from '@lucide/vue'
-  import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+  import { onBeforeUnmount, onMounted, ref } from 'vue'
+  import { useMascoteAtivo } from '@/composables/useMascoteAtivo'
 
   const props = withDefaults(defineProps<{
     nome: string
@@ -66,28 +64,20 @@
   }>(), { icone: 'lapis', saudar: false })
 
   const item = ref<HTMLElement | null>(null)
-  const hover = ref(false)
-  const foco = ref(false)
-  const saudando = ref(false)
-  const ativo = computed(() => hover.value || foco.value || saudando.value)
+  const { ativo, acenar, handlers } = useMascoteAtivo()
 
-  const timers: number[] = []
+  let inicio: number | undefined
 
   onMounted(() => {
     if (!props.saudar || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return
     }
-    timers.push(
-      window.setTimeout(() => (saudando.value = true), 1500),
-      window.setTimeout(() => (saudando.value = false), 4800),
-    )
+    inicio = window.setTimeout(() => acenar(3300), 1500)
   })
 
   onBeforeUnmount(() => {
+    window.clearTimeout(inicio)
     cancelAnimationFrame(quadro)
-    for (const timer of timers) {
-      window.clearTimeout(timer)
-    }
   })
 
   let quadro = 0
@@ -212,6 +202,7 @@
   place-items: center;
   background: #e1eae0;
   border-radius: 50%;
+  border-radius: px 0px 50% 50%;
 }
 
 .turma-card__icone {

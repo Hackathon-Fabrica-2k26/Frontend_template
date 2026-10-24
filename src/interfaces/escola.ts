@@ -36,7 +36,9 @@ export interface Turma {
   nome: string
   escola: number
   professores: number[]
+  ano_letivo?: number
   turno?: TurnoTurma
+  turno_display?: string
   total_estudantes?: number
   created_at?: string
   updated_at?: string
@@ -44,7 +46,19 @@ export interface Turma {
 
 export interface TurmaPayload {
   nome: string
-  escola: number
+  escola?: number
   professores?: number[]
+  ano_letivo?: number
   turno?: TurnoTurma
+  alunos?: string[]
+}
+
+export interface NomeReconhecido {
+  id: string
+  nome: string
+  confianca: number | null
+}
+
+export interface ReconhecimentoChamada {
+  nomes: NomeReconhecido[]
 }

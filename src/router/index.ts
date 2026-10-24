@@ -1,33 +1,59 @@
+import { setupLayouts } from 'virtual:generated-layouts'
 import { createRouter, createWebHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 import { globalRouter } from '@/plugins/globalRouter'
-import { setupLayouts } from 'virtual:generated-layouts'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: setupLayouts(
-    routes.map(route => ({
-      ...route,
-      children: route.children?.map(child => ({
-        ...child,
-        meta: {
-          ...child.meta,
-          layout: false,
-        },
-      })),
-    })),
-  ),
+  routes: setupLayouts(routes),
 })
-
-
 
 globalRouter.router = router
 
-// MODO DESENVOLVIMENTO
-// Autenticação temporariamente desativada.
-// Todas as rotas podem ser acessadas sem login.
+router.beforeEach(to => {
+  const auth = useAuthStore()
 
-// Tratamento de erros de carregamento das rotas.
+  // Login é uma página pública.
+  if (to.path === '/login') {
+    if (auth.isLogged) {
+      return '/'
+    }
+
+    return true
+  }
+
+  // OTP exige que o login tenha sido iniciado.
+  if (to.path === '/otp') {
+    if (auth.isLogged) {
+      return '/'
+    }
+
+    if (!auth.hasPendingOtp) {
+      return '/login'
+    }
+
+    return true
+  }
+
+  // Páginas públicas não exigem autenticação.
+  if (to.meta.public === true) {
+    return true
+  }
+
+  // Protege as páginas privadas.
+  if (!auth.isLogged) {
+    return {
+      path: '/login',
+      query: {
+        redirect: to.fullPath,
+      },
+    }
+  }
+
+  return true
+})
+
 router.onError((err, to) => {
   if (
     err?.message?.includes?.(

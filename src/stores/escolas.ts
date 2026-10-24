@@ -3,6 +3,7 @@ import type {
   ConfigPayload,
   Escola,
   EscolaPayload,
+  ReconhecimentoChamada,
   Turma,
   TurmaPayload,
 } from '@/interfaces/escola'
@@ -14,6 +15,7 @@ export const useEscolasStore = defineStore('escolas', () => {
   const configs = ref<Config[]>([])
   const escolas = ref<Escola[]>([])
   const turmas = ref<Turma[]>([])
+  const turmaAtual = ref<Turma | null>(null)
   const totalConfigs = ref(0)
   const totalEscolas = ref(0)
   const totalTurmas = ref(0)
@@ -99,6 +101,27 @@ export const useEscolasStore = defineStore('escolas', () => {
     }
   }
 
+  async function fetchTurma (id: number) {
+    loading.value = true
+    try {
+      const data = await turmasService.get(id)
+      turmaAtual.value = data
+      const idx = turmas.value.findIndex(t => t.id === id)
+      if (idx === -1) {
+        turmas.value.push(data)
+      } else {
+        turmas.value[idx] = data
+      }
+      return data
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function reconhecerChamada (foto: File): Promise<ReconhecimentoChamada> {
+    return turmasService.reconhecer(foto)
+  }
+
   async function createTurma (payload: TurmaPayload) {
     const item = await turmasService.create(payload)
     turmas.value.unshift(item)
@@ -125,6 +148,7 @@ export const useEscolasStore = defineStore('escolas', () => {
     configs,
     escolas,
     turmas,
+    turmaAtual,
     totalConfigs,
     totalEscolas,
     totalTurmas,
@@ -138,6 +162,8 @@ export const useEscolasStore = defineStore('escolas', () => {
     updateEscola,
     removeEscola,
     fetchTurmas,
+    fetchTurma,
+    reconhecerChamada,
     createTurma,
     updateTurma,
     removeTurma,
