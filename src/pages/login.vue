@@ -181,13 +181,13 @@
     let failed = false
 
     try {
-      await auth.login(
+      const precisaCodigo = await auth.login(
         matricula.value.trim(),
         password.value,
         remember.value,
       )
 
-      // Comemora um instante antes de seguir para o código.
+      // Comemora um instante antes de seguir (para o código, se a conta usa OTP).
       sucesso.value = true
       await new Promise(resolve => setTimeout(resolve, 1300))
 
@@ -209,12 +209,14 @@
         await animation.finished.catch(() => undefined)
       }
 
-      await router.push({
-        path: '/otp',
-        query: route.query.redirect
-          ? { redirect: String(route.query.redirect) }
-          : {},
-      })
+      await (precisaCodigo
+        ? router.push({
+          path: '/otp',
+          query: route.query.redirect
+            ? { redirect: String(route.query.redirect) }
+            : {},
+        })
+        : router.push(String(route.query.redirect || '/')))
     } catch (error: unknown) {
       for (const animation of loginContent.value?.getAnimations() ?? []) {
         animation.cancel()

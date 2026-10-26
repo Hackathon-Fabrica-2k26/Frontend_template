@@ -7,9 +7,14 @@ export interface Tokens {
   refresh: string
 }
 
+// Sem verificação em duas etapas (padrão) o login já devolve os tokens;
+// com ela ligada, devolve o otp_token para a tela do código.
 export interface LoginResponse {
-  otp_token: string
-  email: string
+  otp_required?: boolean
+  otp_token?: string
+  email?: string
+  access?: string
+  refresh?: string
 }
 
 class AuthService {
@@ -70,6 +75,15 @@ class AuthService {
       return data
     } catch (error: unknown) {
       throw buildApiError(error, 'Não foi possível carregar o usuário.')
+    }
+  }
+
+  async definirOtp (ativo: boolean): Promise<User> {
+    try {
+      const { data } = await api.patch<User>('auth/me/', { otp_ativo: ativo })
+      return data
+    } catch (error: unknown) {
+      throw buildApiError(error, 'Não foi possível alterar a verificação em duas etapas.')
     }
   }
 
