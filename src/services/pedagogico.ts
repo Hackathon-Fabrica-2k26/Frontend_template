@@ -11,7 +11,7 @@ import api from '@/plugins/api'
 import { buildApiError } from '@/utils/apiError'
 
 class PedagogicoService {
-  async list (params: { aluno?: number, page?: number } = {}) {
+  async list (params: { aluno?: number, atividade?: number, page?: number } = {}) {
     try {
       const { data } = await api.get<Paginated<Relatorio>>('relatorios/', { params })
       return data
