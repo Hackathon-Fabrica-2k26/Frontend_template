@@ -288,6 +288,10 @@
 
           <!-- Rodapé de Ações -->
           <footer class="rodape">
+            <button class="btn-remover-aluno" type="button" @click="confirmarRemocao = true">
+              <Trash2 :size="16" /> Remover da turma
+            </button>
+
             <p class="rodape-aviso">
               {{ atividades.length > 0 ? 'Exporte os relatórios das atividades em conjunto.' : 'Nenhuma atividade disponível para exportação.' }}
             </p>
@@ -316,18 +320,31 @@
       </div>
     </div>
   </Teleport>
+
+  <v-dialog v-model="confirmarRemocao" max-width="440">
+    <v-card class="pa-6" rounded="lg">
+      <h2 class="text-h6 mb-2">Remover {{ aluno.nome }} da turma?</h2>
+      <p class="mb-5">O estudante sai da lista, dos grupos e das próximas versões de atividade.</p>
+
+      <div class="d-flex justify-end ga-2">
+        <v-btn :disabled="removendo" variant="text" @click="confirmarRemocao = false">Cancelar</v-btn>
+        <v-btn color="error" :loading="removendo" @click="removerAluno">Remover</v-btn>
+      </div>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
   import type { Aluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
-  import { Camera, Check, Copy, Download, FileText, X } from '@lucide/vue'
+  import { Camera, Check, Copy, Download, FileText, Trash2, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import avatarPadraoUrl from '@/assets/mascotes/avatar.svg'
   import { alunosService, observacoesService, type RelatorioDoAluno } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
   import { pedagogicoService } from '@/services/pedagogico'
+  import { useAlunosStore } from '@/stores'
   import { notify } from '@/utils/notify'
 
   interface PontoExibicao {
@@ -346,6 +363,7 @@
 
   const emit = defineEmits<{
     fechar: []
+    removido: [id: number]
   }>()
 
   const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
@@ -511,6 +529,26 @@
     emit('fechar')
   }
 
+  // Remove o estudante da turma (exclusão lógica no back; some da lista e dos grupos).
+  const alunosStore = useAlunosStore()
+  const confirmarRemocao = ref(false)
+  const removendo = ref(false)
+
+  async function removerAluno () {
+    if (removendo.value) return
+    removendo.value = true
+    try {
+      await alunosStore.removeAluno(props.aluno.id)
+      notify.success(`${props.aluno.nome} saiu da turma.`)
+      confirmarRemocao.value = false
+      emit('removido', props.aluno.id)
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível remover o estudante.')
+    } finally {
+      removendo.value = false
+    }
+  }
+
   function aoTeclar (evento: KeyboardEvent) {
     if (evento.key === 'Escape') fechar()
   }
@@ -531,6 +569,25 @@
 </script>
 
 <style scoped>
+.btn-remover-aluno {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: #a23b2a;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-remover-aluno:hover,
+.btn-remover-aluno:focus-visible {
+  text-decoration: underline;
+}
+
 .fundo {
   position: fixed;
   z-index: 1000;

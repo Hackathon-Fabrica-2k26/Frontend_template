@@ -278,7 +278,7 @@
           >Gerar versões com IA</v-btn>
         </div>
 
-        <p v-if="variacoes.length === 0">A atividade é cadastrada uma vez. A IA prepara a versão geral e as adaptações de formato a partir dos perfis de apoio disponíveis.</p>
+        <p v-if="variacoes.length === 0">A atividade é cadastrada uma vez. A IA separa os estudantes pela habilidade a reforçar (vista em pelo menos 2 trabalhos) e prepara uma versão para cada grupo; quem tem perfil de apoio recebe também o formato adaptado.</p>
 
         <v-alert
           v-if="erroMapa"
@@ -297,7 +297,14 @@
             <v-chip :color="versao.status === 'aprovada' ? 'primary' : 'warning'" size="small">{{ versao.status === 'aprovada' ? 'Aprovada' : versao.status === 'rascunho' ? 'Em revisão' : versao.status }}</v-chip>
           </div>
 
-          <p>{{ versao.eh_geral ? 'Versão geral' : 'Versão adaptada' }} · {{ destinatarios(versao) }}</p>
+          <p>
+            <strong>{{ versao.eh_geral ? 'Versão geral' : versao.habilidade_nome ? `Reforço: ${versao.habilidade_nome}` : 'Versão com formato adaptado' }}</strong>
+            · {{ destinatarios(versao) }}
+          </p>
+
+          <ul v-if="versao.adaptacoes_feitas?.length" class="adaptacoes">
+            <li v-for="item in versao.adaptacoes_feitas" :key="item">{{ item }}</li>
+          </ul>
 
           <v-textarea
             v-model="conteudos[versao.id]"
@@ -375,6 +382,7 @@ p { line-height: 1.7; }
 .texto-original { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 480px; overflow: auto; }
 .acoes { display: flex; gap: 12px; flex-wrap: wrap; }
 .aviso { margin-top: 12px; color: #815a15; }
+.adaptacoes { margin: 4px 0 0 18px; color: #52695f; font-size: .9rem; }
 .relatorios { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
 .relatorio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid #dbe5dc; border-radius: 12px; }
 .relatorio small { display: block; color: #52695f; }
