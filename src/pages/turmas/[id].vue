@@ -18,6 +18,10 @@
         <h1>{{ turma.nome }}</h1>
         <p class="banner-info">{{ turnoFormatado }} · {{ totalEstudantes }} {{ totalEstudantes === 1 ? 'estudante' : 'estudantes' }}</p>
         <small>Cada descoberta começa aqui.</small>
+
+        <button class="btn-excluir-turma" type="button" @click="confirmarExclusao = true">
+          <Trash2 :size="15" /> Excluir turma
+        </button>
       </div>
 
       <div aria-hidden="true" class="banner-grafismo">
@@ -173,6 +177,7 @@
         :turma-nome="turma.nome"
         :turno="turnoFormatado"
         @fechar="alunoSelecionado = null"
+        @removido="alunoSelecionado = null"
       />
     </template>
 
@@ -286,13 +291,28 @@
       :turma-id="turma?.id"
       @alterado="carregarDados"
     />
+
+    <v-dialog v-model="confirmarExclusao" max-width="440">
+      <v-card class="pa-6" rounded="lg">
+        <h2 class="text-h6 mb-2">Excluir a turma {{ turma.nome }}?</h2>
+
+        <p class="mb-5">
+          Os {{ totalEstudantes }} {{ totalEstudantes === 1 ? 'estudante' : 'estudantes' }} e as atividades desta turma também saem da sua lista.
+        </p>
+
+        <div class="d-flex justify-end ga-2">
+          <v-btn :disabled="excluindo" variant="text" @click="confirmarExclusao = false">Cancelar</v-btn>
+          <v-btn color="error" :loading="excluindo" @click="excluirTurma">Excluir turma</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
-  import { ArrowRight, ChevronRight, Clock, FileText, Image, ShieldAlert, UserPlus } from '@lucide/vue'
+  import { ArrowRight, ChevronRight, Clock, FileText, Image, ShieldAlert, Trash2, UserPlus } from '@lucide/vue'
   import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
@@ -433,6 +453,25 @@
     enviarAberto.value = true
   }
 
+  // Excluir a turma leva junto os estudantes e as atividades dela (exclusão lógica no back).
+  const confirmarExclusao = ref(false)
+  const excluindo = ref(false)
+
+  async function excluirTurma () {
+    if (!turma.value || excluindo.value) return
+    excluindo.value = true
+    try {
+      await escolasStore.removeTurma(turma.value.id)
+      notify.success('Turma excluída.')
+      confirmarExclusao.value = false
+      await router.push('/turmas')
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível excluir a turma.')
+    } finally {
+      excluindo.value = false
+    }
+  }
+
   async function carregarDados () {
     const id = turmaId.value
     if (!Number.isInteger(id) || id <= 0) {
@@ -535,6 +574,27 @@
 </script>
 
 <style scoped>
+.btn-excluir-turma {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.btn-excluir-turma:hover,
+.btn-excluir-turma:focus-visible {
+  opacity: 1;
+}
+
 .pagina-turma {
   /* Mesma margem lateral do perfil: ocupa a tela toda com respiro pequeno. */
   position: relative;

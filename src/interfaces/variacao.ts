@@ -9,6 +9,9 @@ export interface MapaVariacaoItem {
   rotulo: string
   eh_geral: boolean
   status: string
+  /** Habilidade a reforçar do grupo (vazio = versão só de formato). */
+  habilidade?: string
+  habilidade_nome?: string
   alunos: MapaVariacaoAluno[]
 }
 
@@ -21,6 +24,9 @@ export interface AtividadeVariacao {
   conteudo: string
   status: 'rascunho' | 'aprovada' | 'descartada' | string
   editada_manual: boolean
+  adaptacoes_feitas?: string[]
+  habilidade?: string
+  habilidade_nome?: string
   aprovada_por?: number | null
   aprovada_em?: string | null
   alunos?: number[]
