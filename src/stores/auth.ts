@@ -136,11 +136,12 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.removeItem(OTP_KEY)
   }
 
+  /** Devolve true quando ainda falta o código (OTP ligado na conta). */
   async function login (
     matricula: string,
     password: string,
     keepConnected = false,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const response = await authService.login(
       matricula,
       password,
@@ -151,9 +152,23 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(AUTH_KEY)
     sessionStorage.removeItem(AUTH_KEY)
 
+    if (response.access && response.refresh) {
+      remember.value = keepConnected
+      state.value = { access: response.access, refresh: response.refresh, user: null }
+      persist()
+      clearPending()
+      try {
+        state.value.user = await authService.me()
+        persist()
+      } catch {
+        // O perfil poderá ser carregado depois.
+      }
+      return false
+    }
+
     pending.value = {
-      otp_token: response.otp_token,
-      email: response.email,
+      otp_token: response.otp_token ?? '',
+      email: response.email ?? '',
       remember: keepConnected,
     }
 
@@ -161,6 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
       OTP_KEY,
       JSON.stringify(pending.value),
     )
+    return true
   }
 
   async function verifyOtp (code: string): Promise<void> {
@@ -253,6 +269,13 @@ export const useAuthStore = defineStore('auth', () => {
     return state.value.user
   }
 
+  async function definirOtp (ativo: boolean): Promise<User> {
+    const data = await authService.definirOtp(ativo)
+    state.value.user = { ...state.value.user, ...data }
+    persist()
+    return state.value.user
+  }
+
   function logout (): void {
     state.value = emptyAuth()
     remember.value = false
@@ -275,6 +298,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshAccess,
     fetchUser,
     updateProfile,
+    definirOtp,
     logout,
   }
 })
