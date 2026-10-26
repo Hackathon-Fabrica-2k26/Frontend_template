@@ -30,36 +30,15 @@
           <div class="corpo">
             <!-- Seção de Identificação do Aluno -->
             <section class="identificacao">
-              <!-- Avatar: a foto do aluno ou, sem foto, o avatar padrão da Marsupi -->
+              <!-- Aluno não tem foto (privacidade): sempre o avatar padrão da Marsupi -->
               <div class="aluno-avatar-bloco">
-                <div class="avatar-caixa" :class="{ 'avatar-caixa--com-foto': !!foto }">
-                  <Transition mode="out-in" name="avatar-troca">
-                    <img
-                      :key="foto || 'padrao'"
-                      :alt="foto ? `Foto de ${aluno.nome}` : 'Avatar padrão'"
-                      class="avatar-img"
-                      :class="{ 'avatar-img--padrao': !foto }"
-                      :src="foto || avatarPadraoUrl"
-                    >
-                  </Transition>
-
-                  <button
-                    :aria-label="foto ? 'Trocar foto do aluno' : 'Adicionar foto do aluno'"
-                    class="btn-foto-sobre desktop-only"
-                    type="button"
-                    @click="inputFoto?.click()"
+                <div class="avatar-caixa">
+                  <img
+                    alt=""
+                    class="avatar-img avatar-img--padrao"
+                    :src="avatarPadraoUrl"
                   >
-                    <Camera :size="15" />
-                  </button>
                 </div>
-
-                <button
-                  class="btn-adicionar-foto"
-                  type="button"
-                  @click="inputFoto?.click()"
-                >
-                  {{ foto ? 'Trocar foto' : 'Adicionar foto' }}
-                </button>
               </div>
 
               <!-- Dados textuais do aluno -->
@@ -68,14 +47,6 @@
                 <p class="aluno-sub">{{ turmaNome }} · {{ turno }}</p>
 
                 <div class="aluno-acoes-linha">
-                  <input
-                    ref="inputFoto"
-                    accept="image/jpeg,image/png,image/webp"
-                    class="sr-only"
-                    type="file"
-                    @change="trocarFoto"
-                  >
-
                   <span class="status-pilula">
                     {{ isFeminino ? 'Aluna ativa' : 'Aluno ativo' }}
                   </span>
@@ -288,6 +259,10 @@
 
           <!-- Rodapé de Ações -->
           <footer class="rodape">
+            <button class="btn-remover-aluno" type="button" @click="confirmarRemocao = true">
+              <Trash2 :size="16" /> Remover da turma
+            </button>
+
             <p class="rodape-aviso">
               {{ atividades.length > 0 ? 'Exporte os relatórios das atividades em conjunto.' : 'Nenhuma atividade disponível para exportação.' }}
             </p>
@@ -316,18 +291,31 @@
       </div>
     </div>
   </Teleport>
+
+  <v-dialog v-model="confirmarRemocao" max-width="440">
+    <v-card class="pa-6" rounded="lg">
+      <h2 class="text-h6 mb-2">Remover {{ aluno.nome }} da turma?</h2>
+      <p class="mb-5">O estudante sai da lista, dos grupos e das próximas versões de atividade.</p>
+
+      <div class="d-flex justify-end ga-2">
+        <v-btn :disabled="removendo" variant="text" @click="confirmarRemocao = false">Cancelar</v-btn>
+        <v-btn color="error" :loading="removendo" @click="removerAluno">Remover</v-btn>
+      </div>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
   import type { Aluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
-  import { Camera, Check, Copy, Download, FileText, X } from '@lucide/vue'
+  import { Check, Copy, Download, FileText, Trash2, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import avatarPadraoUrl from '@/assets/mascotes/avatar.svg'
   import { alunosService, observacoesService, type RelatorioDoAluno } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
   import { pedagogicoService } from '@/services/pedagogico'
+  import { useAlunosStore } from '@/stores'
   import { notify } from '@/utils/notify'
 
   interface PontoExibicao {
@@ -346,12 +334,10 @@
 
   const emit = defineEmits<{
     fechar: []
+    removido: [id: number]
   }>()
 
   const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
-  const inputFoto = ref<HTMLInputElement | null>(null)
-  // A foto fica guardada só nesta sessão do navegador (por aluno): ainda não há endpoint de foto.
-  const foto = ref(fotosDaSessao.get(props.aluno.id) ?? '')
 
   const isFeminino = computed(() => {
     if (props.aluno.genero === 'F') return true
@@ -428,29 +414,6 @@
     relatorios.value = rels.status === 'fulfilled' ? rels.value : []
   }
 
-  const TIPOS_FOTO = new Set(['image/jpeg', 'image/png', 'image/webp'])
-  const MAX_FOTO = 5 * 1024 * 1024
-
-  function trocarFoto (evento: Event) {
-    const campo = evento.target as HTMLInputElement
-    const arquivo = campo.files?.[0]
-    campo.value = ''
-    if (!arquivo) return
-    if (!TIPOS_FOTO.has(arquivo.type)) {
-      notify.error('Use uma imagem JPG, PNG ou WEBP.')
-      return
-    }
-    if (arquivo.size > MAX_FOTO) {
-      notify.error('A foto deve ter no máximo 5 MB.')
-      return
-    }
-    const anterior = fotosDaSessao.get(props.aluno.id)
-    if (anterior) URL.revokeObjectURL(anterior)
-    foto.value = URL.createObjectURL(arquivo)
-    fotosDaSessao.set(props.aluno.id, foto.value)
-    notify.success(anterior ? 'Foto atualizada.' : 'Foto adicionada.')
-  }
-
   // Relatórios do aluno vêm de /alunos/{id}/relatorios/; a API de atividade não os traz.
   const relatorios = ref<RelatorioDoAluno[]>([])
   const exportando = ref(false)
@@ -511,6 +474,26 @@
     emit('fechar')
   }
 
+  // Remove o estudante da turma (exclusão lógica no back; some da lista e dos grupos).
+  const alunosStore = useAlunosStore()
+  const confirmarRemocao = ref(false)
+  const removendo = ref(false)
+
+  async function removerAluno () {
+    if (removendo.value) return
+    removendo.value = true
+    try {
+      await alunosStore.removeAluno(props.aluno.id)
+      notify.success(`${props.aluno.nome} saiu da turma.`)
+      confirmarRemocao.value = false
+      emit('removido', props.aluno.id)
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível remover o estudante.')
+    } finally {
+      removendo.value = false
+    }
+  }
+
   function aoTeclar (evento: KeyboardEvent) {
     if (evento.key === 'Escape') fechar()
   }
@@ -525,12 +508,26 @@
   })
 </script>
 
-<script lang="ts">
-  // Fotos escolhidas nesta sessão, por aluno: reabrir o painel mantém a foto.
-  const fotosDaSessao = new Map<number, string>()
-</script>
-
 <style scoped>
+.btn-remover-aluno {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: #a23b2a;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-remover-aluno:hover,
+.btn-remover-aluno:focus-visible {
+  text-decoration: underline;
+}
+
 .fundo {
   position: fixed;
   z-index: 1000;
@@ -665,61 +662,6 @@
   object-fit: cover;
 }
 
-.btn-foto-sobre {
-  position: absolute;
-  right: -4px;
-  bottom: -2px;
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  background: #274d3d;
-  color: #fff;
-  cursor: pointer;
-  transition: background-color 0.2s, scale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.btn-foto-sobre:hover {
-  background: #356b5b;
-  scale: 1.1;
-}
-
-.btn-foto-sobre:focus-visible {
-  outline: 2px solid #e3b477;
-  outline-offset: 2px;
-}
-
-.avatar-troca-enter-active,
-.avatar-troca-leave-active {
-  transition: opacity 0.2s, scale 0.25s;
-}
-
-.avatar-troca-enter-from,
-.avatar-troca-leave-to {
-  opacity: 0;
-  scale: 0.9;
-}
-
-.btn-adicionar-foto {
-  /* No desktop a câmera fica sobre o avatar; o texto aparece só no celular. */
-  display: none;
-  border: none;
-  background: none;
-  color: #52695f;
-  font-size: 0.76rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 2px 4px;
-  transition: color 0.2s;
-}
-
-.btn-adicionar-foto:hover {
-  color: #274d3d;
-  text-decoration: underline;
-}
-
 .aluno-dados-bloco {
   display: flex;
   flex-direction: column;
@@ -743,10 +685,6 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-}
-
-.desktop-only {
-  display: grid;
 }
 
 .status-pilula {
@@ -1178,10 +1116,6 @@
     height: 82px;
   }
 
-  .btn-adicionar-foto {
-    display: inline;
-  }
-
   .aluno-dados-bloco {
     justify-content: center;
     min-height: 82px;
@@ -1199,10 +1133,6 @@
 
   .aluno-acoes-linha {
     justify-content: flex-start;
-  }
-
-  .desktop-only {
-    display: none;
   }
 
   /* Pontos de atenção no topo ficam ocultos no mobile (exibidos na aba Registros) */

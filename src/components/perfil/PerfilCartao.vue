@@ -48,6 +48,26 @@
               <LockKeyhole aria-label="Somente leitura" class="shrink-0 text-primary/70" :size="15" />
             </div>
 
+            <div class="campo-ver campo-ver--leitura">
+              <div class="min-w-0">
+                <span class="campo-ver__rotulo">Código por e-mail ao entrar</span>
+                <span class="campo-ver__valor text-text/60">{{ otpAtivo ? 'Ligado' : 'Desligado' }}</span>
+              </div>
+
+              <v-switch
+                aria-label="Pedir código por e-mail ao entrar"
+                class="shrink-0"
+                color="primary"
+                density="compact"
+                :disabled="salvandoOtp"
+                hide-details
+                inset
+                :loading="salvandoOtp"
+                :model-value="otpAtivo"
+                @update:model-value="alternarOtp"
+              />
+            </div>
+
             <button class="btn btn--contorno mt-2" type="button" @click="editar">Editar dados</button>
           </div>
 
@@ -187,6 +207,25 @@
   ] as const
 
   const primeiroNome = computed(() => props.usuario?.name?.trim().split(/\s+/, 1)[0] || 'Professora')
+
+  // Verificação em duas etapas: desligada por padrão, a professora liga aqui.
+  const salvandoOtp = ref(false)
+  const otpAtivo = computed(() => Boolean(auth.user?.otp_ativo ?? props.usuario?.otp_ativo))
+
+  async function alternarOtp (valor: boolean | null): Promise<void> {
+    if (salvandoOtp.value) return
+    salvandoOtp.value = true
+    try {
+      await auth.definirOtp(Boolean(valor))
+      notify.success(valor
+        ? 'Pronto: no próximo login vamos pedir o código enviado ao seu e-mail.'
+        : 'Verificação por código desligada.')
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Não foi possível alterar a verificação.')
+    } finally {
+      salvandoOtp.value = false
+    }
+  }
 
   function editar (): void {
     form.name = props.usuario?.name ?? ''
