@@ -51,6 +51,20 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/atividades/': RouteRecordInfo<
+      '/atividades/',
+      '/atividades',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/atividades/[id]': RouteRecordInfo<
+      '/atividades/[id]',
+      '/atividades/:id',
+      { id: ParamValue<true> },
+      { id: ParamValue<false> },
+      | never
+    >,
     '/conferir-dados': RouteRecordInfo<
       '/conferir-dados',
       '/conferir-dados',
@@ -184,6 +198,18 @@ declare module 'vue-router/auto-routes' {
     'src/pages/apoio/concordar.vue': {
       routes:
         | '/apoio/concordar'
+      views:
+        | never
+    }
+    'src/pages/atividades/index.vue': {
+      routes:
+        | '/atividades/'
+      views:
+        | never
+    }
+    'src/pages/atividades/[id].vue': {
+      routes:
+        | '/atividades/[id]'
       views:
         | never
     }

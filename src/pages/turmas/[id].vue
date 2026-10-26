@@ -197,6 +197,10 @@
             <small v-if="atividade.descricao">{{ atividade.descricao }}</small>
           </div>
 
+          <v-btn color="primary" :to="`/atividades/${atividade.id}`" variant="text">
+            Abrir
+          </v-btn>
+
           <v-btn color="primary" variant="outlined" @click="abrirEnvio(atividade)">
             Enviar trabalhos
           </v-btn>
