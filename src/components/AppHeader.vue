@@ -49,7 +49,7 @@
       <AppHeaderNav :links="links" />
 
       <div class="ml-auto flex items-center gap-2 sm:gap-8">
-        <AppHeaderSearch @submit="onSearch" />
+        <AppHeaderSearch />
         <AppHeaderUser :email="auth.user?.email" :name="auth.user?.name" @logout="onLogout" />
       </div>
     </div>
@@ -65,10 +65,6 @@
 
   const auth = useAuthStore()
   const router = useRouter()
-
-  function onSearch (query: string) {
-    router.push({ path: '/turmas', query: { q: query } })
-  }
 
   function onLogout () {
     auth.logout()

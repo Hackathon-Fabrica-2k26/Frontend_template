@@ -721,8 +721,9 @@
 
 /* O canguru espia por cima da borda do modal: a cabeça fica atrás dele, as patas na frente. */
 .modal-wrap__mascote {
-  /* Cresce com a altura da tela, para sempre caber acima do modal. */
-  --mw: clamp(104px, 17vh, 190px);
+  /* Cresce com a altura da tela, para sempre caber acima do modal (em telas baixas fica menor,
+     mas continua aparecendo). */
+  --mw: clamp(84px, 17vh, 190px);
 
   position: absolute;
   right: 92px;

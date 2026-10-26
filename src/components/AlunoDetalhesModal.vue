@@ -30,23 +30,27 @@
           <div class="corpo">
             <!-- Seção de Identificação do Aluno -->
             <section class="identificacao">
-              <!-- Avatar e ação de foto (mobile) -->
+              <!-- Avatar: a foto do aluno ou, sem foto, o avatar padrão da Marsupi -->
               <div class="aluno-avatar-bloco">
                 <div class="avatar-caixa" :class="{ 'avatar-caixa--com-foto': !!foto }">
-                  <img
-                    v-if="foto"
-                    :alt="`Foto de ${aluno.nome}`"
-                    class="avatar-img"
-                    :src="foto"
-                  >
+                  <Transition mode="out-in" name="avatar-troca">
+                    <img
+                      :key="foto || 'padrao'"
+                      :alt="foto ? `Foto de ${aluno.nome}` : 'Avatar padrão'"
+                      class="avatar-img"
+                      :class="{ 'avatar-img--padrao': !foto }"
+                      :src="foto || avatarPadraoUrl"
+                    >
+                  </Transition>
 
-                  <UserRound
-                    v-else
-                    aria-hidden="true"
-                    class="avatar-placeholder-icone"
-                    :size="40"
-                    :stroke-width="1.3"
-                  />
+                  <button
+                    :aria-label="foto ? 'Trocar foto do aluno' : 'Adicionar foto do aluno'"
+                    class="btn-foto-sobre desktop-only"
+                    type="button"
+                    @click="inputFoto?.click()"
+                  >
+                    <Camera :size="15" />
+                  </button>
                 </div>
 
                 <button
@@ -64,18 +68,9 @@
                 <p class="aluno-sub">{{ turmaNome }} · {{ turno }}</p>
 
                 <div class="aluno-acoes-linha">
-                  <button
-                    aria-label="Trocar foto do aluno"
-                    class="btn-foto-mini desktop-only"
-                    type="button"
-                    @click="inputFoto?.click()"
-                  >
-                    <Camera :size="16" />
-                  </button>
-
                   <input
                     ref="inputFoto"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     class="sr-only"
                     type="file"
                     @change="trocarFoto"
@@ -129,27 +124,7 @@
               </p>
             </section>
 
-            <!-- Metadados do Aluno (Matrícula, Nascimento, Idade) -->
-            <dl aria-label="Informações do aluno" class="metadados">
-              <div class="metadado-item">
-                <dt>Matrícula</dt>
-                <dd>{{ matricula }}</dd>
-              </div>
-
-              <div class="metadado-item">
-                <dt>Nascimento</dt>
-
-                <dd>
-                  <span>{{ nascimento }}</span>
-                  <span aria-hidden="true" class="nascimento-idade-mobile">{{ idade === null ? '' : ` · ${idade} anos` }}</span>
-                </dd>
-              </div>
-
-              <div class="metadado-item metadado-idade-desktop">
-                <dt>Idade</dt>
-                <dd>{{ idade === null ? '—' : `${idade} anos` }}</dd>
-              </div>
-            </dl>
+            <!-- LGPD: o painel não exibe matrícula, data de nascimento nem idade do aluno; só o nome. -->
 
             <!-- Abas Visão Geral / Registros -->
             <div aria-label="Seções do aluno" class="abas-navegacao" role="tablist">
@@ -347,8 +322,9 @@
   import type { Aluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
-  import { Camera, Check, Copy, Download, FileText, UserRound, X } from '@lucide/vue'
+  import { Camera, Check, Copy, Download, FileText, X } from '@lucide/vue'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+  import avatarPadraoUrl from '@/assets/mascotes/avatar.svg'
   import { alunosService, observacoesService, type RelatorioDoAluno } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
   import { pedagogicoService } from '@/services/pedagogico'
@@ -374,20 +350,8 @@
 
   const abaAtiva = ref<'visao_geral' | 'registros'>('visao_geral')
   const inputFoto = ref<HTMLInputElement | null>(null)
-  const foto = ref('')
-
-  const dataNascimento = computed(() => (props.aluno.data_nascimento ? new Date(props.aluno.data_nascimento) : null))
-  const matricula = computed(() => props.aluno.matricula || '—')
-  const nascimento = computed(() => dataNascimento.value ? dataNascimento.value.toLocaleDateString('pt-BR') : '—')
-
-  const idade = computed(() => {
-    const nasc = dataNascimento.value
-    if (!nasc) return null
-    const hoje = new Date()
-    let anos = hoje.getFullYear() - nasc.getFullYear()
-    if (hoje < new Date(hoje.getFullYear(), nasc.getMonth(), nasc.getDate())) anos -= 1
-    return anos
-  })
+  // A foto fica guardada só nesta sessão do navegador (por aluno): ainda não há endpoint de foto.
+  const foto = ref(fotosDaSessao.get(props.aluno.id) ?? '')
 
   const isFeminino = computed(() => {
     if (props.aluno.genero === 'F') return true
@@ -460,15 +424,31 @@
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
     observacoes.value = obs.status === 'fulfilled' ? obs.value.results : []
     perfilApoio.value = perfil.status === 'fulfilled' ? perfil.value : null
-    pontosIa.value = pontos.status === 'fulfilled' ? pontos.value.pontos : []
+    pontosIa.value = pontos.status === 'fulfilled' ? (pontos.value.pontos ?? []) : []
     relatorios.value = rels.status === 'fulfilled' ? rels.value : []
   }
 
+  const TIPOS_FOTO = new Set(['image/jpeg', 'image/png', 'image/webp'])
+  const MAX_FOTO = 5 * 1024 * 1024
+
   function trocarFoto (evento: Event) {
-    const arquivo = (evento.target as HTMLInputElement).files?.[0]
+    const campo = evento.target as HTMLInputElement
+    const arquivo = campo.files?.[0]
+    campo.value = ''
     if (!arquivo) return
-    if (foto.value) URL.revokeObjectURL(foto.value)
+    if (!TIPOS_FOTO.has(arquivo.type)) {
+      notify.error('Use uma imagem JPG, PNG ou WEBP.')
+      return
+    }
+    if (arquivo.size > MAX_FOTO) {
+      notify.error('A foto deve ter no máximo 5 MB.')
+      return
+    }
+    const anterior = fotosDaSessao.get(props.aluno.id)
+    if (anterior) URL.revokeObjectURL(anterior)
     foto.value = URL.createObjectURL(arquivo)
+    fotosDaSessao.set(props.aluno.id, foto.value)
+    notify.success(anterior ? 'Foto atualizada.' : 'Foto adicionada.')
   }
 
   // Relatórios do aluno vêm de /alunos/{id}/relatorios/; a API de atividade não os traz.
@@ -542,8 +522,12 @@
 
   onBeforeUnmount(() => {
     document.removeEventListener('keydown', aoTeclar)
-    if (foto.value) URL.revokeObjectURL(foto.value)
   })
+</script>
+
+<script lang="ts">
+  // Fotos escolhidas nesta sessão, por aluno: reabrir o painel mantém a foto.
+  const fotosDaSessao = new Map<number, string>()
 </script>
 
 <style scoped>
@@ -656,31 +640,71 @@
 }
 
 .aluno-avatar-bloco {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.6rem;
 }
 
 .avatar-caixa {
-  width: 82px;
-  height: 82px;
-  border-radius: 16px;
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
   background: #eaf2ed;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border: 1px solid #dfeae2;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px #dfeae2, 0 8px 18px -10px rgb(38 61 53 / 40%);
 }
 
 .avatar-img {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
 }
 
-.avatar-placeholder-icone {
-  color: #356b5b;
+.btn-foto-sobre {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #274d3d;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s, scale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-foto-sobre:hover {
+  background: #356b5b;
+  scale: 1.1;
+}
+
+.btn-foto-sobre:focus-visible {
+  outline: 2px solid #e3b477;
+  outline-offset: 2px;
+}
+
+.avatar-troca-enter-active,
+.avatar-troca-leave-active {
+  transition: opacity 0.2s, scale 0.25s;
+}
+
+.avatar-troca-enter-from,
+.avatar-troca-leave-to {
+  opacity: 0;
+  scale: 0.9;
 }
 
 .btn-adicionar-foto {
+  /* No desktop a câmera fica sobre o avatar; o texto aparece só no celular. */
+  display: none;
   border: none;
   background: none;
   color: #52695f;
@@ -719,23 +743,6 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-}
-
-.btn-foto-mini {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border-radius: 8px;
-  background: #274d3d;
-  color: #ffffff;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-foto-mini:hover {
-  background: #356b5b;
 }
 
 .desktop-only {
@@ -846,34 +853,8 @@
   font-size: 0.7rem;
 }
 
-/* Metadados */
-.metadados {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin: 1.25rem 0 0.75rem;
-  text-align: left;
-}
-
-.metadados dt {
-  font-size: 0.72rem;
-  color: #6c8277;
-  margin-bottom: 2px;
-}
-
-.metadados dd {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #1a3628;
-}
-
 .pontos-bloco--desktop {
   display: block;
-}
-
-.nascimento-idade-mobile {
-  display: none;
 }
 
 /* Abas de navegação */
@@ -1192,6 +1173,15 @@
     flex-shrink: 0;
   }
 
+  .aluno-avatar-bloco .avatar-caixa {
+    width: 82px;
+    height: 82px;
+  }
+
+  .btn-adicionar-foto {
+    display: inline;
+  }
+
   .aluno-dados-bloco {
     justify-content: center;
     min-height: 82px;
@@ -1218,20 +1208,6 @@
   /* Pontos de atenção no topo ficam ocultos no mobile (exibidos na aba Registros) */
   .pontos-bloco--desktop {
     display: none;
-  }
-
-  /* Metadados em 2 colunas */
-  .metadados {
-    grid-template-columns: 1fr 1fr;
-    margin: 0.75rem 0 1rem;
-  }
-
-  .metadado-idade-desktop {
-    display: none;
-  }
-
-  .nascimento-idade-mobile {
-    display: inline;
   }
 
   /* Atividades no mobile conforme referência */

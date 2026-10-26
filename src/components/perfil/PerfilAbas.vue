@@ -147,14 +147,6 @@
         </Transition>
       </template>
     </div>
-
-    <AtividadeDetalhesDialog
-      v-model="modalDetalhesAberto"
-      :atividade-id="atividadeSelecionadaId"
-      :turmas="turmas"
-      @atualizada="aoAtualizar"
-      @excluida="aoExcluir"
-    />
   </section>
 </template>
 
@@ -164,9 +156,9 @@
   import type { AtividadeRecente, StatusAtividade } from '@/interfaces/perfil'
   import { ChevronRight, Plus, Search } from '@lucide/vue'
   import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+  import { useRouter } from 'vue-router'
   import atencao from '@/assets/mascotes/atencao.svg'
   import peekVazio from '@/assets/mascotes/peek-vazio.svg'
-  import AtividadeDetalhesDialog from './AtividadeDetalhesDialog.vue'
 
   type Estado = 'carregando' | 'erro' | 'ok'
 
@@ -182,22 +174,11 @@
     (e: 'excluida', id: number): void
   }>()
 
-  const modalDetalhesAberto = ref(false)
-  const atividadeSelecionadaId = ref<number | null>(null)
+  const router = useRouter()
 
+  // A atividade abre na página dela (/atividades/{id}), com versões e trabalhos.
   function abrirDetalhes (id: number): void {
-    atividadeSelecionadaId.value = id
-    modalDetalhesAberto.value = true
-  }
-
-  function aoAtualizar (atividade: Atividade): void {
-    emit('atualizada', atividade)
-    emit('recarregar')
-  }
-
-  function aoExcluir (id: number): void {
-    emit('excluida', id)
-    emit('recarregar')
+    void router.push(`/atividades/${id}`)
   }
 
   const abas = [
