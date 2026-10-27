@@ -67,7 +67,6 @@ api.interceptors.response.use(
       const ehPublica
         = rotaAtual?.meta?.public === true
           || rotaAtual?.matched.some(r => r.meta?.public === true)
-          || caminho.startsWith('/responsavel')
           || caminho.startsWith('/apoio')
           || caminho === '/enviar-laudo'
           || caminho === '/conferir-dados'

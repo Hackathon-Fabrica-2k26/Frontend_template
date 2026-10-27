@@ -73,6 +73,33 @@ class TrabalhosService {
     }
   }
 
+  /**
+   * Trabalhos da atividade que ainda esperam a professora dizer de quem são
+   * (nome em dúvida ou não encontrado). Antes só apareciam dentro do modal de envio.
+   */
+  async listarPendentes (atividadeId: number): Promise<Trabalho[]> {
+    try {
+      const pendentes: Trabalho[] = []
+      for (const identificacao of ['pendente', 'sem_aluno'] as const) {
+        let page = 1
+        while (true) {
+          const { data } = await api.get<{ results: TrabalhoRespostaApi[], next: string | null }>(
+            'trabalhos/',
+            { params: { atividade: atividadeId, identificacao, page } },
+          )
+          pendentes.push(...data.results.map(item => normalizarTrabalho(item)))
+          if (!data.next) {
+            break
+          }
+          page += 1
+        }
+      }
+      return pendentes
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar os trabalhos para conferir.')
+    }
+  }
+
   async confirmar (
     trabalhoId: number,
     payload: TrabalhoPayload,

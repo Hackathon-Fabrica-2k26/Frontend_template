@@ -40,7 +40,6 @@ router.beforeEach(to => {
   if (
     to.meta.public === true
     || to.matched.some(record => record.meta?.public === true)
-    || to.path.startsWith('/responsavel')
     || to.path.startsWith('/apoio')
     || to.path === '/enviar-laudo'
     || to.path === '/conferir-dados'
