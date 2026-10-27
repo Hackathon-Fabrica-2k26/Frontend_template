@@ -79,13 +79,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/items/': RouteRecordInfo<
-      '/items/',
-      '/items',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
     '/login': RouteRecordInfo<
       '/login',
       '/login',
@@ -117,20 +110,6 @@ declare module 'vue-router/auto-routes' {
     '/relatorios/novo': RouteRecordInfo<
       '/relatorios/novo',
       '/relatorios/novo',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/responsavel': RouteRecordInfo<
-      '/responsavel',
-      '/responsavel',
-      Record<never, never>,
-      Record<never, never>,
-      | '/responsavel/consentimento'
-    >,
-    '/responsavel/consentimento': RouteRecordInfo<
-      '/responsavel/consentimento',
-      '/responsavel/consentimento',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -225,12 +204,6 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/items/index.vue': {
-      routes:
-        | '/items/'
-      views:
-        | never
-    }
     'src/pages/login.vue': {
       routes:
         | '/login'
@@ -258,19 +231,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/relatorios/novo.vue': {
       routes:
         | '/relatorios/novo'
-      views:
-        | never
-    }
-    'src/pages/responsavel.vue': {
-      routes:
-        | '/responsavel'
-        | '/responsavel/consentimento'
-      views:
-        | 'default'
-    }
-    'src/pages/responsavel/consentimento.vue': {
-      routes:
-        | '/responsavel/consentimento'
       views:
         | never
     }

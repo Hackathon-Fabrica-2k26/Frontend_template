@@ -2,6 +2,7 @@
   import type { Aluno } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
   import type { Relatorio } from '@/interfaces/pedagogico'
+  import type { Trabalho } from '@/interfaces/trabalho'
   import type { AtividadeVariacao, MapaVariacaoItem } from '@/interfaces/variacao'
   import { ArrowLeft, Check, Download, FileText, Pencil, Sparkles, Upload } from '@lucide/vue'
   import { computed, ref, watch } from 'vue'
@@ -9,6 +10,7 @@
   import { alunosService } from '@/services/alunos'
   import { atividadesService } from '@/services/atividades'
   import { pedagogicoService } from '@/services/pedagogico'
+  import trabalhosService from '@/services/trabalho'
   import { variacoesService } from '@/services/variacoes'
   import { notify } from '@/utils/notify'
 
@@ -22,6 +24,9 @@
   const variacoes = ref<AtividadeVariacao[]>([])
   const mapa = ref<MapaVariacaoItem[]>([])
   const relatorios = ref<Relatorio[]>([])
+  const pendentes = ref<Trabalho[]>([])
+  const escolhaAluno = ref<Record<number, number | null>>({})
+  const confirmando = ref<number | null>(null)
   const carregando = ref(true)
   const erro = ref('')
   const erroMapa = ref('')
@@ -67,6 +72,27 @@
       relatorios.value = (await pedagogicoService.list({ atividade: atividade.value.id })).results
     } catch {
       relatorios.value = []
+    }
+    try {
+      pendentes.value = await trabalhosService.listarPendentes(atividade.value.id)
+      escolhaAluno.value = Object.fromEntries(pendentes.value.map(t => [t.id, t.aluno ?? null]))
+    } catch {
+      pendentes.value = []
+    }
+  }
+
+  async function confirmarTrabalho (t: Trabalho) {
+    const aluno = escolhaAluno.value[t.id]
+    if (!aluno || confirmando.value) return
+    confirmando.value = t.id
+    try {
+      await trabalhosService.confirmar(t.id, { aluno, identificacao: 'confirmada' })
+      notify.success('Trabalho confirmado. O relatório foi gerado.')
+      await carregarRelatorios()
+    } catch (error) {
+      notify.error(mensagem(error))
+    } finally {
+      confirmando.value = null
     }
   }
 
@@ -231,7 +257,7 @@
       <v-tabs v-model="aba" class="abas" color="primary">
         <v-tab value="atividade">Atividade</v-tab>
         <v-tab value="versoes">Versões ({{ variacoes.length }})</v-tab>
-        <v-tab value="trabalhos">Trabalhos ({{ relatorios.length }})</v-tab>
+        <v-tab value="trabalhos">Trabalhos ({{ relatorios.length }}{{ pendentes.length > 0 ? ` · ${pendentes.length} para conferir` : '' }})</v-tab>
       </v-tabs>
 
       <!-- Atividade: texto original e edição -->
@@ -340,6 +366,41 @@
           >Enviar trabalhos</v-btn>
         </div>
 
+        <div v-if="pendentes.length > 0" aria-label="Trabalhos para conferir" class="pendentes" role="region">
+          <h3>Confira de quem é cada trabalho</h3>
+          <p>A IA não teve certeza do nome. Escolha o estudante para gerar o relatório.</p>
+
+          <ul class="relatorios">
+            <li v-for="t in pendentes" :key="t.id" class="relatorio">
+              <div>
+                <strong>{{ t.nome_lido ? `Nome lido: “${t.nome_lido}”` : 'Nome não encontrado no trabalho' }}</strong>
+                <small v-if="t.descricao_ia">{{ t.descricao_ia }}</small>
+              </div>
+
+              <div class="acoes">
+                <v-select
+                  v-model="escolhaAluno[t.id]"
+                  class="seletor-aluno"
+                  density="compact"
+                  hide-details
+                  item-title="nome"
+                  item-value="id"
+                  :items="alunos"
+                  label="Estudante"
+                  variant="outlined"
+                />
+
+                <v-btn
+                  color="primary"
+                  :disabled="!escolhaAluno[t.id]"
+                  :loading="confirmando === t.id"
+                  @click="confirmarTrabalho(t)"
+                >Confirmar</v-btn>
+              </div>
+            </li>
+          </ul>
+        </div>
+
         <p v-if="relatorios.length === 0">Nenhum relatório ainda. Envie os trabalhos e confirme a identificação dos estudantes.</p>
 
         <ul v-else class="relatorios">
@@ -386,5 +447,8 @@ p { line-height: 1.7; }
 .relatorios { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
 .relatorio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid #dbe5dc; border-radius: 12px; }
 .relatorio small { display: block; color: #52695f; }
+.pendentes { margin: 16px 0 24px; padding: 16px; border-radius: 12px; background: #fbf1e3; }
+.pendentes h3 { font-size: 1rem; font-weight: 600; }
+.seletor-aluno { min-width: 220px; }
 @media (max-width: 600px) { .acoes > * { width: 100%; } }
 </style>

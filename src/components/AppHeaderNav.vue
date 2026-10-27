@@ -52,9 +52,9 @@
   const { mdAndUp } = useDisplay()
 
   function isLinkActive (to: string): boolean {
-    // O Início abre a lista de turmas: fica ativo (com a borda embaixo) só em / e /turmas.
+    // O Início abre a lista de turmas: fica ativo em /, na lista e dentro de uma turma.
     if (to === '/') {
-      return route.path === '/' || route.path === '/turmas'
+      return route.path === '/' || route.path === '/turmas' || route.path.startsWith('/turmas/')
     }
     return route.path === to || route.path.startsWith(`${to}/`)
   }

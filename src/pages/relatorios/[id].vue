@@ -22,6 +22,39 @@
 
   const dados = computed(() => relatorio.value?.dados as unknown as RelatorioDados | undefined)
 
+  // Relatório criado pelo envio de trabalhos (tipo "atividade"): formato diferente do
+  // perfil de aprendizagem gerado pela IA.
+  interface DadosTrabalho {
+    atividade_titulo?: string
+    descricao?: string
+    analise_pedagogica?: Record<string, unknown>
+    habilidades_a_reforcar?: { codigo: string, nome: string }[]
+  }
+  const ehTrabalho = computed(() => {
+    const d = relatorio.value?.dados as Record<string, unknown> | undefined
+    return relatorio.value?.tipo === 'atividade' || Boolean(d && 'atividade_titulo' in d)
+  })
+  const trabalho = computed(() => (relatorio.value?.dados ?? {}) as DadosTrabalho)
+
+  function listaDe (chaves: string[]): string[] {
+    const analise = trabalho.value.analise_pedagogica ?? {}
+    for (const chave of chaves) {
+      const valor = analise[chave]
+      if (Array.isArray(valor) && valor.length > 0) {
+        return valor.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+      }
+    }
+    return []
+  }
+  const fortesTrabalho = computed(() => listaDe(['pontos_fortes']))
+  // Relatórios antigos usavam "dificuldades_identificadas"; os novos, "pontos_de_atencao".
+  const atencaoTrabalho = computed(() => listaDe(['pontos_de_atencao', 'dificuldades_identificadas']))
+  const sugestoesTrabalho = computed(() => listaDe(['sugestoes_para_professora', 'sugestoes_intervencao']))
+  const observacoesTrabalho = computed(() => {
+    const valor = trabalho.value.analise_pedagogica?.observacoes
+    return typeof valor === 'string' ? valor : ''
+  })
+
   const DISCLAIMER_PADRAO = 'Este relatório tem finalidade estritamente pedagógica. Sinais atípicos persistentes '
     + 'devem ser encaminhados à coordenação pedagógica e profissionais de saúde.'
 
@@ -82,7 +115,7 @@
         <ChevronLeft :size="18" /> Voltar
       </button>
 
-      <v-btn color="primary" :disabled="!dados" :prepend-icon="Download" @click="exportarPdf">
+      <v-btn color="primary" :disabled="!dados && !ehTrabalho" :prepend-icon="Download" @click="exportarPdf">
         Exportar PDF
       </v-btn>
     </header>
@@ -98,6 +131,52 @@
       <p>{{ erro }}</p>
       <v-btn color="primary" @click="carregar">Tentar de novo</v-btn>
     </div>
+
+    <template v-else-if="ehTrabalho">
+      <section class="hero">
+        <span class="eyebrow">Relatório do trabalho</span>
+        <h1>{{ trabalho.atividade_titulo || 'Atividade' }}</h1>
+        <p v-if="trabalho.descricao">{{ trabalho.descricao }}</p>
+      </section>
+
+      <section class="grade">
+        <article v-if="fortesTrabalho.length > 0" class="cartao fortes">
+          <h2><Sparkles :size="18" /> Pontos fortes</h2>
+
+          <ul>
+            <li v-for="item in fortesTrabalho" :key="item"><Check :size="16" /> {{ item }}</li>
+          </ul>
+        </article>
+
+        <article v-if="trabalho.habilidades_a_reforcar?.length || atencaoTrabalho.length > 0" class="cartao suporte">
+          <h2><Lightbulb :size="18" /> Habilidades a reforçar</h2>
+
+          <ul>
+            <li v-for="h in trabalho.habilidades_a_reforcar ?? []" :key="h.codigo"><span class="ponto" /> {{ h.nome }}</li>
+            <li v-for="item in atencaoTrabalho" :key="item"><span class="ponto" /> {{ item }}</li>
+          </ul>
+        </article>
+      </section>
+
+      <article v-if="sugestoesTrabalho.length > 0" class="cartao sugestoes">
+        <h2>Sugestões para a aula</h2>
+
+        <ul>
+          <li v-for="item in sugestoesTrabalho" :key="item"><Check :size="16" /> {{ item }}</li>
+        </ul>
+      </article>
+
+      <aside v-if="observacoesTrabalho" class="cartao autonomia">
+        <div>
+          <h2>Observações</h2>
+          <p>{{ observacoesTrabalho }}</p>
+        </div>
+      </aside>
+
+      <footer class="disclaimer" role="note">
+        {{ relatorio?.disclaimer || DISCLAIMER_PADRAO }}
+      </footer>
+    </template>
 
     <template v-else-if="dados">
       <section class="hero">
@@ -239,6 +318,8 @@
 .autonomia img { width: 96px; flex: none; }
 .autonomia h2 { margin-bottom: .25rem; }
 .autonomia p { margin: 0; line-height: 1.6; }
+.sugestoes { margin-bottom: 1.25rem; }
+.sugestoes li svg { color: #356b5b; flex: none; margin-top: .2rem; }
 .disclaimer { padding: 1rem 1.25rem; border-radius: 12px; background: #fff; border-left: 4px solid #e3b477; font-size: .85rem; line-height: 1.5; margin-bottom: 2rem; }
 
 @media print {
