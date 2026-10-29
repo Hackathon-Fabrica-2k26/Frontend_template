@@ -19,6 +19,43 @@
   }
 }
 
+// Padronização dos inputs para 12px e anel de foco como no formulário de login (Issue #101)
+.v-field {
+  border-radius: 12px !important;
+  transition: box-shadow 220ms ease, border-color 220ms ease;
+
+  &--rounded {
+    border-radius: 12px !important;
+  }
+
+  .v-field__outline {
+    border-radius: 12px !important;
+
+    &__start {
+      border-start-start-radius: 12px !important;
+      border-end-start-radius: 12px !important;
+      flex-basis: 12px !important;
+    }
+
+    &__end {
+      border-start-end-radius: 12px !important;
+      border-end-end-radius: 12px !important;
+    }
+
+    &__notch {
+      max-width: calc(100% - 24px) !important;
+    }
+  }
+
+  &.v-field--focused {
+    box-shadow: 0 0 0 3px rgba(53, 107, 91, 0.12) !important;
+  }
+
+  &--error.v-field--focused {
+    box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.15) !important;
+  }
+}
+
 // Exportar PDF usa a impressão do navegador: esconde a barra do app.
 @media print {
   .v-app-bar,

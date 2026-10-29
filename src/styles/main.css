@@ -68,6 +68,16 @@ body {
   outline: none;
 }
 
+/* Campos do formulário: remove o outline retangular interno no input para preservar o visual e bordas de 12px */
+.v-field input:focus-visible,
+.v-field input:focus,
+.v-field textarea:focus-visible,
+.v-field textarea:focus,
+.v-field__input:focus-visible,
+.v-field__input:focus {
+  outline: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
