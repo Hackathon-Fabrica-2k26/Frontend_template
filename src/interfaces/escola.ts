@@ -62,3 +62,11 @@ export interface NomeReconhecido {
 export interface ReconhecimentoChamada {
   nomes: NomeReconhecido[]
 }
+
+export interface HabilidadeTurma {
+  codigo: string
+  area: string
+  nome: string
+  total_alunos_reforco: number
+}
+

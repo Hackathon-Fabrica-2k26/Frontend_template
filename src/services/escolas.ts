@@ -3,6 +3,7 @@ import type {
   ConfigPayload,
   Escola,
   EscolaPayload,
+  HabilidadeTurma,
   NomeReconhecido,
   Paginated,
   ReconhecimentoChamada,
@@ -168,6 +169,16 @@ class TurmasService {
       await api.delete(`turmas/${id}/`)
     } catch (error) {
       throw buildApiError(error, 'Não foi possível excluir a turma.')
+    }
+  }
+
+  /** Resumo agregado de habilidades da turma calculadas a partir dos trabalhos dos alunos. */
+  async obterHabilidades (turmaId: number): Promise<HabilidadeTurma[]> {
+    try {
+      const { data } = await api.get<HabilidadeTurma[]>(`turmas/${turmaId}/habilidades/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar as habilidades da turma.')
     }
   }
 }
