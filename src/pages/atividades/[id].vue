@@ -222,6 +222,19 @@
     }
   }
 
+  async function baixarAtividade (todas = false) {
+    if (!atividade.value || ocupada.value) return
+    ocupada.value = true
+    try {
+      const sufixo = todas ? '_versoes_aprovadas' : ''
+      await atividadesService.downloadPdf(atividade.value.id, `${titulo.value}${sufixo}.pdf`, todas)
+    } catch (error) {
+      notify.error(mensagem(error))
+    } finally {
+      ocupada.value = false
+    }
+  }
+
   async function baixarRelatorio (r: Relatorio) {
     try {
       const nome = nomesAlunos.value.get(r.aluno) ?? `aluno-${r.aluno}`
@@ -251,7 +264,10 @@
           <h1>{{ titulo }}</h1>
         </div>
 
-        <v-btn color="primary" :disabled="ocupada" :prepend-icon="Upload" @click="envioAberto = true">Enviar trabalhos</v-btn>
+        <div class="d-flex ga-2">
+          <v-btn :disabled="ocupada" :prepend-icon="Download" variant="outlined" @click="baixarAtividade(false)">Baixar PDF</v-btn>
+          <v-btn color="primary" :disabled="ocupada" :prepend-icon="Upload" @click="envioAberto = true">Enviar trabalhos</v-btn>
+        </div>
       </header>
 
       <v-tabs v-model="aba" class="abas" color="primary">
@@ -295,13 +311,23 @@
             <p>{{ aprovadas }} de {{ variacoes.length }} versões aprovadas</p>
           </div>
 
-          <v-btn
-            v-if="variacoes.length === 0"
-            color="primary"
-            :loading="ocupada"
-            :prepend-icon="Sparkles"
-            @click="gerar"
-          >Gerar versões com IA</v-btn>
+          <div class="d-flex ga-2">
+            <v-btn
+              v-if="aprovadas > 0"
+              :disabled="ocupada"
+              :prepend-icon="Download"
+              variant="outlined"
+              @click="baixarAtividade(true)"
+            >Baixar aprovadas (PDF)</v-btn>
+
+            <v-btn
+              v-if="variacoes.length === 0"
+              color="primary"
+              :loading="ocupada"
+              :prepend-icon="Sparkles"
+              @click="gerar"
+            >Gerar versões com IA</v-btn>
+          </div>
         </div>
 
         <p v-if="variacoes.length === 0">A atividade é cadastrada uma vez. A IA separa os estudantes pela habilidade a reforçar (vista em pelo menos 2 trabalhos) e prepara uma versão para cada grupo; quem tem perfil de apoio recebe também o formato adaptado.</p>
