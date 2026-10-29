@@ -134,38 +134,112 @@
           <small>Os estudantes da turma aparecerão aqui.</small>
         </section>
 
-        <aside class="cartao-apoio">
-          <div>
-            <h3>Apoio para sua turma</h3>
-            <p>Crie uma atividade e registre os avanços de cada estudante.</p>
-          </div>
+        <aside class="coluna-apoio">
+          <!-- Resumo de Habilidades da turma com atalho para atividades (sempre "habilidade a reforçar", nunca "dificuldade") -->
+          <section aria-labelledby="habilidades-turma-titulo" class="cartao-habilidades-turma">
+            <div class="habilidades-turma-topo">
+              <div>
+                <h3 id="habilidades-turma-titulo">Habilidades da turma</h3>
 
-          <!-- Com atividade cadastrada: o card da atividade principal (a mais recente) no lugar da ilustração. -->
-          <button
-            v-if="atividadePrincipal"
-            class="atividade-principal"
-            type="button"
-            @click="abaAtiva = 'atividades'"
-          >
-            <FileText class="atividade-principal__icone" :size="30" :stroke-width="1.6" />
+                <p class="habilidades-turma-sub">Estudantes em reforço por habilidade</p>
+              </div>
 
-            <span class="atividade-principal__texto">
-              <strong>{{ atividadePrincipal.titulo || atividadePrincipal.nome }}</strong>
-              <small>{{ resumoRelatorios(atividadePrincipal) }}</small>
-            </span>
+              <button
+                class="btn-atalho-atividades"
+                title="Ver atividades da turma"
+                type="button"
+                @click="abaAtiva = 'atividades'"
+              >
+                <span>Atividades</span>
+                <ArrowRight :size="15" />
+              </button>
+            </div>
 
-            <ChevronRight class="atividade-principal__seta" :size="22" />
-          </button>
+            <div v-if="carregandoHabilidadesTurma" class="texto-vazio">
+              Carregando habilidades...
+            </div>
 
-          <div v-else aria-hidden="true" class="apoio-ilustracao">
-            <img alt="" class="icone-notebook" :src="iconeNotebookUrl">
-          </div>
+            <div v-else-if="habilidadesEmReforcoTurma.length > 0" class="habilidades-turma-conteudo">
+              <ul class="lista-habilidades-turma">
+                <li
+                  v-for="hab in habilidadesEmReforcoTurma"
+                  :key="hab.codigo"
+                  class="item-habilidade-turma"
+                >
+                  <div class="item-habilidade-turma__cabecalho">
+                    <span class="hab-codigo">{{ hab.codigo }}</span>
 
-          <div class="acoes-apoio">
-            <v-btn block class="botao-apoio" color="primary" @click="acaoPrincipalApoio">
-              {{ atividadePrincipal ? 'Enviar atividades' : 'Adicionar atividade' }}
-              <ArrowRight v-if="atividadePrincipal" class="botao-apoio__seta" :size="20" />
-            </v-btn>
+                    <span class="hab-badge-alunos">
+                      {{ hab.total_alunos_reforco }} {{ hab.total_alunos_reforco === 1 ? 'estudante' : 'estudantes' }} em reforço
+                    </span>
+                  </div>
+
+                  <strong class="hab-nome">{{ hab.nome }}</strong>
+
+                  <span class="hab-area">{{ hab.area }}</span>
+                </li>
+              </ul>
+
+              <button
+                class="btn-atalho-atividades-rodape"
+                type="button"
+                @click="abaAtiva = 'atividades'"
+              >
+                <span>Ver atividades da turma</span>
+                <ArrowRight :size="16" />
+              </button>
+            </div>
+
+            <div v-else class="habilidades-turma-vazio">
+              <p class="texto-vazio">
+                Envie pelo menos 2 trabalhos para ver as habilidades.
+              </p>
+
+              <button
+                class="btn-atalho-atividades-rodape mt-3"
+                type="button"
+                @click="abaAtiva = 'atividades'"
+              >
+                <span>Ir para atividades</span>
+                <ArrowRight :size="16" />
+              </button>
+            </div>
+          </section>
+
+          <div class="cartao-apoio">
+            <div>
+              <h3>Apoio para sua turma</h3>
+
+              <p>Crie uma atividade e registre os avanços de cada estudante.</p>
+            </div>
+
+            <!-- Com atividade cadastrada: o card da atividade principal (a mais recente) no lugar da ilustração. -->
+            <button
+              v-if="atividadePrincipal"
+              class="atividade-principal"
+              type="button"
+              @click="abaAtiva = 'atividades'"
+            >
+              <FileText class="atividade-principal__icone" :size="30" :stroke-width="1.6" />
+
+              <span class="atividade-principal__texto">
+                <strong>{{ atividadePrincipal.titulo || atividadePrincipal.nome }}</strong>
+                <small>{{ resumoRelatorios(atividadePrincipal) }}</small>
+              </span>
+
+              <ChevronRight class="atividade-principal__seta" :size="22" />
+            </button>
+
+            <div v-else aria-hidden="true" class="apoio-ilustracao">
+              <img alt="" class="icone-notebook" :src="iconeNotebookUrl">
+            </div>
+
+            <div class="acoes-apoio">
+              <v-btn block class="botao-apoio" color="primary" @click="acaoPrincipalApoio">
+                {{ atividadePrincipal ? 'Enviar atividades' : 'Adicionar atividade' }}
+                <ArrowRight v-if="atividadePrincipal" class="botao-apoio__seta" :size="20" />
+              </v-btn>
+            </div>
           </div>
         </aside>
       </div>
@@ -312,12 +386,14 @@
 <script setup lang="ts">
   import type { Aluno } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
+  import type { HabilidadeTurma } from '@/interfaces/escola'
   import { ArrowRight, ChevronRight, Clock, FileText, Image, ShieldAlert, Trash2, UserPlus } from '@lucide/vue'
   import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   import iconeNotebookUrl from '@/assets/icone-notebook.svg'
   import { atividadesService } from '@/services/atividades'
+  import { turmasService } from '@/services/escolas'
   import { useAlunosStore, useConsentimentoStore, useEscolasStore } from '@/stores'
   import { notify } from '@/utils/notify'
 
@@ -344,6 +420,24 @@
   const criarAtividadeAberto = ref(false)
   const atividades = ref<Atividade[]>([])
   const atividadeEnvio = ref<Atividade | null>(null)
+
+  const habilidadesTurma = ref<HabilidadeTurma[]>([])
+  const carregandoHabilidadesTurma = ref(false)
+
+  const habilidadesEmReforcoTurma = computed(() =>
+    habilidadesTurma.value.filter(h => h.total_alunos_reforco > 0),
+  )
+
+  async function carregarHabilidadesTurma (turma: number) {
+    carregandoHabilidadesTurma.value = true
+    try {
+      habilidadesTurma.value = await turmasService.obterHabilidades(turma)
+    } catch {
+      habilidadesTurma.value = []
+    } finally {
+      carregandoHabilidadesTurma.value = false
+    }
+  }
 
   const abas = [
     { id: 'estudantes', rotulo: 'Estudantes' },
@@ -486,6 +580,7 @@
         escolasStore.fetchTurma(id),
         alunosStore.fetchAlunos({ turma: id }),
         carregarAtividades(id),
+        carregarHabilidadesTurma(id),
       ])
       if (alunosStore.alunos.length > 0) {
         await consentimentoStore.carregarParaAlunos(alunosStore.alunos.map(a => a.id))
@@ -883,6 +978,140 @@
   gap: 1.5rem;
 }
 
+.coluna-apoio {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cartao-habilidades-turma {
+  padding: 1.5rem;
+  border: 1px solid #e1eee6;
+  border-radius: 18px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.habilidades-turma-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.habilidades-turma-topo h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a3628;
+  margin: 0;
+}
+
+.habilidades-turma-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #698276;
+}
+
+.btn-atalho-atividades {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #356b5b;
+  background-color: #eef5f0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-atalho-atividades:hover {
+  background-color: #dbebe1;
+}
+
+.lista-habilidades-turma {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item-habilidade-turma {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid #e1eee6;
+  border-left: 4px solid #d97706;
+  background-color: #fdfdfd;
+}
+
+.item-habilidade-turma__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hab-codigo {
+  font-family: monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #356b5b;
+  background-color: #eef5f0;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.hab-badge-alunos {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.hab-nome {
+  font-size: 0.82rem;
+  color: #1a3628;
+  line-height: 1.35;
+}
+
+.hab-area {
+  font-size: 0.72rem;
+  color: #698276;
+}
+
+.btn-atalho-atividades-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #b5d7c3;
+  background-color: #f7faf8;
+  color: #274d3d;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-atalho-atividades-rodape:hover {
+  background-color: #eef5f0;
+  border-color: #356b5b;
+}
+
 .cartao-vazio,
 .cartao-apoio {
   min-height: 280px;
@@ -1243,7 +1472,7 @@
     display: none;
   }
 
-  .cartao-apoio {
+  .coluna-apoio {
     position: sticky;
     top: 1rem;
   }
@@ -1254,7 +1483,7 @@
     grid-template-columns: 1fr;
   }
 
-  .cartao-apoio {
+  .coluna-apoio {
     position: static;
   }
 }

@@ -163,6 +163,90 @@
                 </p>
               </section>
 
+              <!-- Bloco de Habilidades a reforçar (sempre "habilidade a reforçar", nunca "dificuldade") -->
+              <section aria-labelledby="habilidades-aluno-titulo" class="bloco habilidades-bloco">
+                <div class="habilidades-topo">
+                  <h4 id="habilidades-aluno-titulo">
+                    Habilidades a reforçar
+                    <span v-if="habilidadesAReforcar.length > 0" class="badge-contador">
+                      {{ habilidadesAReforcar.length }}
+                    </span>
+                  </h4>
+                </div>
+
+                <div v-if="carregandoHabilidades" class="texto-vazio">
+                  Carregando habilidades...
+                </div>
+
+                <div v-else-if="erroConsentimento" class="texto-vazio">
+                  Análise pedagógica indisponível: autorização pendente dos responsáveis (LGPD Art. 14).
+                </div>
+
+                <div v-else-if="temHabilidades" class="habilidades-conteudo">
+                  <!-- Habilidades a reforçar identificadas -->
+                  <div v-if="habilidadesAReforcar.length > 0" class="habilidades-grupo">
+                    <ul class="habilidades-lista">
+                      <li
+                        v-for="hab in habilidadesAReforcar"
+                        :key="hab.codigo"
+                        class="habilidade-item habilidade-item--reforcar"
+                      >
+                        <div class="habilidade-info">
+                          <div class="habilidade-tags">
+                            <span class="habilidade-codigo">{{ hab.codigo }}</span>
+
+                            <span class="habilidade-area">{{ hab.area }}</span>
+
+                            <span v-if="hab.em_reforco" class="habilidade-status-reforco">Em reforço</span>
+                          </div>
+
+                          <span class="habilidade-nome">{{ hab.nome }}</span>
+                        </div>
+
+                        <div class="habilidade-contagem">
+                          <span class="habilidade-badge">
+                            {{ hab.trabalhos_a_reforcar }} {{ hab.trabalhos_a_reforcar === 1 ? 'trabalho mostrou' : 'trabalhos mostraram' }}
+                          </span>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Habilidades já demonstradas -->
+                  <div v-if="habilidadesDemonstradas.length > 0" class="habilidades-grupo mt-4">
+                    <h5 class="habilidades-subtitulo">Habilidades já demonstradas</h5>
+
+                    <ul class="habilidades-lista">
+                      <li
+                        v-for="hab in habilidadesDemonstradas"
+                        :key="hab.codigo"
+                        class="habilidade-item habilidade-item--demonstrada"
+                      >
+                        <div class="habilidade-info">
+                          <div class="habilidade-tags">
+                            <span class="habilidade-codigo">{{ hab.codigo }}</span>
+
+                            <span class="habilidade-area">{{ hab.area }}</span>
+                          </div>
+
+                          <span class="habilidade-nome">{{ hab.nome }}</span>
+                        </div>
+
+                        <div class="habilidade-contagem">
+                          <span class="habilidade-badge habilidade-badge--demonstrada">
+                            {{ hab.trabalhos_demonstrada }} {{ hab.trabalhos_demonstrada === 1 ? 'trabalho demonstrou' : 'trabalhos demonstraram' }}
+                          </span>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <p v-else class="texto-vazio">
+                  Envie pelo menos 2 trabalhos para ver as habilidades.
+                </p>
+              </section>
+
               <!-- Seção de Atividades -->
               <section class="bloco atividades-bloco">
                 <div class="atividades-topo">
@@ -306,7 +390,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { Aluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
+  import type { Aluno, HabilidadeAluno, Observacao, PerfilApoio, PontoAtencaoItem } from '@/interfaces/aluno'
   import type { Atividade } from '@/interfaces/atividade'
 
   import { Check, Copy, Download, FileText, Trash2, X } from '@lucide/vue'
@@ -349,6 +433,29 @@
   const observacoes = ref<Observacao[]>([])
   const perfilApoio = ref<PerfilApoio | null>(null)
   const pontosIa = ref<PontoAtencaoItem[]>([])
+  const habilidades = ref<HabilidadeAluno[]>([])
+  const carregandoHabilidades = ref(false)
+  const erroConsentimento = ref(false)
+
+  const habilidadesAReforcar = computed(() =>
+    habilidades.value.filter(h => h.trabalhos_a_reforcar > 0),
+  )
+
+  const habilidadesDemonstradas = computed(() =>
+    habilidades.value.filter(h => h.trabalhos_demonstrada > 0),
+  )
+
+  const temTrabalhosSuficientes = computed(() => {
+    const total = habilidades.value.reduce(
+      (acc, h) => acc + h.trabalhos_a_reforcar + h.trabalhos_demonstrada,
+      0,
+    )
+    return total >= 2
+  })
+
+  const temHabilidades = computed(() =>
+    temTrabalhosSuficientes.value && (habilidadesAReforcar.value.length > 0 || habilidadesDemonstradas.value.length > 0),
+  )
 
   const pontosAtencaoLista = computed<PontoExibicao[]>(() => {
     const lista: PontoExibicao[] = []
@@ -399,12 +506,16 @@
   }
 
   async function carregar () {
-    const [ativ, obs, perfil, pontos, rels] = await Promise.allSettled([
+    carregandoHabilidades.value = true
+    erroConsentimento.value = false
+
+    const [ativ, obs, perfil, pontos, rels, habs] = await Promise.allSettled([
       atividadesService.list({ turma: props.aluno.turma }),
       observacoesService.list({ aluno: props.aluno.id }),
       pedagogicoService.obterPerfilApoio(props.aluno.id),
       alunosService.obterPontosAtencao(props.aluno.id),
       alunosService.listarRelatorios(props.aluno.id),
+      alunosService.obterHabilidades(props.aluno.id),
     ])
 
     atividades.value = ativ.status === 'fulfilled' ? ativ.value.results : []
@@ -412,6 +523,17 @@
     perfilApoio.value = perfil.status === 'fulfilled' ? perfil.value : null
     pontosIa.value = pontos.status === 'fulfilled' ? (pontos.value.pontos ?? []) : []
     relatorios.value = rels.status === 'fulfilled' ? rels.value : []
+
+    if (habs.status === 'fulfilled') {
+      habilidades.value = habs.value
+    } else {
+      habilidades.value = []
+      const err = habs.reason as { status?: number, response?: { status?: number } } | undefined
+      if (err?.status === 403 || err?.response?.status === 403) {
+        erroConsentimento.value = true
+      }
+    }
+    carregandoHabilidades.value = false
   }
 
   // Relatórios do aluno vêm de /alunos/{id}/relatorios/; a API de atividade não os traz.
@@ -889,6 +1011,140 @@
   color: #698276;
   font-size: 0.82rem;
   text-align: center;
+}
+
+/* Habilidades */
+.habilidades-bloco {
+  margin-bottom: 1.25rem;
+}
+
+.habilidades-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.habilidades-topo h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3628;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.habilidades-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.habilidades-subtitulo {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #356b5b;
+}
+
+.habilidades-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.habilidade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e1eee6;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.habilidade-item:hover {
+  border-color: #b5d7c3;
+  box-shadow: 0 2px 6px rgb(53 107 91 / 6%);
+}
+
+.habilidade-item--reforcar {
+  border-left: 4px solid #d97706;
+}
+
+.habilidade-item--demonstrada {
+  border-left: 4px solid #356b5b;
+  background-color: #fafcfb;
+}
+
+.habilidade-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.habilidade-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.habilidade-codigo {
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #356b5b;
+  background-color: #eef5f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.habilidade-area {
+  font-size: 0.72rem;
+  color: #698276;
+}
+
+.habilidade-status-reforco {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b45309;
+  background-color: #fef3c7;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.habilidade-nome {
+  font-size: 0.82rem;
+  color: #1a3628;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.habilidade-contagem {
+  flex-shrink: 0;
+}
+
+.habilidade-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.habilidade-badge--demonstrada {
+  background-color: #eef7f2;
+  color: #274d3d;
 }
 
 /* Atividades */
