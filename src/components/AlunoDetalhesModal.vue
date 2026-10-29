@@ -163,7 +163,7 @@
                 </p>
               </section>
 
-              <!-- Bloco de Habilidades a reforçar -->
+              <!-- Bloco de Habilidades a reforçar (sempre "habilidade a reforçar", nunca "dificuldade") -->
               <section aria-labelledby="habilidades-aluno-titulo" class="bloco habilidades-bloco">
                 <div class="habilidades-topo">
                   <h4 id="habilidades-aluno-titulo">

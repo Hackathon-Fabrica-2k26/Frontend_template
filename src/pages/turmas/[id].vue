@@ -135,7 +135,7 @@
         </section>
 
         <aside class="coluna-apoio">
-          <!-- Resumo de Habilidades da turma com atalho para atividades -->
+          <!-- Resumo de Habilidades da turma com atalho para atividades (sempre "habilidade a reforçar", nunca "dificuldade") -->
           <section aria-labelledby="habilidades-turma-titulo" class="cartao-habilidades-turma">
             <div class="habilidades-turma-topo">
               <div>
