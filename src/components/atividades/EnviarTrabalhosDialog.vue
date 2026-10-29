@@ -635,13 +635,16 @@
                   <div class="revisao__topo">
                     <div class="arquivo__info">
                       <strong>{{ trabalho.nome_arquivo }}</strong>
+
                       <span v-if="trabalho.status === 'erro'" class="text-error">Não parece um trabalho escolar</span>
+
                       <span v-else>Nome lido: {{ trabalho.nome_lido || 'Não identificado' }}</span>
                     </div>
 
                     <span v-if="trabalho.status === 'erro'" class="selo selo--erro">
                       Recusado
                     </span>
+
                     <span v-else class="selo" :class="`selo--${trabalho.identificacao}`">
                       {{ trabalho.identificacao === 'pendente' ? 'Pendente' : 'Identificado' }}
                     </span>
