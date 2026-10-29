@@ -83,3 +83,14 @@ export interface PontosAtencaoResposta {
   minimo_trabalhos: number
   mensagem?: string
 }
+
+export interface HabilidadeAluno {
+  codigo: string
+  area: string
+  nome: string
+  trabalhos_a_reforcar: number
+  trabalhos_demonstrada: number
+  em_reforco: boolean
+  ultimo_trabalho_em: string | null
+}
+
