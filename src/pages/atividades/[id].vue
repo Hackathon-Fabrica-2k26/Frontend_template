@@ -74,7 +74,8 @@
       relatorios.value = []
     }
     try {
-      pendentes.value = await trabalhosService.listarPendentes(atividade.value.id)
+      const listaPendentes = await trabalhosService.listarPendentes(atividade.value.id)
+      pendentes.value = listaPendentes.filter(t => t.status !== 'erro')
       escolhaAluno.value = Object.fromEntries(pendentes.value.map(t => [t.id, t.aluno ?? null]))
     } catch {
       pendentes.value = []

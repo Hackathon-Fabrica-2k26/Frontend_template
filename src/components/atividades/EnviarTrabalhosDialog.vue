@@ -66,19 +66,24 @@
   // Há análise rodando (alguém na fila ou sendo analisado).
   const ocupado = computed(() => arquivos.value.some(a => a.status === 'fila' || a.status === 'analisando'))
 
+  const trabalhosValidos = computed(() =>
+    trabalhos.value.filter(trabalho => trabalho.status !== 'erro'),
+  )
+
   const podeConfirmar = computed(() =>
-    trabalhos.value.length > 0 && trabalhos.value.every(trabalho => trabalho.aluno !== null),
+    trabalhosValidos.value.length > 0
+    && trabalhosValidos.value.every(trabalho => trabalho.aluno !== null),
   )
 
   const pendentesRevisao = computed(() =>
-    trabalhos.value.filter(trabalho => trabalho.identificacao === 'pendente').length,
+    trabalhosValidos.value.filter(trabalho => trabalho.identificacao === 'pendente').length,
   )
 
   // Revisão completa: o selo do canguru estoura.
   const pronto = computed(() => etapa.value === 'revisao' && podeConfirmar.value)
 
   // O recibo da etapa final: cada trabalho confirmado, com o aluno a quem pertence.
-  const guardados = computed(() => trabalhos.value.map(trabalho => ({
+  const guardados = computed(() => trabalhosValidos.value.map(trabalho => ({
     id: trabalho.id,
     aluno: props.estudantes.find(estudante => estudante.id === trabalho.aluno)?.nome
       ?? trabalho.aluno_nome
@@ -339,7 +344,25 @@
     if (arquivo.status !== 'concluido') {
       return arquivo.file.name
     }
-    return arquivo.trabalhos[0]?.nome_lido || 'Aluno não identificado'
+    const t = arquivo.trabalhos[0]
+    if (t?.status === 'erro') {
+      return arquivo.file.name
+    }
+    return t?.nome_lido || 'Aluno não identificado'
+  }
+
+  function obterMotivoRecusa (trabalho: Trabalho): string {
+    const dados = trabalho.dados_analise as Record<string, unknown> | undefined
+    if (typeof dados?.motivo === 'string' && dados.motivo.trim()) {
+      return dados.motivo.trim()
+    }
+    if (typeof dados?.erro === 'string' && dados.erro.trim()) {
+      return dados.erro.trim()
+    }
+    if (typeof trabalho.descricao_ia === 'string' && trabalho.descricao_ia.trim()) {
+      return trabalho.descricao_ia.trim()
+    }
+    return 'Não parece um trabalho escolar.'
   }
 
   /* ---------- revisão ---------- */
@@ -360,7 +383,7 @@
 
     try {
       for (const trabalho of trabalhos.value) {
-        if (trabalho.aluno === null) {
+        if (trabalho.aluno === null || trabalho.status === 'erro') {
           continue
         }
         const atualizado = await trabalhosService.confirmar(trabalho.id, {
@@ -612,33 +635,45 @@
                   <div class="revisao__topo">
                     <div class="arquivo__info">
                       <strong>{{ trabalho.nome_arquivo }}</strong>
-                      <span>Nome lido: {{ trabalho.nome_lido || 'Não identificado' }}</span>
+                      <span v-if="trabalho.status === 'erro'" class="text-error">Não parece um trabalho escolar</span>
+                      <span v-else>Nome lido: {{ trabalho.nome_lido || 'Não identificado' }}</span>
                     </div>
 
-                    <span class="selo" :class="`selo--${trabalho.identificacao}`">
+                    <span v-if="trabalho.status === 'erro'" class="selo selo--erro">
+                      Recusado
+                    </span>
+                    <span v-else class="selo" :class="`selo--${trabalho.identificacao}`">
                       {{ trabalho.identificacao === 'pendente' ? 'Pendente' : 'Identificado' }}
                     </span>
                   </div>
 
-                  <p class="revisao__confianca">
-                    Confiança: {{ formatarConfianca(trabalho.confianca) }}
-                  </p>
+                  <template v-if="trabalho.status === 'erro'">
+                    <p class="revisao__motivo-erro">
+                      {{ obterMotivoRecusa(trabalho) }}
+                    </p>
+                  </template>
 
-                  <label class="revisao__campo">
-                    {{ trabalho.identificacao === 'pendente' ? 'Confirme o estudante da turma' : 'Estudante da turma' }}
-                    <select
-                      v-model="trabalho.aluno"
-                      class="revisao__select"
-                      :disabled="salvando"
-                      @change="aoAlterarAluno(trabalho)"
-                    >
-                      <option :value="null">Selecione um estudante</option>
+                  <template v-else>
+                    <p class="revisao__confianca">
+                      Confiança: {{ formatarConfianca(trabalho.confianca) }}
+                    </p>
 
-                      <option v-for="estudante in estudantes" :key="estudante.id" :value="estudante.id">
-                        {{ estudante.nome }}
-                      </option>
-                    </select>
-                  </label>
+                    <label class="revisao__campo">
+                      {{ trabalho.identificacao === 'pendente' ? 'Confirme o estudante da turma' : 'Estudante da turma' }}
+                      <select
+                        v-model="trabalho.aluno"
+                        class="revisao__select"
+                        :disabled="salvando"
+                        @change="aoAlterarAluno(trabalho)"
+                      >
+                        <option :value="null">Selecione um estudante</option>
+
+                        <option v-for="estudante in estudantes" :key="estudante.id" :value="estudante.id">
+                          {{ estudante.nome }}
+                        </option>
+                      </select>
+                    </label>
+                  </template>
                 </li>
               </ul>
             </template>
@@ -1140,6 +1175,18 @@
 .selo--pendente {
   background: #fff1dc;
   color: #a36c25;
+}
+
+.selo--erro {
+  background: #fde8e8;
+  color: #c81e1e;
+}
+
+.revisao__motivo-erro {
+  margin: 6px 0 0;
+  color: #c81e1e;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 /* ---------- rodapé e botões ---------- */
