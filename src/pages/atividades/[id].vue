@@ -226,7 +226,7 @@
     if (!atividade.value || ocupada.value) return
     ocupada.value = true
     try {
-      const sufixo = todas ? '_todas_versoes' : ''
+      const sufixo = todas ? '_versoes_aprovadas' : ''
       await atividadesService.downloadPdf(atividade.value.id, `${titulo.value}${sufixo}.pdf`, todas)
     } catch (error) {
       notify.error(mensagem(error))
@@ -280,11 +280,7 @@
       <section v-if="aba === 'atividade'" aria-labelledby="original-titulo" class="bloco">
         <div class="cabecalho cabecalho--bloco">
           <h2 id="original-titulo"><FileText :size="22" /> Proposta original</h2>
-
-          <div class="d-flex ga-2">
-            <v-btn :disabled="ocupada" :prepend-icon="Download" variant="outlined" @click="baixarAtividade(false)">Baixar PDF</v-btn>
-            <v-btn v-if="!editando" :prepend-icon="Pencil" variant="outlined" @click="iniciarEdicao">Editar</v-btn>
-          </div>
+          <v-btn v-if="!editando" :prepend-icon="Pencil" variant="outlined" @click="iniciarEdicao">Editar</v-btn>
         </div>
 
         <template v-if="editando">
@@ -322,7 +318,7 @@
               :prepend-icon="Download"
               variant="outlined"
               @click="baixarAtividade(true)"
-            >Baixar todas (PDF)</v-btn>
+            >Baixar aprovadas (PDF)</v-btn>
 
             <v-btn
               v-if="variacoes.length === 0"
