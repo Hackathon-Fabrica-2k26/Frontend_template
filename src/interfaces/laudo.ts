@@ -23,4 +23,6 @@ export interface EnvioLaudoOpcoes {
   /** Recebe de 0 a 100 conforme o arquivo sobe. */
   onProgresso?: (percentual: number) => void
   signal?: AbortSignal
+  /** Quando true, força a aceitação do laudo mesmo se o nome no documento divergir do aluno. */
+  confirmarNome?: boolean
 }

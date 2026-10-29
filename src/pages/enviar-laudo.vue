@@ -10,6 +10,7 @@
   import LaudoPagina from '@/components/laudo/LaudoPagina.vue'
   import { useNomeAluno } from '@/composables/useNomeAluno'
   import laudosService from '@/services/laudos'
+  import { ApiError } from '@/utils/apiError'
   import { notify } from '@/utils/notify'
 
   definePage({
@@ -34,6 +35,9 @@
   const estado = ref<Estado>('vazio')
   const progresso = ref(0)
   const arrastando = ref(false)
+  const confirmarNomeDialog = ref(false)
+  const mensagemConfirmacaoNome = ref('')
+  const arquivoPendenteConfirmacao = ref<File | null>(null)
   let envio: AbortController | null = null
 
   // O último arquivo continua na linha enquanto ela fecha ao remover (sem piscar vazia).
@@ -82,7 +86,7 @@
     if (solto) void enviar(solto)
   }
 
-  async function enviar (novo: File) {
+  async function enviar (novo: File, confirmarNome = false) {
     if (!TIPOS_ACEITOS.has(novo.type)) {
       notify.error('Envie um arquivo PDF, JPG ou PNG.')
       return
@@ -103,6 +107,7 @@
     try {
       const laudo = await laudosService.enviar(alunoId.value, novo, {
         signal: controle.signal,
+        confirmarNome,
         onProgresso: valor => {
           progresso.value = valor
         },
@@ -112,11 +117,39 @@
     } catch (error) {
       // Cancelado por "Remover" ou por outro arquivo: o estado já foi tratado lá.
       if (controle.signal.aborted) return
+
+      if (error instanceof ApiError && (error.status === 409 || error.confirmacaoNecessaria)) {
+        const dados = error.data as Record<string, unknown> | undefined
+        const nomeDoc = typeof dados?.nome_no_documento === 'string' && dados.nome_no_documento.trim()
+          ? dados.nome_no_documento.trim()
+          : ''
+        mensagemConfirmacaoNome.value = nomeDoc
+          ? `O nome no documento é ${nomeDoc}. É mesmo o laudo de ${nomeAluno.value}?`
+          : `O nome no documento não confere com o do aluno. É mesmo o laudo de ${nomeAluno.value}?`
+        arquivoPendenteConfirmacao.value = novo
+        confirmarNomeDialog.value = true
+        return
+      }
+
       notify.error(error instanceof Error ? error.message : 'Não foi possível enviar o laudo.')
       remover()
     } finally {
       if (envio === controle) envio = null
     }
+  }
+
+  function cancelarConfirmacaoNome () {
+    confirmarNomeDialog.value = false
+    arquivoPendenteConfirmacao.value = null
+    remover()
+  }
+
+  async function confirmarEReenviar () {
+    confirmarNomeDialog.value = false
+    const file = arquivoPendenteConfirmacao.value || arquivo.value
+    arquivoPendenteConfirmacao.value = null
+    if (!file) return
+    await enviar(file, true)
   }
 
   function remover () {
@@ -220,6 +253,34 @@
       </LaudoBotao>
     </template>
   </LaudoPagina>
+
+  <!-- Confirmação de nome diferente no laudo (HTTP 409) -->
+  <v-dialog v-model="confirmarNomeDialog" max-width="460" persistent>
+    <v-card class="pa-6" rounded="lg">
+      <h2 class="text-h6 mb-2">Confirmar laudo</h2>
+
+      <p class="mb-5 text-body-1">
+        {{ mensagemConfirmacaoNome }}
+      </p>
+
+      <div class="d-flex justify-end ga-3">
+        <v-btn
+          variant="text"
+          @click="cancelarConfirmacaoNome"
+        >
+          Escolher outro
+        </v-btn>
+
+        <v-btn
+          color="primary"
+          :loading="estado === 'enviando'"
+          @click="confirmarEReenviar"
+        >
+          Confirmar e continuar
+        </v-btn>
+      </div>
+    </v-card>
+  </v-dialog>
 </template>
 
 <style scoped>
