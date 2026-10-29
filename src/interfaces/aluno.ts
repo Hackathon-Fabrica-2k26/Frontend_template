@@ -93,4 +93,3 @@ export interface HabilidadeAluno {
   em_reforco: boolean
   ultimo_trabalho_em: string | null
 }
-

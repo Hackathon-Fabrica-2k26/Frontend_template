@@ -168,6 +168,7 @@
                 >
                   <div class="item-habilidade-turma__cabecalho">
                     <span class="hab-codigo">{{ hab.codigo }}</span>
+
                     <span class="hab-badge-alunos">
                       {{ hab.total_alunos_reforco }} {{ hab.total_alunos_reforco === 1 ? 'estudante' : 'estudantes' }} em reforço
                     </span>

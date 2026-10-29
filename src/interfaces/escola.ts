@@ -69,4 +69,3 @@ export interface HabilidadeTurma {
   nome: string
   total_alunos_reforco: number
 }
-

@@ -194,7 +194,9 @@
                         <div class="habilidade-info">
                           <div class="habilidade-tags">
                             <span class="habilidade-codigo">{{ hab.codigo }}</span>
+
                             <span class="habilidade-area">{{ hab.area }}</span>
+
                             <span v-if="hab.em_reforco" class="habilidade-status-reforco">Em reforço</span>
                           </div>
 
@@ -223,6 +225,7 @@
                         <div class="habilidade-info">
                           <div class="habilidade-tags">
                             <span class="habilidade-codigo">{{ hab.codigo }}</span>
+
                             <span class="habilidade-area">{{ hab.area }}</span>
                           </div>
 
