@@ -442,8 +442,16 @@
     habilidades.value.filter(h => h.trabalhos_demonstrada > 0),
   )
 
+  const temTrabalhosSuficientes = computed(() => {
+    const total = habilidades.value.reduce(
+      (acc, h) => acc + h.trabalhos_a_reforcar + h.trabalhos_demonstrada,
+      0,
+    )
+    return total >= 2
+  })
+
   const temHabilidades = computed(() =>
-    habilidadesAReforcar.value.length > 0 || habilidadesDemonstradas.value.length > 0,
+    temTrabalhosSuficientes.value && (habilidadesAReforcar.value.length > 0 || habilidadesDemonstradas.value.length > 0),
   )
 
   const pontosAtencaoLista = computed<PontoExibicao[]>(() => {
