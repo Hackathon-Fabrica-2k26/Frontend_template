@@ -90,6 +90,26 @@ class AtividadesService {
       throw buildApiError(error, 'Não foi possível carregar o mapa de variações.')
     }
   }
+
+  async downloadPdf (id: number, nomeArquivo?: string, todas = false): Promise<void> {
+    try {
+      const { data } = await api.get<Blob>(`atividades/${id}/pdf/`, {
+        params: todas ? { todas: true } : {},
+        responseType: 'blob',
+      })
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      const nomeFinal = nomeArquivo?.endsWith('.pdf') ? nomeArquivo : `${nomeArquivo || `atividade-${id}`}.pdf`
+      link.setAttribute('download', nomeFinal)
+      document.body.append(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível baixar o PDF da atividade.')
+    }
+  }
 }
 
 export const atividadesService = new AtividadesService()
