@@ -21,7 +21,7 @@ const api = axios.create({
 function isAuthEndpoint (url?: string): boolean {
   return Boolean(
     url
-    && /auth\/(?:login|refresh|otp\/verify|otp\/resend)\//.test(url),
+    && /auth\/(?:login|logout|refresh|otp\/verify|otp\/resend)\//.test(url),
   )
 }
 
@@ -60,7 +60,7 @@ api.interceptors.response.use(
 
       return api(original)
     } catch (refreshError) {
-      auth.logout()
+      await auth.logout()
 
       const rotaAtual = globalRouter.router?.currentRoute.value
       const caminho = typeof window === 'undefined' ? '' : window.location.pathname

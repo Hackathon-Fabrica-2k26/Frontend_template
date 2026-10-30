@@ -276,14 +276,24 @@ export const useAuthStore = defineStore('auth', () => {
     return state.value.user
   }
 
-  function logout (): void {
-    state.value = emptyAuth()
-    remember.value = false
+  async function logout (): Promise<void> {
+    const refreshToken = state.value.refresh
 
-    localStorage.removeItem(AUTH_KEY)
-    sessionStorage.removeItem(AUTH_KEY)
+    try {
+      if (refreshToken) {
+        await authService.logout(refreshToken)
+      }
+    } catch {
+      // Se a chamada falhar (sem rede, token já inválido), limpa mesmo assim.
+    } finally {
+      state.value = emptyAuth()
+      remember.value = false
 
-    clearPending()
+      localStorage.removeItem(AUTH_KEY)
+      sessionStorage.removeItem(AUTH_KEY)
+
+      clearPending()
+    }
   }
 
   return {

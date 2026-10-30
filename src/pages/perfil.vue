@@ -91,9 +91,9 @@
     ])
   }
 
-  function sair (): void {
+  async function sair (): Promise<void> {
     sairAberto.value = false
-    auth.logout()
+    await auth.logout()
     router.push('/login')
   }
 
