@@ -69,6 +69,14 @@ class AuthService {
     return data
   }
 
+  async logout (refresh: string): Promise<void> {
+    try {
+      await api.post('auth/logout/', { refresh })
+    } catch (error: unknown) {
+      throw buildApiError(error, 'Não foi possível realizar o logout.')
+    }
+  }
+
   async me (): Promise<User> {
     try {
       const { data } = await api.get<User>('auth/me/')
