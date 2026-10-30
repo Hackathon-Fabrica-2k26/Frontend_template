@@ -1,6 +1,7 @@
 import type {
   Aluno,
   AlunoPayload,
+  HabilidadeAluno,
   MetaDados,
   MetaDadosPayload,
   Observacao,
@@ -96,6 +97,16 @@ class AlunosService {
       return data.codigo
     } catch (error) {
       throw buildApiError(error, 'Não foi possível gerar o link do responsável.')
+    }
+  }
+
+  /** Histórico e evolução de habilidades do aluno calculadas a partir dos trabalhos. */
+  async obterHabilidades (alunoId: number): Promise<HabilidadeAluno[]> {
+    try {
+      const { data } = await api.get<HabilidadeAluno[]>(`alunos/${alunoId}/habilidades/`)
+      return data
+    } catch (error) {
+      throw buildApiError(error, 'Não foi possível carregar as habilidades do aluno.')
     }
   }
 }

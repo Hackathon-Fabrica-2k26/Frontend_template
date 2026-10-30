@@ -30,6 +30,9 @@ class LaudosService {
   async enviar (alunoId: number, arquivo: File, opcoes: EnvioLaudoOpcoes = {}): Promise<Laudo> {
     const formData = new FormData()
     formData.append('arquivo', arquivo)
+    if (opcoes.confirmarNome) {
+      formData.append('confirmar_nome', 'true')
+    }
 
     const { cliente, envio } = rotas(alunoId, 0)
     try {
@@ -37,6 +40,7 @@ class LaudosService {
         headers: {
           'Content-Type': undefined,
         },
+        params: opcoes.confirmarNome ? { confirmar_nome: true } : undefined,
         signal: opcoes.signal,
         timeout: 120_000,
         onUploadProgress: evento => {

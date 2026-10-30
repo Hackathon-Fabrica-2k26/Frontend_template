@@ -19,7 +19,9 @@ export default defineConfig({
     Components({ dts: 'src/components.d.ts' }),
     Fonts({
       google: {
-        families: [{ name: 'Poppins', styles: 'wght@400;500;600' }],
+        // defer: false gera <link rel="stylesheet"> comum. O modo padrão usa onload="..." inline,
+        // que a Content-Security-Policy (script-src 'self') bloqueia e a fonte não carrega.
+        families: [{ name: 'Poppins', styles: 'wght@400;500;600', defer: false }],
       },
     }),
     tailwindcss(),

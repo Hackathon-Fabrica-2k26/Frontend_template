@@ -268,6 +268,7 @@
   function tratarArquivoSelecionado (evento: Event): void {
     const target = evento.target as HTMLInputElement
     const arquivo = target.files?.[0]
+    target.value = ''
     if (arquivo) {
       processarArquivo(arquivo)
     }
