@@ -44,4 +44,10 @@ Para desenvolver sem login, no backend use `AUTH_DISABLED=True` (veja o README d
 Defina `VITE_API_URL` no ambiente de build do Dokku (ex.: `dokku config:set frontend VITE_API_URL=https://api.exemplo.com/api/`).
 Todas as variáveis `VITE_MOCK_*` operam por padrão desligadas (`false`), garantindo que o build de produção utilize exclusivamente a API real caso nenhuma variável de mock seja definida.
 
+### Cabeçalhos de segurança
+O nginx do buildpack usa `app-nginx.conf.sigil` (o `nginx.conf` vale só para a imagem Docker; mantenha os dois iguais). Ele envia `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e `Permissions-Policy` (só a câmera liberada). O HSTS vem do nginx do Dokku.
+- O `connect-src` da CSP libera a API pela própria `VITE_API_URL`, então ela precisa estar no `dokku config` do app.
+- Para liberar outra origem (separe por espaço): `dokku config:set frontend CSP_CONNECT_SRC_EXTRA="https://outra.exemplo.com"`.
+- Ao adicionar script, fonte, imagem ou iframe de outro domínio, inclua a origem na CSP; senão o navegador bloqueia (veja o console).
+
 Veja [AGENTS.md](AGENTS.md) para os padrões do projeto.
