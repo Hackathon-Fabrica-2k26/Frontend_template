@@ -10,7 +10,7 @@ Resumo local (gitignored) para orientar o trabalho neste repositório. Fontes or
 - Nunca tratar o que foi só desenhado/descrito como implementado.
 
 ## Stack
-- Frontend: este repo (Vue 3 + Vuetify 4 + Vite + TS), segue `AGENTS.md`. Backend: `Backend_template` (Django + DRF + JWT, IA no servidor). Mobile Flutter é opcional, não confirmado.
+- Frontend: este repo (Vue 3 + Vuetify 4 + Vite + TS), segue `AGENTS.md`. Backend: `Marsupi_Backend` (Django + DRF + JWT, IA no servidor). Mobile Flutter é opcional, não confirmado.
 
 ## Design (resumo de DESIGN.md)
 - Cores: primary `#356B5B`, support `#A9C7B4`, accent `#E3B477`, background `#F7F7F1`, text `#263D35`. Não usar a paleta antiga (`#2F4F45`, `#9CAF91`).
