@@ -1,0 +1,79 @@
+{{/*
+  Config do nginx usada em produção (Dokku + buildpack-nginx, ver .buildpacks).
+  Baseada no template padrão do buildpack, com cabeçalhos de segurança e cache (issue #107).
+
+  A Content-Security-Policy libera a API em connect-src usando a variável VITE_API_URL
+  (a mesma do build, definida com `dokku config:set frontend VITE_API_URL=...`).
+  Origens extras (separadas por espaço) podem ir em CSP_CONNECT_SRC_EXTRA.
+*/}}
+{{ if ne $.NGINX_WORKERS "" }}
+  worker_processes {{ $.NGINX_WORKERS }};
+{{ else }}
+  worker_processes 1;
+{{ end }}
+error_log stderr;
+pid nginx.pid;
+daemon off;
+
+events {
+  {{ if ne $.NGINX_WORKER_CONNECTIONS "" }}
+    worker_connections {{ $.NGINX_WORKER_CONNECTIONS }};
+  {{ else }}
+    worker_connections 768;
+  {{ end }}
+}
+
+http {
+  {{ if ne $.NGINX_CLIENT_BODY_TIMEOUT "" }}
+    client_body_timeout {{ $.NGINX_CLIENT_BODY_TIMEOUT }};
+  {{ else }}
+    client_body_timeout 5;
+  {{ end }}
+  types_hash_max_size 2048;
+  include mime.types;
+  charset UTF-8;
+  server_tokens off;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+
+  # Cache: arquivos com hash em /assets/ ficam 1 ano; index.html sempre revalida.
+  # Fica num map para não usar add_header dentro de location (o que anularia os cabeçalhos do server).
+  map $uri $cache_control {
+    ~^/assets/    "public, max-age=31536000, immutable";
+    default       "no-cache";
+  }
+
+  server {
+    listen {{ $.PORT }};
+    server_name  _;
+    {{ if ne $.NGINX_CLIENT_MAX_BODY_SIZE "" }}
+      client_max_body_size {{ $.NGINX_CLIENT_MAX_BODY_SIZE }}M;
+    {{ else }}
+      client_max_body_size 1M;
+    {{ end }}
+    {{ if ne $.NGINX_ROOT "" }}
+      root /app/www/{{ $.NGINX_ROOT }};
+    {{ else }}
+      root /app/www;
+    {{ end }}
+    index index.html;
+    port_in_redirect off;
+
+    # Cabeçalhos de segurança (issue #107). O HSTS já vem do nginx do Dokku.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' {{ var "VITE_API_URL" }} {{ var "CSP_CONNECT_SRC_EXTRA" }}; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+    add_header Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()" always;
+    add_header Cache-Control $cache_control;
+
+    location / {
+      {{ if ne $.NGINX_DEFAULT_REQUEST "" }}
+        try_files $uri $uri/ /{{ $.NGINX_DEFAULT_REQUEST }};
+      {{ else }}
+        try_files $uri $uri/ =404;
+      {{ end }}
+    }
+  }
+}
