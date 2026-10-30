@@ -1,7 +1,7 @@
 # AGENTS.md
 Contexto do produto: docs/contexto_projeto_ia.md.
 
-Frontend Vue 3 + Vuetify 4 (Vite, TypeScript). Consome a API do `Backend_template` (Django + DRF + JWT). Siga estes padrões ao adicionar código.
+Frontend Vue 3 + Vuetify 4 (Vite, TypeScript). Consome a API do `Marsupi_Backend` (Django + DRF + JWT). Siga estes padrões ao adicionar código.
 
 ## Estrutura
 - `src/pages/`: rotas por arquivo (`unplugin-vue-router`). `pages/items/index.vue` vira `/items`; `[id].vue` vira `/items/:id`
