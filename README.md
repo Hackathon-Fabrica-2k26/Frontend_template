@@ -2,11 +2,11 @@
 
 Painel web do **Marsupi**, copiloto pedagógico inclusivo para professores dos anos iniciais do Ensino Fundamental, criado no Hackathon Fábrica de Software 2026 (IFC Araquari), desafio *"Do Zero à Autonomia: 24H com IA"*.
 
-SPA com Vue 3 + Vuetify 4 + Vite + TypeScript, Pinia e rotas por arquivo. Consome a API do [backend](https://github.com/Hackathon-Fabrica-2k26/Backend_template).
+SPA com Vue 3 + Vuetify 4 + Vite + TypeScript, Pinia e rotas por arquivo. Consome a API do [backend](https://github.com/Hackathon-Fabrica-2k26/Marsupi_Backend).
 
 ## Requisitos
 - Node.js 22+ (testado no 24)
-- [Backend](https://github.com/Hackathon-Fabrica-2k26/Backend_template) rodando em `http://localhost:8000`
+- [Backend](https://github.com/Hackathon-Fabrica-2k26/Marsupi_Backend) rodando em `http://localhost:8000`
 
 ## Instalação
 ```bash
